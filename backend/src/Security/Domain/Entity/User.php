@@ -16,9 +16,6 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\UniqueConstraint(name: "UNIQ_IDENTIFIER_USERNAME", fields: ["username"])]
 class User extends BaseEntity implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME, unique: true)]
-    protected Uuid $id;
 
     #[ORM\Column(length: 180)]
     private ?string $username = null;
@@ -38,8 +35,10 @@ class User extends BaseEntity implements UserInterface, PasswordAuthenticatedUse
 
     public function __construct()
     {
+        parent::__construct();
         $this->id = Uuid::v4();
         $this->rolesEntities = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): Uuid

@@ -22,7 +22,7 @@ abstract class BaseEntity
     public function __construct()
     {
         $this->id = Uuid::v4();
-        $this->createdAt = new DateTimeImmutable();
+        $this->createdAt = new DateTimeImmutable("now");
     }
 
     public function getId(): Uuid

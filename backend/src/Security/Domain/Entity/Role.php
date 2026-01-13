@@ -2,31 +2,30 @@
 
 namespace App\Security\Domain\Entity;
 
+use App\Shared\Domain\Entity\BaseEntity;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: "roles")]
-class Role
+class Role extends BaseEntity
 {
-    #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME, unique: true)]
-    private ?Uuid $id = null;
-
     #[ORM\Column(length: 50, unique: true)]
     private ?string $nombre = null; // Ej: ROLE_ADMIN
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $descripcion = null;
 
+
     public function __construct(string $nombre)
     {
+        parent::__construct();
         $this->id = Uuid::v4();
         $this->nombre = $nombre;
     }
 
-    public function getId(): ?Uuid
+    public function getId(): Uuid
     {
         return $this->id;
     }

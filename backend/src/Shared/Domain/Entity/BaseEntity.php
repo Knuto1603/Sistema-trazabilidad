@@ -7,6 +7,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Uid\Uuid;
 
+#[ORM\HasLifecycleCallbacks]
 abstract class BaseEntity
 {
     #[ORM\Id]

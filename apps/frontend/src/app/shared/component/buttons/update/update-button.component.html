@@ -1,9 +1,0 @@
-<button [disabled]="disabled || loading" mat-flat-button color="primary">
-  @if (loading) {
-    <mat-spinner diameter="20" color="accent" class="me-2"></mat-spinner>
-    <span>Procesando...</span>
-  } @else {
-    <mat-icon class="icon-size-5" [svgIcon]="'edit'"></mat-icon>
-    <span class="ms-2 me-1">Actualizar</span>
-  }
-</button>

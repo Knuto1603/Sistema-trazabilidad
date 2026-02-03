@@ -4,15 +4,20 @@ namespace App\apps\core\Entity;
 
 use App\apps\core\Repository\ProductorRepository;
 use App\shared\Entity\EntityTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
+/**
+ * Entidad maestra que representa un Productor.
+ * Un productor puede participar en múltiples campañas a través de ProductorCampahna.
+ */
 #[ORM\Entity(repositoryClass: ProductorRepository::class)]
 #[ORM\Table(name: 'core_productor')]
 #[ORM\HasLifecycleCallbacks]
 class Productor implements \Stringable
 {
     use EntityTrait;
-    use ContextTrait;
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -36,6 +41,17 @@ class Productor implements \Stringable
 
     #[ORM\Column(length: 255)]
     private ?string $productor = null;
+
+    /**
+     * @var Collection<int, ProductorCampahna>
+     */
+    #[ORM\OneToMany(targetEntity: ProductorCampahna::class, mappedBy: 'productor', cascade: ['persist', 'remove'])]
+    private Collection $campahnas;
+
+    public function __construct()
+    {
+        $this->campahnas = new ArrayCollection();
+    }
 
     public function __toString(): string
     {
@@ -111,5 +127,45 @@ class Productor implements \Stringable
     {
         $this->productor = $productor;
         return $this;
+    }
+
+    /**
+     * @return Collection<int, ProductorCampahna>
+     */
+    public function getCampahnas(): Collection
+    {
+        return $this->campahnas;
+    }
+
+    public function addCampahna(ProductorCampahna $productorCampahna): static
+    {
+        if (!$this->campahnas->contains($productorCampahna)) {
+            $this->campahnas->add($productorCampahna);
+            $productorCampahna->setProductor($this);
+        }
+        return $this;
+    }
+
+    public function removeCampahna(ProductorCampahna $productorCampahna): static
+    {
+        if ($this->campahnas->removeElement($productorCampahna)) {
+            if ($productorCampahna->getProductor() === $this) {
+                $productorCampahna->setProductor(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Verifica si el productor está en una campaña específica
+     */
+    public function isInCampahna(Campahna $campahna): bool
+    {
+        foreach ($this->campahnas as $productorCampahna) {
+            if ($productorCampahna->getCampahna() === $campahna && $productorCampahna->isActive()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

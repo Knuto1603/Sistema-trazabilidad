@@ -3,16 +3,9 @@
 namespace App\apps\core\Service\Productor\Dto;
 
 use App\apps\core\Entity\Productor;
-use App\apps\core\Repository\CampahnaRepository;
 
 final readonly class ProductorFactory
 {
-    public function __construct(
-        private CampahnaRepository $campahnaRepository,
-    )
-    {
-    }
-
     public function ofDto(?ProductorDto $dto): ?Productor
     {
         if (null === $dto) {
@@ -32,11 +25,7 @@ final readonly class ProductorFactory
         $productor->setClp($dto->clp);
         $productor->setMtdCeratitis($dto->mtdCeratitis);
         $productor->setMtdAnastrepha($dto->mtdAnastrepha);
-        
-        if ($dto->campahnaId) {
-            $campahna = $this->campahnaRepository->ofId($dto->campahnaId);
-            $productor->setCampahna($campahna);
-        }
+        $productor->setProductor($dto->nombre); // Campo productor = nombre por defecto
 
         match ($dto->isActive) {
             false => $productor->disable(),

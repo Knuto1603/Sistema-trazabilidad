@@ -37,21 +37,20 @@ class Campahna implements \Stringable
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $fechaFin = null;
 
-
     #[ORM\ManyToOne(targetEntity: Fruta::class)]
     #[ORM\JoinColumn(name: 'fruta_id', nullable: false)]
     private ?Fruta $fruta = null;
 
     /**
-     * @var Collection<int, Productor>
+     * @var Collection<int, ProductorCampahna>
      */
-    #[ORM\OneToMany(targetEntity: Productor::class, mappedBy: 'campahna', cascade: ['persist'])]
-    private Collection $productores;
+    #[ORM\OneToMany(targetEntity: ProductorCampahna::class, mappedBy: 'campahna', cascade: ['persist', 'remove'])]
+    private Collection $productorCampahnas;
 
     public function __construct()
     {
-        $this->productores = new ArrayCollection();
-        $this->fechaInicio = new \DateTime(); // Se inicializa al momento de crear
+        $this->productorCampahnas = new ArrayCollection();
+        $this->fechaInicio = new \DateTime();
     }
 
     public function __toString(): string
@@ -82,17 +81,42 @@ class Campahna implements \Stringable
     public function setFruta(?Fruta $fruta): static { $this->fruta = $fruta; return $this; }
 
     /**
-     * @return Collection<int, Productor>
+     * @return Collection<int, ProductorCampahna>
      */
-    public function getProductores(): Collection { return $this->productores; }
+    public function getProductorCampahnas(): Collection { return $this->productorCampahnas; }
 
-    public function addProductor(Productor $productor): static
+    public function addProductorCampahna(ProductorCampahna $productorCampahna): static
     {
-        if (!$this->productores->contains($productor)) {
-            $this->productores->add($productor);
-            $productor->setCampahna($this);
+        if (!$this->productorCampahnas->contains($productorCampahna)) {
+            $this->productorCampahnas->add($productorCampahna);
+            $productorCampahna->setCampahna($this);
         }
         return $this;
+    }
+
+    public function removeProductorCampahna(ProductorCampahna $productorCampahna): static
+    {
+        if ($this->productorCampahnas->removeElement($productorCampahna)) {
+            if ($productorCampahna->getCampahna() === $this) {
+                $productorCampahna->setCampahna(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * Obtiene los productores activos de esta campaña
+     * @return Productor[]
+     */
+    public function getProductores(): array
+    {
+        $productores = [];
+        foreach ($this->productorCampahnas as $productorCampahna) {
+            if ($productorCampahna->isActive()) {
+                $productores[] = $productorCampahna->getProductor();
+            }
+        }
+        return $productores;
     }
 
     /**

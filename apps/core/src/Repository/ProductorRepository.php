@@ -23,10 +23,19 @@ class ProductorRepository extends DoctrineEntityRepository
     public function allQuery(): QueryBuilder
     {
         return $this->createQueryBuilder('productor')
-            ->select(['productor', 'campahna', 'fruta', 'periodo'])
-            ->leftJoin('productor.campahna', 'campahna')
-            ->leftJoin('campahna.fruta', 'fruta')
-            ->leftJoin('campahna.periodo', 'periodo');
+            ->select(['productor']);
+    }
+
+    /**
+     * Query con información de campañas (a través de ProductorCampahna)
+     */
+    public function allQueryWithCampahnas(): QueryBuilder
+    {
+        return $this->createQueryBuilder('productor')
+            ->select(['productor', 'productorCampahnas', 'campahna', 'fruta'])
+            ->leftJoin('productor.campahnas', 'productorCampahnas')
+            ->leftJoin('productorCampahnas.campahna', 'campahna')
+            ->leftJoin('campahna.fruta', 'fruta');
     }
 
     public function paginateAndFilter(FilterService $filterService): PaginatorInterface
@@ -39,15 +48,12 @@ class ProductorRepository extends DoctrineEntityRepository
 
     public function downloadAndFilter(FilterService $filterService): iterable
     {
-        $queryBuilder = $this->allQuery()
+        $queryBuilder = $this->allQueryWithCampahnas()
             ->select('productor.codigo as codigo')
             ->addSelect('productor.nombre as nombre')
             ->addSelect('productor.clp as clp')
             ->addSelect('productor.mtdCeratitis as mtdCeratitis')
             ->addSelect('productor.mtdAnastrepha as mtdAnastrepha')
-            ->addSelect('campahna.nombre as campahna')
-            ->addSelect('fruta.nombre as fruta')
-            ->addSelect('periodo.nombre as periodo')
             ->addSelect('productor.isActive as isActive')
             ->addSelect('productor.createdAt as createdAt');
 
@@ -62,58 +68,42 @@ class ProductorRepository extends DoctrineEntityRepository
             ->select('productor.uuid as id')
             ->addSelect('productor.nombre as nombre')
             ->addSelect('CONCAT(productor.codigo, \' - \', productor.nombre) as nombreCompleto')
-            ->addSelect('fruta.nombre as frutaNombre')
-            ->addSelect('periodo.nombre as periodoNombre')
             ->where('productor.isActive = true')
-            ->orderBy('fruta.nombre', 'asc')
-            ->addOrderBy('periodo.nombre', 'asc')
-            ->addOrderBy('productor.nombre', 'asc')
+            ->orderBy('productor.nombre', 'asc')
             ->getQuery()
             ->getResult();
     }
 
-    public function findLastProducerCode(?string $campahnaId = null): ?string
+    /**
+     * Encuentra el último código de productor
+     */
+    public function findLastProducerCode(): ?string
     {
-        $queryBuilder = $this->createQueryBuilder('p')
+        $result = $this->createQueryBuilder('p')
             ->select('p.codigo')
             ->orderBy('p.id', 'DESC')
-            ->setMaxResults(1);
-
-        // Si se especifica una campaña, filtrar por ella
-        if ($campahnaId) {
-            $queryBuilder
-                ->join('p.campahna', 'c')
-                ->where('c.uuid = :campahnaId')
-                ->setParameter('campahnaId', $campahnaId);
-        }
-
-        $result = $queryBuilder->getQuery()->getOneOrNullResult();
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
 
         return $result ? $result['codigo'] : null;
     }
 
     /**
-     * Buscar productores por campaña
+     * Buscar productores que NO están en una campaña específica
      */
-    public function findByCampahna(string $campahnaId): array
+    public function findNotInCampahna(string $campahnaId): array
     {
-        return $this->allQuery()
-            ->where('campahna.uuid = :campahnaId')
+        return $this->createQueryBuilder('p')
+            ->where('p.id NOT IN (
+                SELECT IDENTITY(pc.productor)
+                FROM App\apps\core\Entity\ProductorCampahna pc
+                JOIN pc.campahna c
+                WHERE c.uuid = :campahnaId
+            )')
+            ->andWhere('p.isActive = true')
             ->setParameter('campahnaId', $campahnaId)
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
-     * Buscar productores por fruta y período (a través de campaña)
-     */
-    public function findByFrutaAndPeriodo(string $frutaId, string $periodoId): array
-    {
-        return $this->allQuery()
-            ->where('fruta.uuid = :frutaId')
-            ->andWhere('periodo.uuid = :periodoId')
-            ->setParameter('frutaId', $frutaId)
-            ->setParameter('periodoId', $periodoId)
+            ->orderBy('p.nombre', 'ASC')
             ->getQuery()
             ->getResult();
     }

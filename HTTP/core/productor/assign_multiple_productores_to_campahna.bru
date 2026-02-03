@@ -1,0 +1,20 @@
+meta {
+  name: assign_multiple_productores_to_campahna
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{SERVER_CORE_API}}/productores/campahna/{{CAMPAHNA_ID}}/assign-multiple
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "productorIds": [
+      "{{PRODUCTOR_ID}}",
+      "{{PRODUCTOR_ID_2}}"
+    ]
+  }
+}

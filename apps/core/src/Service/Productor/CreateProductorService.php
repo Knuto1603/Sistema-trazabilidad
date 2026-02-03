@@ -3,6 +3,9 @@
 namespace App\apps\core\Service\Productor;
 
 use App\apps\core\Entity\Productor;
+use App\apps\core\Entity\ProductorCampahna;
+use App\apps\core\Repository\CampahnaRepository;
+use App\apps\core\Repository\ProductorCampahnaRepository;
 use App\apps\core\Repository\ProductorRepository;
 use App\apps\core\Service\Productor\Dto\ProductorDto;
 use App\apps\core\Service\Productor\Dto\ProductorFactory;
@@ -14,6 +17,8 @@ final readonly class CreateProductorService
     public function __construct(
         private ProductorRepository $productorRepository,
         private ProductorFactory $productorFactory,
+        private CampahnaRepository $campahnaRepository,
+        private ProductorCampahnaRepository $productorCampahnaRepository,
     )
     {
     }
@@ -22,8 +27,20 @@ final readonly class CreateProductorService
     {
         $this->isValid($productorDto);
 
+        // 1. Crear el productor maestro
         $productor = $this->productorFactory->ofDto($productorDto);
         $this->productorRepository->save($productor);
+
+        // 2. Crear la relación ProductorCampahna
+        $campahna = $this->campahnaRepository->ofId($productorDto->campahnaId);
+
+        $productorCampahna = new ProductorCampahna();
+        $productorCampahna->setProductor($productor);
+        $productorCampahna->setCampahna($campahna);
+        $productorCampahna->setFechaIngreso(new \DateTime());
+
+        $this->productorCampahnaRepository->save($productorCampahna);
+
         return $productor;
     }
 
@@ -45,18 +62,21 @@ final readonly class CreateProductorService
             throw new MissingParameterException('Missing parameter clp');
         }
 
-        // Verificar que el CLP no exista
+        // Verificar que el CLP no exista (es único global)
         if (null !== $this->productorRepository->findOneBy(['clp' => $productorDto->clp])) {
             throw new RepositoryException(\sprintf('CLP %s ya existe', $productorDto->clp));
         }
 
         // Verificar que el código no exista en la misma campaña
-        $existingProductor = $this->productorRepository->createQueryBuilder('p')
-            ->join('p.campahna', 'c')
+        $campahna = $this->campahnaRepository->ofId($productorDto->campahnaId);
+
+        $existingProductor = $this->productorCampahnaRepository->createQueryBuilder('pc')
+            ->join('pc.productor', 'p')
+            ->join('pc.campahna', 'c')
             ->where('p.codigo = :codigo')
-            ->andWhere('c.uuid = :campahnaId')
+            ->andWhere('c.id = :campahnaId')
             ->setParameter('codigo', $productorDto->codigo)
-            ->setParameter('campahnaId', $productorDto->campahnaId)
+            ->setParameter('campahnaId', $campahna->getId())
             ->getQuery()
             ->getOneOrNullResult();
 

@@ -2,7 +2,7 @@
 
 namespace App\apps\core\Service\Productor;
 
-use App\apps\core\Repository\ProductorRepository;
+use App\apps\core\Repository\ProductorCampahnaRepository;
 use App\apps\core\Service\Productor\Dto\ProductorDtoTransformer;
 use App\apps\core\Service\Productor\Filter\ProductorFilterDto;
 use App\shared\Service\Dto\FilterDto;
@@ -16,7 +16,7 @@ final readonly class GetProductoresByCampahnaService
 {
     public function __construct(
         protected FilterService $filterService,
-        protected ProductorRepository $repository,
+        protected ProductorCampahnaRepository $repository,
         protected ProductorDtoTransformer $dtoTransformer,
     )
     {
@@ -42,10 +42,16 @@ final readonly class GetProductoresByCampahnaService
             'productor.clp',
         ]));
 
-        // Filtro específico por campaña
+        // Filtro por campaña a través de ProductorCampahna
         $this->filterService->addCondition(
             'campahna.uuid = :campahnaId',
             ['campahnaId' => $campahnaId]
+        );
+
+        // Solo productores activos en la campaña
+        $this->filterService->addCondition(
+            'productorCampahna.isActive = :isActive',
+            ['isActive' => true]
         );
 
         // Sortings
@@ -54,12 +60,23 @@ final readonly class GetProductoresByCampahnaService
             'nombre' => 'productor.nombre',
             'codigo' => 'productor.codigo',
             'clp' => 'productor.clp',
-            'createdAt' => 'productor.createdAt',
+            'createdAt' => 'productorCampahna.createdAt',
+            'fechaIngreso' => 'productorCampahna.fechaIngreso',
         ]));
 
-        // Pagination
+        // Establecer contexto de campaña para el transformer
+        $this->dtoTransformer->setCampahnaContext($campahnaId);
+
+        // Pagination - Ahora trabaja con ProductorCampahna
         $paginator = $this->repository->paginateAndFilter($this->filterService);
-        $items = $this->dtoTransformer->fromObjects($paginator->getIterator());
+
+        // Transformar: extraer el Productor de cada ProductorCampahna
+        $productores = [];
+        foreach ($paginator->getIterator() as $productorCampahna) {
+            $productores[] = $productorCampahna->getProductor();
+        }
+
+        $items = $this->dtoTransformer->fromObjects($productores);
 
         return ['items' => $items, 'pagination' => $paginator->pagination()];
     }

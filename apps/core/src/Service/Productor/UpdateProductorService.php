@@ -3,6 +3,9 @@
 namespace App\apps\core\Service\Productor;
 
 use App\apps\core\Entity\Productor;
+use App\apps\core\Entity\ProductorCampahna;
+use App\apps\core\Repository\CampahnaRepository;
+use App\apps\core\Repository\ProductorCampahnaRepository;
 use App\apps\core\Repository\ProductorRepository;
 use App\apps\core\Service\Productor\Dto\ProductorDto;
 use App\apps\core\Service\Productor\Dto\ProductorFactory;
@@ -13,6 +16,8 @@ final readonly class UpdateProductorService
     public function __construct(
         private ProductorRepository $productorRepository,
         private ProductorFactory $productorFactory,
+        private CampahnaRepository $campahnaRepository,
+        private ProductorCampahnaRepository $productorCampahnaRepository,
     ) {
     }
 
@@ -23,7 +28,28 @@ final readonly class UpdateProductorService
         $this->productorFactory->updateOfDto($productorDto, $productor);
         $this->productorRepository->save($productor);
 
+        // Si cambió la campaña, actualizar la relación
+        if ($productorDto->campahnaId) {
+            $this->updateCampahnaRelation($productor, $productorDto->campahnaId);
+        }
+
         return $productor;
+    }
+
+    private function updateCampahnaRelation(Productor $productor, string $campahnaId): void
+    {
+        $campahna = $this->campahnaRepository->ofId($campahnaId);
+
+        // Verificar si ya existe la relación
+        if (!$this->productorCampahnaRepository->existsProductorInCampahna($productor, $campahna)) {
+            // Crear nueva relación
+            $productorCampahna = new ProductorCampahna();
+            $productorCampahna->setProductor($productor);
+            $productorCampahna->setCampahna($campahna);
+            $productorCampahna->setFechaIngreso(new \DateTime());
+
+            $this->productorCampahnaRepository->save($productorCampahna);
+        }
     }
 
     public function isValid(ProductorDto $productorDto, ?Productor $productor): void
@@ -37,16 +63,17 @@ final readonly class UpdateProductorService
         }
 
         // Verificar que el código no exista en la misma campaña (en otro productor)
-        if ($productor->getCodigo() !== $productorDto->codigo || 
-            $productor->getCampahna()?->uuid() !== $productorDto->campahnaId) {
-            
-            $existingProductor = $this->productorRepository->createQueryBuilder('p')
-                ->join('p.campahna', 'c')
+        if ($productorDto->campahnaId) {
+            $campahna = $this->campahnaRepository->ofId($productorDto->campahnaId);
+
+            $existingProductor = $this->productorCampahnaRepository->createQueryBuilder('pc')
+                ->join('pc.productor', 'p')
+                ->join('pc.campahna', 'c')
                 ->where('p.codigo = :codigo')
-                ->andWhere('c.uuid = :campahnaId')
+                ->andWhere('c.id = :campahnaId')
                 ->andWhere('p.id != :currentId')
                 ->setParameter('codigo', $productorDto->codigo)
-                ->setParameter('campahnaId', $productorDto->campahnaId)
+                ->setParameter('campahnaId', $campahna->getId())
                 ->setParameter('currentId', $productor->getId())
                 ->getQuery()
                 ->getOneOrNullResult();

@@ -1,0 +1,11 @@
+meta {
+  name: remove_productor_from_campahna
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{SERVER_CORE_API}}/productores/campahna/{{CAMPAHNA_ID}}/remove/{{PRODUCTOR_ID}}
+  body: none
+  auth: inherit
+}

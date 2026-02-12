@@ -19,7 +19,7 @@ class ContextService
     ) {}
 
     /**
-     * Obtiene la campaña activa desde el header 'X-Campahna-Id'.
+     * Obtiene la campaña activa desde el header 'X-Campahna-Id' (UUID).
      */
     public function getCampahnaActual(): ?Campahna
     {
@@ -35,8 +35,7 @@ class ContextService
         $campahnaId = $request->headers->get('X-Campahna-Id');
 
         if ($campahnaId) {
-            // Buscamos la campaña por ID. En una versión más avanzada se podría usar UUID.
-            $this->campahnaActual = $this->campahnaRepository->find((int)$campahnaId);
+            $this->campahnaActual = $this->campahnaRepository->ofId($campahnaId);
         }
 
         return $this->campahnaActual;

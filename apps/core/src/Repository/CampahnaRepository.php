@@ -70,22 +70,8 @@ class  CampahnaRepository extends DoctrineEntityRepository
     }
 
     /**
-     * Buscar campañas por fruta y período
+     * Verificar si existe una campaña con el mismo nombre y fruta
      */
-    public function findByFrutaAndPeriodo(string $frutaId, string $periodoId): array
-    {
-        return $this->allQuery()
-            ->where('fruta.uuid = :frutaId')
-            ->andWhere('periodo.uuid = :periodoId')
-            ->setParameter('frutaId', $frutaId)
-            ->setParameter('periodoId', $periodoId)
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
-     * Verificar si existe una campaña con el mismo nombre, fruta y período
-
     public function existsByNombreFruta(string $nombre, string $frutaId, ?string $excludeId = null): bool
     {
         $qb = $this->createQueryBuilder('campahna')
@@ -93,20 +79,19 @@ class  CampahnaRepository extends DoctrineEntityRepository
             ->join('campahna.fruta', 'fruta')
             ->where('campahna.nombre = :nombre')
             ->andWhere('fruta.uuid = :frutaId')
-            ->andWhere('periodo.uuid = :periodoId')
             ->setParameter('nombre', $nombre)
-            ->setParameter('frutaId', $frutaId)
-            ->setParameter('periodoId', $periodoId);
+            ->setParameter('frutaId', $frutaId, \App\shared\Doctrine\UidType::NAME);
 
         if ($excludeId) {
             $qb->andWhere('campahna.uuid != :excludeId')
-                ->setParameter('excludeId', $excludeId);
+                ->setParameter('excludeId', $excludeId, \App\shared\Doctrine\UidType::NAME);
         }
 
         return $qb->getQuery()->getSingleScalarResult() > 0;
-    }*/
+    }
 
-    public function allShared()
+    public function allShared(): array
     {
+        return $this->allActive();
     }
 }

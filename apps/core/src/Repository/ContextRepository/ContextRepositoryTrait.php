@@ -2,58 +2,42 @@
 
 namespace App\apps\core\Repository\ContextRepository;
 
-use App\apps\core\Entity\Fruta;
-use App\apps\core\Entity\Periodo;
+use App\apps\core\Entity\Campahna;
 use Doctrine\ORM\QueryBuilder;
 
 trait ContextRepositoryTrait
 {
     /**
-     * Aplica el contexto actual (periodo y fruta) al QueryBuilder
+     * Aplica el contexto de campaña al QueryBuilder
      */
     protected function aplicarContexto(
         QueryBuilder $qb,
         string $alias,
-        ?Periodo $periodo = null,
-        ?Fruta $fruta = null
+        ?Campahna $campahna = null
     ): void
     {
-        if ($periodo) {
-            $qb->andWhere("{$alias}.periodo = :periodo")
-                ->setParameter('periodo', $periodo);
-        }
-
-        if ($fruta) {
-            $qb->andWhere("{$alias}.fruta = :fruta")
-                ->setParameter('fruta', $fruta);
+        if ($campahna) {
+            $qb->andWhere("{$alias}.campahna = :campahna")
+                ->setParameter('campahna', $campahna);
         }
     }
 
     /**
-     * Crear QueryBuilder con contexto aplicado automáticamente
+     * Crear QueryBuilder con contexto de campaña aplicado
      */
-    protected function createQueryBuilderWithContext(string $alias = 'e'): QueryBuilder
+    protected function createQueryBuilderWithContext(string $alias, ?Campahna $campahna = null): QueryBuilder
     {
         $qb = $this->createQueryBuilder($alias);
-        return $this->aplicarContexto($qb, $alias);
+        $this->aplicarContexto($qb, $alias, $campahna);
+        return $qb;
     }
 
     /**
-     * Validar que el contexto esté establecido
+     * Obtener todos los registros filtrados por campaña
      */
-    protected function validarContexto(): void
+    public function findByCampahna(Campahna $campahna, array $criteria = []): array
     {
-        if (!$this->getPeriodoActual() || !$this->getFrutaActual()) {
-            throw new \RuntimeException('El contexto (periodo y fruta) debe estar establecido para realizar esta consulta');
-        }
-    }
-
-    /**
-     * Obtener todos los registros con contexto
-     */
-    public function findByContextoActual(array $criteria = []): array
-    {
-        $qb = $this->createQueryBuilderWithContext('e');
+        $qb = $this->createQueryBuilderWithContext('e', $campahna);
 
         foreach ($criteria as $field => $value) {
             $qb->andWhere("e.{$field} = :{$field}")
@@ -62,5 +46,4 @@ trait ContextRepositoryTrait
 
         return $qb->getQuery()->getResult();
     }
-
 }

@@ -40,18 +40,17 @@ final readonly class CreateCampahnaService
         if (null === $campahnaDto->fechaInicio) {
             throw new MissingParameterException('Missing parameter fechaInicio');
         }
-        /*
-        // Verificar que no exista otra campaña con el mismo nombre, fruta y período
-        if ($this->campahnaRepository->existsByNombreFrutaPeriodo(
+
+        if ($this->campahnaRepository->existsByNombreFruta(
             $campahnaDto->nombre,
             $campahnaDto->frutaId
         )) {
             throw new RepositoryException(
                 \sprintf(
-                    'Ya existe una campaña con el nombre "%s" para esta fruta y período',
+                    'Ya existe una campaña con el nombre "%s" para esta fruta',
                     $campahnaDto->nombre
                 )
             );
-        }*/
+        }
     }
 }

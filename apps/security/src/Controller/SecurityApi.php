@@ -24,7 +24,6 @@ final class SecurityApi
     ): Response {
         $data = $jwtManager->parse($tokenDto->token);
         $user = $userRepository->ofId($data['id']);
-
         return $successHandler->handleAuthenticationSuccess($user); // Return new token
     }
 

@@ -9,6 +9,7 @@ use App\apps\security\Service\User\DownloadUsersService;
 use App\apps\security\Service\User\Dto\UserDto;
 use App\apps\security\Service\User\Dto\UserDtoTransformer;
 use App\apps\security\Service\User\Dto\UserFilterDto;
+use App\apps\security\Service\User\GetRoles;
 use App\apps\security\Service\User\GetUserService;
 use App\apps\security\Service\User\GetUsersService;
 use App\apps\security\Service\User\UpdateUserService;
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 #[Route('/users')]
 class UserApi extends AbstractSerializerApi
@@ -30,6 +32,19 @@ class UserApi extends AbstractSerializerApi
         GetUsersService $usersService,
     ): Response {
         return $this->ok($usersService->execute($filterDto));
+    }
+
+    #[Route('/myroles', name: 'user_my_roles', methods: ['GET'])]
+    public function myRoles(
+        TokenStorageInterface $tokenStorage,
+        GetRoles $getRoles,
+    ): Response
+    {
+        $token = $tokenStorage->getToken();
+
+        return $this->ok([
+            $getRoles->execute($token),
+        ]);
     }
 
     #[Route('/', name: 'user_create', methods: ['POST'])]

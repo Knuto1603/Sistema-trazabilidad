@@ -21,7 +21,12 @@ final class UserDto implements DtoRequestInterface
         #[Assert\Length(min: 0, max: 100)]
         public ?string $password = null,
 
-        /** @var array|null */
+        /**
+         * @var array<string>|null Lista de UUIDs de UserRole
+         */
+        #[Assert\All([
+            new Uid()
+        ])]
         public ?array $roles = null,
 
         #[Uid]

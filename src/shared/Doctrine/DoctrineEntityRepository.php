@@ -70,7 +70,6 @@ abstract class DoctrineEntityRepository extends ServiceEntityRepository
             ->setParameter('uuid', $id, UidType::NAME)
             ->getQuery()
             ->getOneOrNullResult();
-
         if (true === $strict && null === $entity) {
             throw new NotFoundException();
         }

@@ -75,6 +75,16 @@ class UserRoleRepository extends DoctrineEntityRepository
         }
     }
 
+    public function ofUser(string $userUuid): iterable
+    {
+        return $this->createQueryBuilder($this->entityAlias)
+            ->innerJoin($this->entityAlias.'.users', 'user')
+            ->where('user.uuid = :userUuid')
+            ->setParameter('userUuid', $userUuid)
+            ->getQuery()
+            ->getResult();
+    }
+
     /** @return UserRole[] */
     public function allNames(): iterable
     {

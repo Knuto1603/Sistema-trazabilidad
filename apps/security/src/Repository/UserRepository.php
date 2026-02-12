@@ -72,4 +72,17 @@ class UserRepository extends DoctrineEntityRepository implements PasswordUpgrade
                 ->getQuery()
                 ->getOneOrNullResult();
     }
+
+    public function rolesOfUser(string $userId): array
+    {
+        $result = $this->createQueryBuilder('user')
+            ->select('userRole.uuid')
+            ->join('user.rol', 'userRole')
+            ->where('user.id = :userId')
+            ->setParameter('userId', $userId)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_column($result, 'uuid');
+    }
 }

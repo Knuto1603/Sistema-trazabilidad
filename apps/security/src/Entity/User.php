@@ -6,6 +6,8 @@ use App\shared\Doctrine\UidType;
 use App\shared\Entity\EntityTrait;
 use App\shared\Service\Helper;
 use CarlosChininin\AttachFile\Model\AttachFile;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use App\apps\security\Repository\UserRepository;
@@ -20,9 +22,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     use EntityTrait;
 
-    public const ROLE_ADMIN = 'ROLE_ADMIN';
-    public const ROLE_USER = 'ROLE_USER';
-
+    const ROLE_USER = 'ROLE_USER';
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER, options: ['unsigned' => true])]
@@ -30,9 +30,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 30, unique: true)]
     private ?string $username = null;
-
-    #[ORM\Column]
-    private array $roles = [];
 
     /**
      * @var string|null The hashed password
@@ -48,6 +45,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\OneToOne(targetEntity: AttachFile::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?AttachFile $photo = null;
+
+    /**
+     * @var Collection<int, UserRole>
+     */
+    #[ORM\ManyToMany(targetEntity: UserRole::class, inversedBy: 'users')]
+    private Collection $rol;
+
+    public function __construct()
+    {
+        $this->rol = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -73,7 +81,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getUserIdentifier(): string
     {
-        return (string) $this->username;
+        return (string) $this->uuidToString();
     }
 
     /**
@@ -81,20 +89,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getRoles(): array
     {
-        $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
+        $roles = [];
+
+        // Convertir los objetos UserRole a strings
+        foreach ($this->rol as $role) {
+            if ($role->isActive()) {
+                $roles[] = $role->getName();
+            }
+        }
+
+        // Si el usuario no tiene roles, se le debe asignar ROLE_USER
         if (empty($roles)) {
             $roles[] = self::ROLE_USER;
         }
 
         return array_unique($roles);
-    }
-
-    public function setRoles(?array $roles): static
-    {
-        $this->roles = $roles ?? [self::ROLE_USER];
-
-        return $this;
     }
 
     /**
@@ -153,6 +162,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPhoto(?AttachFile $photo): static
     {
         $this->photo = $photo;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, UserRole>
+     */
+    public function getRol(): Collection
+    {
+        return $this->rol;
+    }
+
+    public function addRol(UserRole $rol): static
+    {
+        if (!$this->rol->contains($rol)) {
+            $this->rol->add($rol);
+        }
+
+        return $this;
+    }
+
+    public function removeRol(UserRole $rol): static
+    {
+        $this->rol->removeElement($rol);
 
         return $this;
     }

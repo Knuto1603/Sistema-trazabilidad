@@ -25,7 +25,13 @@ final class UserDtoTransformer extends DtoTransformer
         $dto = new UserDto();
         $dto->username = $object->getUsername();
         $dto->fullname = $object->getFullName();
-        $dto->roles = $object->getRoles();
+        // Extraer los UUIDs de los roles
+        $roles = [];
+        foreach ($object->getRol() as $role) {
+            $roles[] = $role->uuidToString();
+        }
+        $dto->roles = $roles;
+
         if (null !== ($photo = $object->getPhoto())) {
             $dto->photo = $this->image->get($photo->filePath(), 'small');
             $dto->photoUrl = $this->fileDownload->get($photo);

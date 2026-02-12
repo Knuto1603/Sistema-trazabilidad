@@ -17,6 +17,18 @@ final class UserRoleDtoTransformer extends DtoTransformer
         $dto = new UserRoleDto();
         $dto->name = $object->getName();
         $dto->alias = $object->getAlias();
+
+        // Contar usuarios o incluir sus IDs si es necesario
+        $dto->userCount = $object->getUsers()->count();
+
+        // Opcionalmente, incluir IDs de usuarios si se necesita
+        if ($object->getUsers()->count() > 0) {
+            $dto->userIds = array_map(
+                fn($user) => $user->uuidToString(),
+                $object->getUsers()->toArray()
+            );
+        }
+
         $dto->ofEntity($object);
 
         return $dto;

@@ -11,11 +11,24 @@ final class UserRoleDto implements DtoRequestInterface
     use DtoTrait;
 
     public function __construct(
-        #[Assert\Length(min: 1, max: 100)]
+        #[Assert\NotBlank]
+        #[Assert\Length(min: 3, max: 100)]
         public ?string $name = null,
 
-        #[Assert\Length(min: 1, max: 100)]
+        #[Assert\NotBlank]
+        #[Assert\Length(min: 3, max: 100)]
         public ?string $alias = null,
+
+        /**
+         * @var array|null Lista de UUIDs de usuarios asignados a este rol
+         */
+        public ?array $userIds = null,
+
+        /**
+         * Contador de usuarios que tienen este rol
+         */
+        public ?int $userCount = null,
+
     ) {
     }
 }

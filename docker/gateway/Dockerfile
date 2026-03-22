@@ -8,10 +8,6 @@ RUN npm ci
 
 COPY frontend/ .
 
-# URLs de las APIs en produccion (rutas relativas via gateway)
-RUN sed -i "s|securityUrl:.*|securityUrl: '/security/api',|g" src/environments/environment.ts
-RUN sed -i "s|coreUrl:.*|coreUrl: '/api'|g" src/environments/environment.ts
-
 RUN npm run build
 
 # Etapa 2: Nginx sirve la SPA compilada

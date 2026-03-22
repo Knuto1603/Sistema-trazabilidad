@@ -6,17 +6,9 @@ services:
       context: .
       dockerfile: docker/gateway/Dockerfile
     networks:
-      - easypanel
       - app-network
     depends_on:
       - nginx-api
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.trazabilidad.rule: "Host(`${DOMAIN}`)"
-      traefik.http.routers.trazabilidad.entrypoints: "https"
-      traefik.http.routers.trazabilidad.tls: "true"
-      traefik.http.routers.trazabilidad.tls.certresolver: "letsencrypt"
-      traefik.http.services.trazabilidad.loadbalancer.server.port: "80"
     restart: unless-stopped
 
   # ─── Nginx API: reverse proxy a los dos apps Symfony ───────────────────────
@@ -75,8 +67,6 @@ services:
 networks:
   app-network:
     driver: bridge
-  easypanel:
-    external: true
 
 volumes:
   db-data:

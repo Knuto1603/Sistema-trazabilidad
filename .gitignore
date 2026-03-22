@@ -1,3 +1,6 @@
+# Archivos no relacionados al proyecto
+_misc/
+
 # Node / root level
 node_modules/
 package-lock.json

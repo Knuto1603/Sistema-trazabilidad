@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -26,9 +27,20 @@ class CreateAdminCompleteCommand extends Command
         parent::__construct();
     }
 
+    protected function configure(): void
+    {
+        $this->addOption('password', 'p', InputOption::VALUE_REQUIRED, 'Contraseña del superadmin (o env ADMIN_INIT_PASSWORD)');
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
+        $password = $input->getOption('password') ?? $_ENV['ADMIN_INIT_PASSWORD'] ?? null;
+        if (!$password) {
+            $io->error('Debes indicar la contraseña con --password=<valor> o la variable de entorno ADMIN_INIT_PASSWORD');
+            return Command::FAILURE;
+        }
 
         $io->title('Inicializando roles y superadmin Knuto');
 
@@ -70,7 +82,7 @@ class CreateAdminCompleteCommand extends Command
                 $superAdmin->setUsername('knuto');
                 $superAdmin->setFullName('Knuto');
 
-                $hashedPassword = $this->passwordHasher->hashPassword($superAdmin, '$ergio1603');
+                $hashedPassword = $this->passwordHasher->hashPassword($superAdmin, $password);
                 $superAdmin->setPassword($hashedPassword);
 
                 $superAdmin->addRol($adminRole);
@@ -104,7 +116,6 @@ class CreateAdminCompleteCommand extends Command
             $io->text([
                 'Username : knuto',
                 'Full Name: Knuto',
-                'Password : $ergio1603',
                 'Roles    : ROLE_ADMIN, KNUTO_ROLE',
             ]);
 

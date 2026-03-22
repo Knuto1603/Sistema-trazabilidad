@@ -53,6 +53,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var Collection<int, UserRole>
      */
     #[ORM\ManyToMany(targetEntity: UserRole::class, inversedBy: 'users')]
+    #[ORM\JoinTable(name: 'security_user_user_role')]
     private Collection $rol;
 
     public function __construct()

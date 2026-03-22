@@ -1,0 +1,16 @@
+meta {
+  name: get_users
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{SERVER_SECURITY_API}}/users/
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~itemsPerPage: 1
+  ~page: 0
+}

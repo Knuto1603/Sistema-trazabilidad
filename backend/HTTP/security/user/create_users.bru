@@ -1,0 +1,19 @@
+meta {
+  name: create_users
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{SERVER_SECURITY_API}}/users/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+      "username" : "jperez",
+      "password" : "123456",
+      "fullname" : "Juan Perez"
+  }
+}

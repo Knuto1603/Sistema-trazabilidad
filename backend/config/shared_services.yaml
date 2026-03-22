@@ -1,0 +1,29 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  App\shared\:
+    resource: '../src/shared/'
+
+  # EVENTS JWT
+  App\shared\EventListener\JWT\JWTExpiredListener:
+    tags:
+      - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_expired }
+
+  App\shared\EventListener\JWT\JWTNotFoundListener:
+    tags:
+      - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_not_found }
+
+  App\shared\EventListener\JWT\JWTInvalidListener:
+    tags:
+      - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_invalid }
+
+  App\shared\EventListener\JWT\AuthenticationFailureListener:
+    tags:
+      - { name: kernel.event_listener, event: lexik_jwt_authentication.on_authentication_failure }
+
+  # EXCEPTIONS
+  App\shared\EventListener\ExceptionListener:
+    tags:
+      - { name: kernel.event_listener, event: kernel.exception }

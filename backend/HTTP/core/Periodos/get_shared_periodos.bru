@@ -1,0 +1,11 @@
+meta {
+  name: get_shared_periodos
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{SERVER_CORE_API}}/periodos/shared
+  body: none
+  auth: inherit
+}

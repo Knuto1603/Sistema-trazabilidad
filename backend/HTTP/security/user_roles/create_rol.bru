@@ -1,0 +1,18 @@
+meta {
+  name: create_rol
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{SERVER_SECURITY_API}}/user_roles/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name":"ROLE_TRAZABILIDAD",
+    "alias":"Trazabilidad"
+  }
+}

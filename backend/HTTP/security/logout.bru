@@ -1,0 +1,11 @@
+meta {
+  name: logout
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{SERVER_SECURITY_API}}/sign-out
+  body: none
+  auth: inherit
+}

@@ -1,0 +1,18 @@
+meta {
+  name: create_fruta
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{SERVER_CORE_API}}/frutas/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "nombre":"Mango",
+    "codigo":"MNG"
+  }
+}

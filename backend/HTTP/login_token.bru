@@ -1,0 +1,17 @@
+meta {
+  name: login_token
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{SERVER_SECURITY_API}}/security/login_token
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE3NTAwNTQyNDIsImV4cCI6MTc1MDA5MDI0MiwidXNlcm5hbWUiOiJhZG1pbiIsImlkIjoiR0VZaEE5cWU5TXN4dUV5dmdaY3VVUyJ9.XMBsQiUV-EtxUg3xDaGO9WrUCwjGH3SN62TTAAnJEmlsvgSMOTK_vEAmf7DJeZJcPJfiNnGxq5V8AWtAkPpfXzI62wCMJiYbeIJW2s1ZXGqABuGuNDnodgnZ4dBKxjMiQfxIuPsC6Yg-2yf84vpCxUdnxaTY10gY2eppMM6ICfRVUBUye44Mtd_1Oaf_eBRQvMCtM9jaHzcXrRUdlZjUxMx57wBEZ9AUIpEhLZLnx-VjQbkfSZMJP5bUYcfDCnFluEEnlegXsokIkznmapuMLPkeIcWIq2YJutwVqUpa3omrWYa-jtOQelqrEkCDMedAZC4wtRS8n3wN9CWyXeDm2xRdg-gtQPlJpkwIFg-n7GnCtm_Wwf0bqIqdRNGMSY6YIrlHjmFXJDYTULzB0pAhgwzunGffZm_r6xlqQP9ldYCIghVBkMaJK5NxhstxUweKNMqFhVXDR3tbY1-iqJfbSIHuLr7bEnQ6jcnkCtJv-NhnpdTqO6pmWYreM_Mvpr31bz5ldWpcEW42uBSnpEWv_ABLPbKS_zrON9J5G7P07hlIaB-cXQoQ8iC2Kq2CLQX1Mj0tqMIM-srrsAWc1h3CvS-3fCUPTwwjIMElFlMM76U3Ub_oMwd--P1_Wso17lmhFhS6-p5W_RUkX8pm8dGDFb50qyAcjqCiTZKNvYAZiEc"
+  }
+}

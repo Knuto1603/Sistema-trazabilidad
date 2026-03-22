@@ -1,0 +1,17 @@
+meta {
+  name: assign_productor_to_campahna
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{SERVER_CORE_API}}/productores/campahna/{{CAMPAHNA_ID}}/assign
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "productorId": "{{PRODUCTOR_ID}}"
+  }
+}

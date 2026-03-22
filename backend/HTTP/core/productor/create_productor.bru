@@ -1,0 +1,21 @@
+meta {
+  name: create_productor
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{SERVER_CORE_API}}/productores/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "codigo":"0003",
+    "nombre":"Juan Lucho",
+    "clp":"987-65432-13",
+    "periodoId":"S7GFE6JdNxeq9EhaX4xpTQ",
+    "frutaId":"MgD1KS6HWfhFSxUKJ5NMiK"
+  }
+}

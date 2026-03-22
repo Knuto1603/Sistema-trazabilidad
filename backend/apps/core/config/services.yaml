@@ -1,0 +1,27 @@
+imports:
+    - { resource: ../../../config/shared_services.yaml }
+
+parameters:
+
+services:
+
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # makes classes in src/ available to be used as services
+    # this creates a services per class whose id is the fully-qualified class name
+    App\apps\core\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\apps\core\Controller\:
+        resource: '../src/Controller/'
+        tags: [ controller.service_arguments ]
+
+    App\apps\security\Repository\UserRepository:
+        autowire: true
+        autoconfigure: true

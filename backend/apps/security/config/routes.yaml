@@ -1,0 +1,13 @@
+home_api:
+    path: /
+    controller: App\shared\Api\HomePageApi
+
+login_check:
+    path: /api/login_check
+
+controllers:
+    resource: ../src/Controller/
+    prefix: /api
+    type: attribute
+    trailing_slash_on_root: false
+    

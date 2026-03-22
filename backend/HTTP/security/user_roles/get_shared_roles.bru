@@ -1,0 +1,11 @@
+meta {
+  name: get_shared_roles
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{SERVER_SECURITY_API}}/user_roles/shared
+  body: none
+  auth: inherit
+}

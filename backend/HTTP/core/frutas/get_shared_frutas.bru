@@ -1,0 +1,11 @@
+meta {
+  name: get_shared_frutas
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{SERVER_CORE_API}}/frutas/shared
+  body: none
+  auth: inherit
+}

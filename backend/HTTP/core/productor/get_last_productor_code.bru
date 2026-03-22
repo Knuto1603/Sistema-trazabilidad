@@ -1,0 +1,11 @@
+meta {
+  name: get_last_productor_code
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{SERVER_CORE_API}}/productores/last-code
+  body: none
+  auth: inherit
+}

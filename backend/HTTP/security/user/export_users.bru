@@ -1,0 +1,11 @@
+meta {
+  name: export_users
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{SERVER_SECURITY_API}}/users/download
+  body: none
+  auth: inherit
+}

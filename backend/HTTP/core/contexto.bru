@@ -1,0 +1,18 @@
+meta {
+  name: contexto
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{SERVER_CORE_API}}/contexto/establecer
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "periodoId":"S7GFE6JdNxeq9EhaX4xpTQ",
+    "frutaId":"MgD1KS6HWfhFSxUKJ5NMiK"
+  }
+}

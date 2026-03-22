@@ -1,0 +1,11 @@
+meta {
+  name: dowload_frutas
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{SERVER_CORE_API}}/frutas/download
+  body: none
+  auth: inherit
+}

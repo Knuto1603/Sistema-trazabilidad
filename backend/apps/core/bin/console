@@ -1,0 +1,32 @@
+#!/usr/bin/env php
+<?php
+
+use App\apps\core\Kernel;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+
+$vendorDir = realpath(__DIR__ . '/../../../vendor');
+
+if (!$vendorDir || !is_dir($vendorDir)) {
+	throw new LogicException('Dependencies are missing. Try running "composer install".');
+}
+
+$autoloadRuntime = realpath(__DIR__ . '/../../../vendor/autoload_runtime.php');
+
+if (!is_file($autoloadRuntime)) {
+	throw new LogicException('Symfony Runtime is missing. Try running "composer require symfony/runtime".');
+}
+
+require_once $autoloadRuntime;
+
+$dotenvPath = realpath(__DIR__ . '/../../../.env');
+
+if ($dotenvPath && file_exists($dotenvPath)) {
+	(new Symfony\Component\Dotenv\Dotenv())->load($dotenvPath);
+}
+
+return function (array $context) {
+	$kernel = new Kernel($context['APP_ENV'], (bool) $context['APP_DEBUG']);
+
+	return new Application($kernel);
+};
+

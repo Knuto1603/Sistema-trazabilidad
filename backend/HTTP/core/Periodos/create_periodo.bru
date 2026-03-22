@@ -1,0 +1,19 @@
+meta {
+  name: create_periodo
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{SERVER_CORE_API}}/periodos/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "nombre":"Campaña de mango 2025",
+    "codigo":"2025-1",
+    "fechaInicio":"2025-07-08 12:30:14"
+  }
+}

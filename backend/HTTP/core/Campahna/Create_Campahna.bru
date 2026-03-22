@@ -1,0 +1,20 @@
+meta {
+  name: Create_Campahna
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{SERVER_CORE_API}}/campahnas/
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "nombre":"Limon 2025-I",
+    "descripcion":"Primera campaña de limon, Chica 2025",
+    "fechaInicio":"2026-01-18",
+    "frutaId":"X6Ymfw1uGVbtdZXTF6AgQU"
+  }
+}

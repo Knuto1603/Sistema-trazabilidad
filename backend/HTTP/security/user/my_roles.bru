@@ -1,0 +1,11 @@
+meta {
+  name: my_roles
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{SERVER_SECURITY_API}}/users/myroles
+  body: none
+  auth: inherit
+}

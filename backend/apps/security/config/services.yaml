@@ -1,0 +1,31 @@
+imports:
+    - { resource: ../../../config/shared_services.yaml }
+
+parameters:
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        autowire: true      # Automatically injects dependencies in your services.
+        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+
+    App\apps\security\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\apps\security\Controller\:
+        resource: '../src/Controller/'
+        tags: [ controller.service_arguments ]
+
+    # -- JWT --
+    App\apps\security\EventListener\JWT\CreatedListener:
+        arguments: [ '@security.helper' ]
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_created }
+
+    App\apps\security\EventListener\JWT\AuthenticationSuccessListener:
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_authentication_success }

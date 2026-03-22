@@ -1,0 +1,17 @@
+meta {
+  name: get_productor_contexto
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{SERVER_CORE_API}}/productores/context?page=0
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 0
+  ~periodoId: S7GFE6JdNxeq9EhaX4xpTQ
+  ~frutaId: 5sGhzhAXU1PqhEGK5RVzYF
+}

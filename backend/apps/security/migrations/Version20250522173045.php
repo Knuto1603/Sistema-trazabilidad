@@ -19,15 +19,10 @@ final class Version20250522173045 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql(<<<'SQL'
-            CREATE TABLE security_user_role (id INT AUTO_INCREMENT NOT NULL, name VARCHAR(100) NOT NULL, alias VARCHAR(100) NOT NULL, uuid BINARY(16) NOT NULL COMMENT '(DC2Type:uuid)', created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL, is_active TINYINT(1) NOT NULL, UNIQUE INDEX UNIQ_45561EDCD17F50A6 (uuid), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB
-        SQL);
+        // tablas ya creadas en migraciones anteriores
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql(<<<'SQL'
-            DROP TABLE security_user_role
-        SQL);
     }
 }

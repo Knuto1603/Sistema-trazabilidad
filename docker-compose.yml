@@ -33,8 +33,8 @@ services:
   # ─── Backend: PHP 8.2-FPM (ambas apps Symfony comparten el mismo proceso) ──
   backend:
     build:
-      context: backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       APP_ENV: prod
       APP_SECRET: ${APP_SECRET}

@@ -15,11 +15,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 
 # Dependencias primero (cache de capas)
-COPY composer.json composer.lock ./
+COPY backend/composer.json backend/composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
 
 # Código fuente
-COPY . .
+COPY backend/ .
 
 # Directorios de cache/logs de cada app
 RUN mkdir -p apps/security/var apps/core/var config/jwt \
@@ -27,11 +27,11 @@ RUN mkdir -p apps/security/var apps/core/var config/jwt \
     && chmod -R 775 apps/security/var apps/core/var
 
 # Configuración PHP-FPM
-COPY ../docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
-COPY ../docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
+COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 
 # Entrypoint: decodifica JWT keys y levanta PHP-FPM
-COPY ../docker/php/entrypoint.sh /entrypoint.sh
+COPY docker/php/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 9000

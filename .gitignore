@@ -1,0 +1,21 @@
+# Node / root level
+node_modules/
+package-lock.json
+bun.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Temp / misc
+*.rar
+*.xlsm
+*.xlsx
+*.docx
+nul

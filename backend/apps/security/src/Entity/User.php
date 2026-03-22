@@ -5,7 +5,7 @@ namespace App\apps\security\Entity;
 use App\shared\Doctrine\UidType;
 use App\shared\Entity\EntityTrait;
 use App\shared\Service\Helper;
-use CarlosChininin\AttachFile\Model\AttachFile;
+use App\apps\security\Entity\AttachFile;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;

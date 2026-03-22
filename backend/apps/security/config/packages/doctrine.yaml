@@ -24,12 +24,6 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Entity'
                 prefix: 'App\apps\security\Entity'
                 alias: App\apps\security
-            AttachFile:
-                type: attribute
-                is_bundle: false
-                dir: '%kernel.project_dir%/../../vendor/carloschininin/attach-file-bundle/src/Model'
-                prefix: 'CarlosChininin\AttachFile\Model'
-                alias: AttachFile
         controller_resolver:
             auto_mapping: false
 

@@ -1,6 +1,9 @@
 # Etapa 1: compilar Angular
 FROM node:20-alpine AS builder
 
+# Fuerza invalidar cache cuando cambia el codigo fuente
+ARG CACHEBUST=1
+
 WORKDIR /app
 
 COPY frontend/package.json frontend/package-lock.json ./

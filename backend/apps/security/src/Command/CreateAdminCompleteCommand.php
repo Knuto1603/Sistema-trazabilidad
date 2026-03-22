@@ -67,8 +67,8 @@ class CreateAdminCompleteCommand extends Command
                 );
                 $adminUser->setPassword($hashedPassword);
 
-                // Paso 4: Asignar el rol ROLE_ADMIN al usuario
-                $adminUser->setRoles([$userRoleRepository->findOneBy(['name' => 'KNUTO_ROLE'])->uuidToString()]);
+                // Paso 4: Asignar el rol KNUTO_ROLE al usuario
+                $adminUser->addRol($adminRole);
 
                 $this->entityManager->persist($adminUser);
                 $this->entityManager->flush();

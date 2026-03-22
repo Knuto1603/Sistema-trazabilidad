@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Interfruits</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="logo-itfp/interfruitsico.ico">
+  <style>
+      .app-loading {
+        position: fixed;
+        inset: 0;
+        background-color: #f8fafc; /* slate-50 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-family: sans-serif;
+      }
+      .app-loading-logo {
+        width: 80px;
+        height: 80px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+      .app-loading-img { width: 60px; height: 60px; object-fit: contain; }
+      .loader {
+        width: 8px;
+        height: 8px;
+        background: #2563eb; /* blue-600 */
+        border-radius: 50%;
+        animation: bounce 1s infinite;
+        box-shadow: 15px 0 0 #2563eb, -15px 0 0 #2563eb;
+      }
+      @keyframes bounce { 
+        0%, 100% { transform: translateY(0); } 
+        50% { transform: translateY(-10px); } 
+      }
+  </style>
+</head>
+<body>
+  <app-root>
+    <!-- ESTE CONTENIDO SE MUESTRA MIENTRAS ANGULAR CARGA -->
+    <div class="app-loading">
+      <div class="app-loading-logo">
+        <img src="/logo-itfp/logo-small.webp" class="app-loading-img" alt="Cargando">
+      </div>
+      <div class="loader"></div>
+      <p style="margin-top: 20px; color: #64748b; font-size: 12px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase;">
+        Cargando Sistema...
+      </p>
+    </div>
+  </app-root>
+</body>
+</html>

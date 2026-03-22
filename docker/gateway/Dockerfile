@@ -1,9 +1,6 @@
 # Etapa 1: compilar Angular
 FROM node:20-alpine AS builder
 
-# Fuerza invalidar cache cuando cambia el codigo fuente
-ARG CACHEBUST=1
-
 WORKDIR /app
 
 COPY frontend/package.json frontend/package-lock.json ./
@@ -18,5 +15,9 @@ FROM nginx:1.27-alpine
 
 COPY --from=builder /app/dist/trazabilidad-frontend/browser /usr/share/nginx/html
 COPY docker/gateway/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/gateway/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
+
+ENTRYPOINT ["/entrypoint.sh"]

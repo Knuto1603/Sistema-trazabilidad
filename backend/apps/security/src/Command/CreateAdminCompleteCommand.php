@@ -87,15 +87,20 @@ class CreateAdminCompleteCommand extends Command
             } else {
                 $io->info('- El usuario admin ya existe');
 
-                // Verificar si ya tiene el rol ROLE_ADMIN asignado
-                $currentRoles = $adminUser->getRoles();
-                if (!in_array(User::ROLE_ADMIN, $currentRoles)) {
-                    $roles = array_unique(array_merge($currentRoles, [User::ROLE_ADMIN]));
-                    $adminUser->setRoles($roles);
+                // Verificar si ya tiene el rol KNUTO_ROLE asignado
+                $hasRole = false;
+                foreach ($adminUser->getRol() as $existingRole) {
+                    if ($existingRole->getName() === 'KNUTO_ROLE') {
+                        $hasRole = true;
+                        break;
+                    }
+                }
+                if (!$hasRole) {
+                    $adminUser->addRol($adminRole);
                     $this->entityManager->flush();
-                    $io->success('✓ Rol ROLE_ADMIN asignado al usuario admin existente');
+                    $io->success('✓ Rol KNUTO_ROLE asignado al usuario admin existente');
                 } else {
-                    $io->info('- El usuario admin ya tiene el rol ROLE_ADMIN asignado');
+                    $io->info('- El usuario admin ya tiene el rol KNUTO_ROLE asignado');
                 }
             }
 

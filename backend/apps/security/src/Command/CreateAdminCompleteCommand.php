@@ -14,7 +14,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[AsCommand(
     name: 'app:create-admin-complete',
-    description: 'Crea el UserRole ROLE_ADMIN y el usuario administrador completo',
+    description: 'Crea los roles ROLE_ADMIN y KNUTO_ROLE, y el superadmin Knuto',
     aliases: ['user:initialize', 'security:user:initialize']
 )]
 class CreateAdminCompleteCommand extends Command
@@ -30,91 +30,88 @@ class CreateAdminCompleteCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $io->title('Creando UserRole ROLE_ADMIN y Usuario Administrador');
+        $io->title('Inicializando roles y superadmin Knuto');
 
         try {
-            // Paso 1: Crear el UserRole ROLE_ADMIN
             $userRoleRepository = $this->entityManager->getRepository(UserRole::class);
-            $adminRole = $userRoleRepository->findOneBy(['name' => 'KNUTO_ROLE']);
 
+            // Paso 1: Crear ROLE_ADMIN si no existe
+            $adminRole = $userRoleRepository->findOneBy(['name' => 'ROLE_ADMIN']);
             if (!$adminRole) {
                 $adminRole = new UserRole();
-                $adminRole->setName('KNUTO_ROLE');
-                $adminRole->setAlias('Knuto');
-
+                $adminRole->setName('ROLE_ADMIN');
+                $adminRole->setAlias('Admin');
                 $this->entityManager->persist($adminRole);
                 $this->entityManager->flush();
-
-                $io->success('✓ UserRole ROLE_ADMIN creado exitosamente');
+                $io->success('✓ UserRole ROLE_ADMIN creado');
             } else {
-                $io->info('- El UserRole ROLE_ADMIN ya existe');
+                $io->info('- UserRole ROLE_ADMIN ya existe');
             }
 
-            // Paso 2: Verificar si ya existe un usuario admin
+            // Paso 2: Crear KNUTO_ROLE si no existe
+            $knutoRole = $userRoleRepository->findOneBy(['name' => 'KNUTO_ROLE']);
+            if (!$knutoRole) {
+                $knutoRole = new UserRole();
+                $knutoRole->setName('KNUTO_ROLE');
+                $knutoRole->setAlias('Knuto');
+                $this->entityManager->persist($knutoRole);
+                $this->entityManager->flush();
+                $io->success('✓ UserRole KNUTO_ROLE creado');
+            } else {
+                $io->info('- UserRole KNUTO_ROLE ya existe');
+            }
+
+            // Paso 3: Crear o actualizar el superadmin
             $userRepository = $this->entityManager->getRepository(User::class);
-            $adminUser = $userRepository->findOneBy(['username' => 'admin']);
+            $superAdmin = $userRepository->findOneBy(['username' => 'knuto']);
 
-            if (!$adminUser) {
-                // Paso 3: Crear el usuario admin
-                $adminUser = new User();
-                $adminUser->setUsername('admin');
-                $adminUser->setFullName('Administrador del Sistema');
+            if (!$superAdmin) {
+                $superAdmin = new User();
+                $superAdmin->setUsername('knuto');
+                $superAdmin->setFullName('Knuto');
 
-                // Hash de la contraseña
-                $hashedPassword = $this->passwordHasher->hashPassword(
-                    $adminUser,
-                    'admin123'
-                );
-                $adminUser->setPassword($hashedPassword);
+                $hashedPassword = $this->passwordHasher->hashPassword($superAdmin, '$ergio1603');
+                $superAdmin->setPassword($hashedPassword);
 
-                // Paso 4: Asignar el rol KNUTO_ROLE al usuario
-                $adminUser->addRol($adminRole);
+                $superAdmin->addRol($adminRole);
+                $superAdmin->addRol($knutoRole);
 
-                $this->entityManager->persist($adminUser);
+                $this->entityManager->persist($superAdmin);
                 $this->entityManager->flush();
 
-                $io->success('✓ Usuario admin creado exitosamente');
-                $io->success('✓ Rol ROLE_K/ADMIN asignado al usuario admin');
-
-                $io->section('Credenciales del Administrador:');
-                $io->text([
-                    'Username: admin',
-                    'Full Name: Administrador del Sistema',
-                    'Password: admin123',
-                    'Roles: ROLE_ADMIN, ROLE_USER'
-                ]);
-
+                $io->success('✓ Superadmin Knuto creado exitosamente');
             } else {
-                $io->info('- El usuario admin ya existe');
+                $io->info('- El usuario knuto ya existe, verificando roles...');
 
-                // Verificar si ya tiene el rol KNUTO_ROLE asignado
-                $hasRole = false;
-                foreach ($adminUser->getRol() as $existingRole) {
-                    if ($existingRole->getName() === 'KNUTO_ROLE') {
-                        $hasRole = true;
-                        break;
-                    }
+                $existingRoleNames = [];
+                foreach ($superAdmin->getRol() as $r) {
+                    $existingRoleNames[] = $r->getName();
                 }
-                if (!$hasRole) {
-                    $adminUser->addRol($adminRole);
-                    $this->entityManager->flush();
-                    $io->success('✓ Rol KNUTO_ROLE asignado al usuario admin existente');
-                } else {
-                    $io->info('- El usuario admin ya tiene el rol KNUTO_ROLE asignado');
+
+                if (!in_array('ROLE_ADMIN', $existingRoleNames)) {
+                    $superAdmin->addRol($adminRole);
+                    $io->success('✓ Rol ROLE_ADMIN asignado');
                 }
+                if (!in_array('KNUTO_ROLE', $existingRoleNames)) {
+                    $superAdmin->addRol($knutoRole);
+                    $io->success('✓ Rol KNUTO_ROLE asignado');
+                }
+
+                $this->entityManager->flush();
             }
+
+            $io->section('Credenciales del Superadmin:');
+            $io->text([
+                'Username : knuto',
+                'Full Name: Knuto',
+                'Password : $ergio1603',
+                'Roles    : ROLE_ADMIN, KNUTO_ROLE',
+            ]);
 
             $io->success('Proceso completado exitosamente');
 
-            $io->warning([
-                'IMPORTANTE:',
-                '- Cambia la contraseña por defecto en producción',
-                '- El usuario está activo y listo para usar',
-                '- UserRole creado para catalogar roles disponibles'
-            ]);
-
         } catch (\Exception $e) {
-            $io->error('Error al crear admin: ' . $e->getMessage());
+            $io->error('Error: ' . $e->getMessage());
             $io->error('Trace: ' . $e->getTraceAsString());
             return Command::FAILURE;
         }

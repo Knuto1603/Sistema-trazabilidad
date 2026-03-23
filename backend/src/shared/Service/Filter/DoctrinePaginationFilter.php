@@ -3,7 +3,7 @@
 namespace App\shared\Service\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use App\Shared\Service\Dto\PaginationDto;
+use App\shared\Service\Dto\PaginationDto;
 
 final class DoctrinePaginationFilter
 {

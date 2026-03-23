@@ -2,7 +2,7 @@
 
 namespace App\shared\Api;
 
-use App\Shared\Service\Dto\DtoRequestInterface;
+use App\shared\Service\Dto\DtoRequestInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;

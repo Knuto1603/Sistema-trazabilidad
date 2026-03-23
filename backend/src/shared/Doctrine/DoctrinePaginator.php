@@ -3,7 +3,7 @@
 namespace App\shared\Doctrine;
 
 use Doctrine\ORM\Tools\Pagination\Paginator;
-use App\Shared\Repository\PaginatorInterface;
+use App\shared\Repository\PaginatorInterface;
 
 /**
  * @template T of object

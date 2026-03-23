@@ -3,7 +3,7 @@
 namespace App\shared\Service\Sorting;
 
 use Doctrine\ORM\QueryBuilder;
-use App\Shared\Service\Dto\SortingDto;
+use App\shared\Service\Dto\SortingDto;
 
 readonly class SortByRequestField implements SortingStrategy
 {

@@ -16,4 +16,7 @@ fi
 php apps/security/bin/console cache:warmup --env=prod --no-debug 2>/dev/null || true
 php apps/core/bin/console cache:warmup --env=prod --no-debug 2>/dev/null || true
 
+# Asegurar que www-data tenga acceso a todo lo generado por root durante warmup
+chown -R www-data:www-data apps/security/var apps/core/var
+
 exec "$@"

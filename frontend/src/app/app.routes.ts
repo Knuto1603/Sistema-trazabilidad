@@ -39,8 +39,10 @@ export const routes: Routes = [
         path: 'senasa',
         loadChildren: () => import('@features/senasa/senasa.routes').then(m => m.senasaRoutes)
       },
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { path: '**', redirectTo: 'dashboard' }
     ]
   },
-  { path: '', redirectTo: 'auth/login', pathMatch: 'full' }
+  { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
+  { path: '**', redirectTo: 'auth/login' }
 ];

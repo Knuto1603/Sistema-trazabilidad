@@ -2,57 +2,58 @@ import { Component, signal, inject, computed, HostListener } from '@angular/core
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
+import { CampaignService } from '@core/services/campaign.service';
 import { SIDEBAR_MENU, MenuBlock } from '@core/constants/menu.config';
+import { NotificationComponent } from '@shared/components/notification/notification.component';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css'
 })
 export class LayoutComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
+  campaignService = inject(CampaignService);
 
-  // Estados del Layout
-  isCollapsed = signal(false); // Sidebar en Desktop
-  isMobileOpen = signal(false); // Sidebar en Móviles
-  isProfileOpen = signal(false); // Desplegable de usuario
+  isCollapsed = signal(false);
+  isMobileOpen = signal(false);
+  isProfileOpen = signal(false);
+  isCampaignOpen = signal(false);
 
-  // Datos reactivos del usuario
   user = computed(() => this.authService.currentUser());
 
-  // Filtrado de menú por roles dinámicos
- menuItems = computed(() => {
+  menuItems = computed(() => {
     return SIDEBAR_MENU.map(block => ({
       ...block,
-      items: block.items.filter(item => 
-        item.roles.some(role => this.authService.hasRole(role)) // ← Agregar return implícito
+      items: block.items.filter(item =>
+        item.roles.some(role => this.authService.hasRole(role))
       )
     })).filter(block => block.items.length > 0);
   });
 
-  // Listener para cerrar el desplegable al hacer clic fuera
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
     if (!target.closest('#profile-dropdown-wrapper')) {
       this.isProfileOpen.set(false);
     }
+    if (!target.closest('#campaign-dropdown-wrapper')) {
+      this.isCampaignOpen.set(false);
+    }
   }
 
-  toggleSidebar() {
-    this.isCollapsed.update(v => !v);
-  }
+  toggleSidebar() { this.isCollapsed.update(v => !v); }
+  toggleMobileMenu() { this.isMobileOpen.update(v => !v); }
+  toggleProfileMenu(event: Event) { event.stopPropagation(); this.isProfileOpen.update(v => !v); }
+  toggleCampaignMenu(event: Event) { event.stopPropagation(); this.isCampaignOpen.update(v => !v); }
 
-  toggleMobileMenu() {
-    this.isMobileOpen.update(v => !v);
-  }
-
-  toggleProfileMenu(event: Event) {
+  selectCampaign(campaign: any, event: Event) {
     event.stopPropagation();
-    this.isProfileOpen.update(v => !v);
+    this.campaignService.setActiveCampaign(campaign);
+    this.isCampaignOpen.set(false);
   }
 
   logout() {

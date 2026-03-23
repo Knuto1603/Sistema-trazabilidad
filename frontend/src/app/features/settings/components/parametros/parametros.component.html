@@ -1,0 +1,136 @@
+<div>
+  <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+    <input type="text" placeholder="Buscar parámetro..." [value]="search()"
+      (input)="onSearch($any($event.target).value)"
+      class="w-full sm:w-64 px-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+    <button (click)="openCreate()" class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors shrink-0 flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nuevo Parámetro
+    </button>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-100">
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider">Nombre</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden sm:table-cell">Alias</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">Valor</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">Padre</th>
+            <th class="px-4 py-3 text-center font-bold text-slate-600 text-xs uppercase tracking-wider">Estado</th>
+            <th class="px-4 py-3 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          @if (loading()) {
+            @for (i of skeletonRows; track i) {
+              <tr class="animate-pulse">
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-32"></div></td>
+                <td class="px-4 py-3 hidden sm:table-cell"><div class="h-4 bg-slate-200 rounded w-16"></div></td>
+                <td class="px-4 py-3 hidden md:table-cell"><div class="h-4 bg-slate-200 rounded w-16"></div></td>
+                <td class="px-4 py-3 hidden md:table-cell"><div class="h-4 bg-slate-200 rounded w-20"></div></td>
+                <td class="px-4 py-3"><div class="h-5 bg-slate-200 rounded-full w-16 mx-auto"></div></td>
+                <td class="px-4 py-3"><div class="h-8 bg-slate-200 rounded w-16 ml-auto"></div></td>
+              </tr>
+            }
+          } @else if (items().length === 0) {
+            <tr><td colspan="6" class="px-4 py-12 text-center text-sm text-slate-400">No se encontraron parámetros</td></tr>
+          } @else {
+            @for (item of items(); track item.id) {
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 font-semibold text-slate-800">{{ item.name }}</td>
+                <td class="px-4 py-3 hidden sm:table-cell">
+                  @if (item.alias) { <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-mono">{{ item.alias }}</span> }
+                </td>
+                <td class="px-4 py-3 hidden md:table-cell text-slate-600 text-xs font-mono">{{ item.value ?? '-' }}</td>
+                <td class="px-4 py-3 hidden md:table-cell text-slate-500 text-xs">{{ item.parentName ?? '-' }}</td>
+                <td class="px-4 py-3 text-center">
+                  <button (click)="toggleEstado(item)"
+                    [class]="item.isActive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-full text-xs font-bold transition-colors">
+                    {{ item.isActive ? 'Activo' : 'Inactivo' }}
+                  </button>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-end gap-1">
+                    <button (click)="openEdit(item)" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    @if (isAdmin()) {
+                      <button (click)="confirmDelete(item.id)" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 pb-4">
+      <app-pagination [pagination]="pagination()" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+
+  @if (showModal()) {
+    <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in duration-200">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 class="font-bold text-slate-800">{{ editing() ? 'Editar Parámetro' : 'Nuevo Parámetro' }}</h3>
+          <button (click)="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="save()" class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Nombre *</label>
+            <input formControlName="name" type="text" placeholder="Nombre del parámetro"
+              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="hasError('name')" [class.border-slate-200]="!hasError('name')">
+            @if (hasError('name')) { <p class="text-xs text-red-500 mt-1">Nombre requerido</p> }
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Alias</label>
+              <input formControlName="alias" type="text" placeholder="Ej: CAL1" maxlength="6"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Valor</label>
+              <input formControlName="value" type="text" placeholder="Ej: 1.5"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Parámetro Padre</label>
+            <select formControlName="parentId" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Sin padre (raíz)</option>
+              @for (p of parents(); track p.id) {
+                <option [value]="p.id">{{ p.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="flex gap-3 justify-end pt-2">
+            <button type="button" (click)="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+            <button type="submit" [disabled]="saving()" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors">
+              {{ saving() ? 'Guardando...' : (editing() ? 'Actualizar' : 'Crear') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showConfirm()) {
+    <app-confirm-dialog
+      title="Eliminar parámetro"
+      message="¿Estás seguro de que deseas eliminar este parámetro?"
+      confirmLabel="Eliminar"
+      (confirmed)="doDelete()"
+      (cancelled)="cancelDelete()">
+    </app-confirm-dialog>
+  }
+</div>

@@ -20,10 +20,13 @@ export const routes: Routes = [
         canActivate: [authGuard],
         children: [
             {
-                path: 'dashboard', 
+                path: 'dashboard',
                 loadChildren: () => import('@features/dashboard/dashboard.routes').then(m => m.dashboardRoutes)
             },
-            // Redirigir /app a /app/dashboard automáticamente
+            { path: 'trazabilidad', redirectTo: 'dashboard', pathMatch: 'full' },
+            { path: 'lotes', redirectTo: 'dashboard', pathMatch: 'full' },
+            { path: 'users', redirectTo: 'dashboard', pathMatch: 'full' },
+            { path: 'settings', redirectTo: 'dashboard', pathMatch: 'full' },
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
         ]
     },

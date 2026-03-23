@@ -5,6 +5,7 @@ import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
 import { Parameter } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
+import { ParametroCreateDto } from '../../services/parametro.service';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
 
@@ -93,7 +94,7 @@ export class ParametrosComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving.set(true);
     const raw = this.form.value;
-    const data: Partial<Parameter> = {
+    const data: ParametroCreateDto = {
       name: raw.name!,
       alias: raw.alias ?? '',
       value: raw.value !== '' ? raw.value as any : null,

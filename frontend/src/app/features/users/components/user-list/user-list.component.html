@@ -1,0 +1,161 @@
+<div class="max-w-7xl mx-auto">
+  <app-page-header title="Usuarios" subtitle="Gestión de usuarios del sistema">
+    <button (click)="openCreateModal()" class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nuevo Usuario
+    </button>
+  </app-page-header>
+
+  <div class="mb-4">
+    <input type="text" placeholder="Buscar usuario..." (input)="onSearch($event)"
+      class="w-full sm:w-64 px-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-100">
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider">Usuario</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden sm:table-cell">Username</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">Roles</th>
+            <th class="px-4 py-3 text-center font-bold text-slate-600 text-xs uppercase tracking-wider">Estado</th>
+            <th class="px-4 py-3 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          @if (isLoading()) {
+            @for (i of [1,2,3,4,5]; track i) {
+              <tr class="animate-pulse">
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-36"></div></td>
+                <td class="px-4 py-3 hidden sm:table-cell"><div class="h-4 bg-slate-200 rounded w-24"></div></td>
+                <td class="px-4 py-3 hidden md:table-cell"><div class="h-5 bg-slate-200 rounded-full w-20"></div></td>
+                <td class="px-4 py-3"><div class="h-5 bg-slate-200 rounded-full w-16 mx-auto"></div></td>
+                <td class="px-4 py-3"><div class="h-8 bg-slate-200 rounded w-16 ml-auto"></div></td>
+              </tr>
+            }
+          } @else if (users().length === 0) {
+            <tr><td colspan="5" class="px-4 py-12 text-center text-sm text-slate-400">No se encontraron usuarios</td></tr>
+          } @else {
+            @for (user of users(); track user.id) {
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs uppercase shrink-0">
+                      {{ user.fullname.charAt(0) }}
+                    </div>
+                    <span class="font-semibold text-slate-800">{{ user.fullname }}</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3 hidden sm:table-cell text-slate-500 text-xs">{{ user.username }}</td>
+                <td class="px-4 py-3 hidden md:table-cell">
+                  <div class="flex flex-wrap gap-1">
+                    @for (roleId of user.roles; track roleId) {
+                      <span class="px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full text-xs font-semibold">
+                        {{ getRoleName(roleId) }}
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <button (click)="toggleUser(user)" [disabled]="togglingId() === user.id"
+                    [class]="user.isActive ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                    class="px-2.5 py-1 rounded-full text-xs font-bold transition-colors disabled:opacity-50">
+                    {{ user.isActive ? 'Activo' : 'Inactivo' }}
+                  </button>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex items-center justify-end gap-1">
+                    <button (click)="openEditModal(user)" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    @if (isAdmin()) {
+                      <button (click)="confirmDelete(user)" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 pb-4">
+      <app-pagination [pagination]="pagination()" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+
+  <!-- Modal Crear/Editar -->
+  @if (showModal()) {
+    <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
+          <h3 class="font-bold text-slate-800">{{ isEditing() ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
+          <button (click)="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <form [formGroup]="userForm" (ngSubmit)="saveUser()" class="p-6 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Nombre Completo *</label>
+              <input formControlName="fullname" type="text" placeholder="Ej: Juan Pérez"
+                class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class.border-red-400]="fieldInvalid('fullname')" [class.border-slate-200]="!fieldInvalid('fullname')">
+              @if (fieldInvalid('fullname')) { <p class="text-xs text-red-500 mt-1">Nombre requerido (mín. 4 chars)</p> }
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Username *</label>
+              <input formControlName="username" type="text" placeholder="Ej: jperez"
+                class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                [class.border-red-400]="fieldInvalid('username')" [class.border-slate-200]="!fieldInvalid('username')">
+              @if (fieldInvalid('username')) { <p class="text-xs text-red-500 mt-1">Username requerido (mín. 4 chars)</p> }
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">
+              Contraseña {{ isEditing() ? '(dejar vacío para no cambiar)' : '*' }}
+            </label>
+            <input formControlName="password" type="password" placeholder="Mínimo 6 caracteres"
+              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('password')" [class.border-slate-200]="!fieldInvalid('password')">
+            @if (fieldInvalid('password')) { <p class="text-xs text-red-500 mt-1">Contraseña inválida (mín. 6 chars)</p> }
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Roles</label>
+            <div class="border border-slate-200 rounded-xl p-3 space-y-2 max-h-40 overflow-y-auto">
+              @if (availableRoles().length === 0) {
+                <p class="text-xs text-slate-400">Cargando roles...</p>
+              }
+              @for (role of availableRoles(); track role.id) {
+                <label class="flex items-center gap-3 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1">
+                  <input type="checkbox" [checked]="isRoleChecked(role.id)" (change)="onRoleToggle(role.id, $any($event.target).checked)"
+                    class="w-4 h-4 text-blue-600 rounded">
+                  <span class="text-sm font-medium text-slate-700">{{ role.name }}</span>
+                </label>
+              }
+            </div>
+          </div>
+          <div class="flex gap-3 justify-end pt-2">
+            <button type="button" (click)="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+            <button type="submit" [disabled]="isSaving()" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors">
+              {{ isSaving() ? 'Guardando...' : (isEditing() ? 'Actualizar' : 'Crear') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showDeleteConfirm()) {
+    <app-confirm-dialog
+      title="Eliminar usuario"
+      [message]="'¿Eliminar a ' + deletingUser()?.fullname + '? Esta acción no se puede deshacer.'"
+      confirmLabel="Eliminar"
+      (confirmed)="executeDelete()"
+      (cancelled)="cancelDelete()">
+    </app-confirm-dialog>
+  }
+</div>

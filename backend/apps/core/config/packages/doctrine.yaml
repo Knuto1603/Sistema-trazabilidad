@@ -11,7 +11,6 @@ doctrine:
             charset: utf8mb4
             collation: utf8mb4_unicode_ci
             collate: utf8mb4_unicode_ci
-        schema_filter: ~^(security_)~  # Ignora tablas que NO comienzan con "security_"
     orm:
         auto_generate_proxy_classes: true
         enable_lazy_ghost_objects: true
@@ -20,7 +19,7 @@ doctrine:
         naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
         identity_generation_preferences:
             Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
-        auto_mapping: true
+        auto_mapping: false
         mappings:
             Core:
                 type: attribute

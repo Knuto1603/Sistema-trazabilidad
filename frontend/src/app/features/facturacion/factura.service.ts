@@ -25,6 +25,7 @@ export interface FacturaCreateDto {
   tipoServicio?: string;
   tipoOperacion?: string;
   contenedor?: string;
+  destino?: string;
   despachoId: string;
 }
 
@@ -65,5 +66,11 @@ export class FacturaService {
     const formData = new FormData();
     formData.append('archivo', file);
     return this.http.post<ApiResponse<any>>(`${this.base}/parse-xml`, formData);
+  }
+
+  exportReporte(search?: string): void {
+    let url = `${this.base}/export-reporte`;
+    if (search) url += `?search=${encodeURIComponent(search)}`;
+    window.open(url, '_blank');
   }
 }

@@ -63,7 +63,8 @@ export interface Factura {
   moneda: string; detalle?: string; kgCaja?: number; unidadMedida?: string;
   cajas?: number; cantidad?: number; valorUnitario?: number;
   importe?: number; igv?: number; total?: number; tipoCambio?: number;
-  tipoServicio?: string; tipoOperacion?: string; isAnulada: boolean; contenedor?: string;
+  tipoServicio?: string; tipoOperacion?: string; isAnulada: boolean;
+  contenedor?: string; destino?: string;
   despachoId: string; despachoNumero?: number; clienteRazonSocial?: string; isActive: boolean;
 }
 

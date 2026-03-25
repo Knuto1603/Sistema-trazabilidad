@@ -143,6 +143,7 @@ export class ProductoresListComponent implements OnInit {
         if (res.success && res.data) {
           const d = res.data;
           this.form.patchValue({
+            nombre: d.nombreLugar || '',
             nombreProductor: d.nombreProductor || '',
             direccion: d.direccion || '',
             departamento: d.departamento || '',

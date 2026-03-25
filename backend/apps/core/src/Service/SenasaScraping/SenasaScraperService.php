@@ -59,18 +59,24 @@ class SenasaScraperService
             usleep(500000); // 0.5 segundos
 
 
+            // Convertir fecha de yyyy-MM-dd a dd-MM-yyyy (formato SENASA)
+            $fechaFormateada = $fecha;
+            if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $fecha, $m)) {
+                $fechaFormateada = $m[3] . '-' . $m[2] . '-' . $m[1];
+            }
+
             // Paso 2: Realizar la consulta con los IDs correctos
             $postData = [
                 'javax.faces.partial.ajax' => 'true',
-                'javax.faces.source' => 'j_idt21:j_idt24',
+                'javax.faces.source' => 'j_idt18:j_idt24',
                 'javax.faces.partial.execute' => '@all',
-                'javax.faces.partial.render' => 'j_idt18:panelResultado j_idt18:chartcera j_idt18:chartanas',
+                'javax.faces.partial.render' => 'j_idt18:panelResultado j_idt18:chartcera j_idt18:chartanas j_idt18:panelTrampas j_idt18:tblTrampas',
                 'javax.faces.behavior.event' => 'action',
                 'javax.faces.partial.event' => 'click',
                 'j_idt18:j_idt24' => 'j_idt18:j_idt24',
                 'j_idt18' => 'j_idt18',
                 'j_idt18:codigoLP' => $codigoLugar,
-                'j_idt18:fechaMTD_input' => $fecha,
+                'j_idt18:fechaMTD_input' => $fechaFormateada,
                 'javax.faces.ViewState' => $viewState
             ];
 
@@ -150,7 +156,7 @@ class SenasaScraperService
             $this->logger->info('Parseando respuesta JSF partial-response');
 
             // Buscar actualizaciones en el panel de resultados
-            if (preg_match('/<update[^>]*id="j_idt21:panelResultado"[^>]*><!\[CDATA\[(.*?)\]\]><\/update>/s', $content, $matches)) {
+            if (preg_match('/<update[^>]*id="j_idt18:panelResultado"[^>]*><!\[CDATA\[(.*?)\]\]><\/update>/s', $content, $matches)) {
                 $htmlResultado = $matches[1];
                 return $this->extraerDatosDeResultado($htmlResultado);
             }

@@ -7,6 +7,7 @@ use App\apps\core\Service\Productor\Dto\ProductorDtoTransformer;
 use App\apps\core\Service\Productor\Filter\ProductorFilterDto;
 use App\shared\Service\Dto\FilterDto;
 use App\shared\Service\Dto\SortingDto;
+use App\shared\Service\Filter\ConditionFilter;
 use App\shared\Service\Filter\PaginationFilter;
 use App\shared\Service\Filter\SearchTextFilter;
 use App\shared\Service\FilterService;
@@ -43,16 +44,16 @@ final readonly class GetProductoresByCampahnaService
         ]));
 
         // Filtro por campaña a través de ProductorCampahna
-        $this->filterService->addCondition(
+        $this->filterService->addFilter(new ConditionFilter(
             'campahna.uuid = :campahnaId',
             ['campahnaId' => $campahnaId]
-        );
+        ));
 
         // Solo productores activos en la campaña
-        $this->filterService->addCondition(
+        $this->filterService->addFilter(new ConditionFilter(
             'productorCampahna.isActive = :isActive',
             ['isActive' => true]
-        );
+        ));
 
         // Sortings
         $sorting = SortingDto::create($campahnaFilterDto->sort, $campahnaFilterDto->direction);

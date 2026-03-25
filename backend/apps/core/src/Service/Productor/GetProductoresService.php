@@ -8,6 +8,7 @@ use App\apps\core\Service\Productor\Filter\ProductorFilterDto;
 use App\shared\Doctrine\UidType;
 use App\shared\Service\Dto\FilterDto;
 use App\shared\Service\Dto\SortingDto;
+use App\shared\Service\Filter\ConditionFilter;
 use App\shared\Service\Filter\PaginationFilter;
 use App\shared\Service\Filter\SearchTextFilter;
 use App\shared\Service\FilterService;
@@ -62,34 +63,34 @@ final readonly class GetProductoresService
         if ($filterDto instanceof ProductorFilterDto) {
             // Filtro por campaña
             if ($filterDto->campahnaId) {
-                $this->filterService->addCondition(
+                $this->filterService->addFilter(new ConditionFilter(
                     'campahna.uuid = :campahnaId',
                     ['campahnaId' => UidType::fromString($filterDto->campahnaId)]
-                );
+                ));
             }
 
             // Filtro por fruta (a través de campaña)
             if ($filterDto->frutaId) {
-                $this->filterService->addCondition(
+                $this->filterService->addFilter(new ConditionFilter(
                     'fruta.uuid = :frutaId',
                     ['frutaId' => UidType::fromString($filterDto->frutaId)]
-                );
+                ));
             }
 
             // Filtro por período (a través de campaña)
             if ($filterDto->periodoId) {
-                $this->filterService->addCondition(
+                $this->filterService->addFilter(new ConditionFilter(
                     'periodo.uuid = :periodoId',
                     ['periodoId' => UidType::fromString($filterDto->periodoId)]
-                );
+                ));
             }
 
             // Filtro por estado activo
             if (null !== $filterDto->isActive) {
-                $this->filterService->addCondition(
+                $this->filterService->addFilter(new ConditionFilter(
                     'productor.isActive = :isActive',
                     ['isActive' => $filterDto->isActive]
-                );
+                ));
             }
         }
     }

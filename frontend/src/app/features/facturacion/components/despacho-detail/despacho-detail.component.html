@@ -132,10 +132,13 @@
   <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
       <h3 class="font-bold text-slate-800">Archivos</h3>
-      <button (click)="openUploadArchivoModal()" class="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-        Subir Archivo
-      </button>
+      <label class="relative cursor-pointer">
+        <input type="file" multiple class="sr-only" (change)="onMultipleFilesSelected($event)">
+        <span class="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Subir Archivos
+        </span>
+      </label>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -287,7 +290,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo Servicio</label>
               <select formControlName="tipoServicio" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -301,6 +304,11 @@
                 <option value="">-</option>
                 @for (to of TIPOS_OPERACION; track to) { <option [value]="to">{{ to }}</option> }
               </select>
+            </div>
+            <div class="col-span-2">
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Destino (País)</label>
+              <input formControlName="destino" type="text" placeholder="CANADA, REINO UNIDO, USA..."
+                class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
           </div>
 
@@ -323,33 +331,79 @@
 
   @if (showUploadArchivoModal()) {
     <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in duration-200">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 class="font-bold text-slate-800">Subir Archivo</h3>
-          <button (click)="closeUploadArchivoModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <div>
+            <h3 class="font-bold text-slate-800">Subir Archivos del Despacho</h3>
+            <p class="text-xs text-slate-400 mt-0.5">El tipo se detecta automáticamente. Puedes modificarlo antes de subir.</p>
+          </div>
+          <button (click)="closeUploadMultipleModal()" [disabled]="uploadingMultiple()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
         <div class="p-6 space-y-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Tipo de Archivo *</label>
-            <select [formGroup]="archivoForm" formControlName="tipoArchivo"
-              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-              @for (t of TIPOS_ARCHIVO; track t) { <option [value]="t">{{ t }}</option> }
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Archivo *</label>
-            <input type="file" (change)="onArchivoSelected($event)"
-              class="w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-          </div>
-          <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">
-            <button type="button" (click)="closeUploadArchivoModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
-            <button type="button" (click)="uploadArchivo()" [disabled]="!selectedArchivo || uploadingArchivo()"
-              class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors">
-              {{ uploadingArchivo() ? 'Subiendo...' : 'Subir' }}
-            </button>
-          </div>
+          <!-- Zona de drop/agregar más archivos -->
+          <label class="block border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+            <input type="file" multiple class="sr-only" (change)="onMultipleFilesSelected($event)">
+            <svg class="w-8 h-8 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p class="text-xs font-semibold text-slate-500">Arrastra archivos aquí o <span class="text-blue-600">haz clic para seleccionar</span></p>
+            <p class="text-xs text-slate-400 mt-1">Selecciona todos los archivos del despacho a la vez</p>
+          </label>
+
+          @if (pendingFiles().length > 0) {
+            <div class="space-y-2">
+              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">{{ pendingFiles().length }} archivo(s) a subir</p>
+              @for (item of pendingFiles(); track item.file.name; let i = $index) {
+                <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
+                  <!-- Icono por tipo -->
+                  <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                    [class]="item.tipoArchivo === 'FACTURA_XML' || item.tipoArchivo === 'GUIA_XML' ? 'bg-emerald-100 text-emerald-700' :
+                             item.tipoArchivo === 'CDR' ? 'bg-purple-100 text-purple-700' :
+                             item.tipoArchivo === 'PACKING_LIST' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  </div>
+                  <!-- Nombre + tamaño -->
+                  <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-slate-700 truncate">{{ item.file.name }}</p>
+                    <p class="text-xs text-slate-400">{{ formatBytes(item.file.size) }}</p>
+                  </div>
+                  <!-- Selector de tipo -->
+                  <select [value]="item.tipoArchivo" (change)="updateTipoArchivoPending(i, $any($event.target).value)"
+                    [disabled]="item.uploading || uploadingMultiple()"
+                    class="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shrink-0">
+                    @for (t of TIPOS_ARCHIVO; track t) { <option [value]="t">{{ t }}</option> }
+                  </select>
+                  <!-- Estado / Eliminar -->
+                  @if (item.uploading) {
+                    <svg class="w-4 h-4 animate-spin text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  } @else {
+                    <button (click)="removePendingFile(i)" [disabled]="uploadingMultiple()"
+                      class="p-1 text-slate-300 hover:text-red-500 rounded shrink-0 disabled:opacity-40">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">
+              <button type="button" (click)="closeUploadMultipleModal()" [disabled]="uploadingMultiple()"
+                class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50">
+                Cancelar
+              </button>
+              <button type="button" (click)="uploadAllPendingFiles()" [disabled]="uploadingMultiple()"
+                class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors flex items-center gap-2">
+                @if (uploadingMultiple()) {
+                  <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  Subiendo...
+                } @else {
+                  Subir {{ pendingFiles().length }} archivo(s)
+                }
+              </button>
+            </div>
+          } @else {
+            <p class="text-xs text-center text-slate-400 py-4">Selecciona los archivos del despacho para continuar</p>
+          }
         </div>
       </div>
     </div>

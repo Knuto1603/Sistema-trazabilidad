@@ -43,6 +43,9 @@ export class DespachoDetailComponent implements OnInit {
   showDeleteArchivoConfirm = signal(false);
   deletingArchivoId = signal<string | null>(null);
   showUploadArchivoModal = signal(false);
+  // Subida múltiple de archivos
+  pendingFiles = signal<{ file: File; tipoArchivo: string; uploading: boolean }[]>([]);
+  uploadingMultiple = signal(false);
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
 
@@ -78,6 +81,7 @@ export class DespachoDetailComponent implements OnInit {
     tipoServicio: [''],
     tipoOperacion: [''],
     contenedor: [''],
+    destino: [''],
   });
 
   archivoForm = this.fb.group({
@@ -138,6 +142,7 @@ export class DespachoDetailComponent implements OnInit {
       tipoServicio: factura.tipoServicio ?? '',
       tipoOperacion: factura.tipoOperacion ?? '',
       contenedor: factura.contenedor ?? '',
+      destino: factura.destino ?? '',
     });
     this.showFacturaModal.set(true);
   }
@@ -158,28 +163,57 @@ export class DespachoDetailComponent implements OnInit {
       next: res => {
         if (res.status && res.item) {
           const d = res.item as any;
-          this.facturaForm.patchValue({
-            tipoDocumento: d.tipoDocumento ?? '01',
-            serie: d.serie ?? '',
-            correlativo: d.correlativo ?? '',
-            numeroGuia: d.numeroGuia ?? '',
-            fechaEmision: d.fechaEmision ?? '',
-            moneda: d.moneda ?? 'USD',
-            detalle: d.detalle ?? '',
-            kgCaja: d.kgCaja ?? null,
-            unidadMedida: d.unidadMedida ?? 'TNE',
-            cantidad: d.cantidad ?? null,
-            valorUnitario: d.valorUnitario ?? null,
-            importe: d.importe ?? null,
-            igv: d.igv ?? null,
-            total: d.total ?? null,
-            tipoServicio: d.tipoServicio ?? '',
-            tipoOperacion: d.tipoOperacion ?? '',
-            contenedor: d.contenedor ?? '',
-          });
-          this.showFacturaModal.set(true);
-          this.editingFacturaId.set(null);
-          this.notification.success('XML procesado. Revise y confirme los datos.');
+          const isGuia = d.tipoDocumento === '09';
+
+          if (isGuia) {
+            // XML de guía: solo completa/confirma datos que faltan (no sobrescribe factura)
+            const current = this.facturaForm.value;
+            const patch: any = {};
+
+            // Número de guía: prioridad al de la guía
+            if (d.numeroDocumento) patch['numeroGuia'] = d.numeroDocumento;
+
+            // Completar si faltan
+            if (!current['cajas'] && d.cajas) patch['cajas'] = d.cajas;
+            if (!current['kgCaja'] && d.kgCaja) patch['kgCaja'] = d.kgCaja;
+            if (!current['cantidad'] && d.cantidad) patch['cantidad'] = d.cantidad;
+            if (!current['unidadMedida'] && d.unidadMedida) patch['unidadMedida'] = d.unidadMedida;
+            if (!current['tipoOperacion'] && d.tipoOperacion) patch['tipoOperacion'] = d.tipoOperacion;
+            if (!current['contenedor'] && d.contenedor) patch['contenedor'] = d.contenedor;
+            if (!current['detalle'] && d.detalle) patch['detalle'] = d.detalle;
+
+            this.facturaForm.patchValue(patch);
+            // Auto-calcular cajas si tenemos datos
+            this.autocalcularCajas();
+            this.notification.success('Guía XML procesada. Datos completados/confirmados.');
+          } else {
+            // XML de factura: llena todos los campos
+            this.facturaForm.patchValue({
+              tipoDocumento: d.tipoDocumento ?? '01',
+              serie: d.serie ?? '',
+              correlativo: d.correlativo ?? '',
+              numeroGuia: d.numeroGuia ?? '',
+              fechaEmision: d.fechaEmision ?? '',
+              moneda: d.moneda ?? 'USD',
+              detalle: d.detalle ?? '',
+              kgCaja: d.kgCaja ?? null,
+              unidadMedida: d.unidadMedida ?? 'TNE',
+              cajas: d.cajas ?? null,
+              cantidad: d.cantidad ?? null,
+              valorUnitario: d.valorUnitario ?? null,
+              importe: d.importe ?? null,
+              igv: d.igv ?? null,
+              total: d.total ?? null,
+              tipoServicio: d.tipoServicio ?? '',
+              tipoOperacion: d.tipoOperacion ?? '',
+              contenedor: d.contenedor ?? '',
+            });
+            // Auto-calcular cajas si no vinieron del XML
+            if (!d.cajas) this.autocalcularCajas();
+            this.showFacturaModal.set(true);
+            this.editingFacturaId.set(null);
+            this.notification.success('Factura XML procesada. Revise y confirme los datos.');
+          }
         } else {
           this.notification.error('No se pudo procesar el XML');
         }
@@ -188,6 +222,25 @@ export class DespachoDetailComponent implements OnInit {
       },
       error: () => { this.notification.error('Error al procesar el XML'); this.parsingXml.set(false); input.value = ''; }
     });
+  }
+
+  private autocalcularCajas(): void {
+    const v = this.facturaForm.value;
+    const kgCaja = v['kgCaja'];
+    const cantidad = v['cantidad'];
+    const unidad = v['unidadMedida'];
+
+    if (kgCaja && cantidad && !v['cajas']) {
+      let cajas: number;
+      if (unidad === 'TNE') {
+        cajas = Math.round((cantidad * 1000) / kgCaja);
+      } else if (unidad === 'KGM') {
+        cajas = Math.round(cantidad / kgCaja);
+      } else {
+        return;
+      }
+      this.facturaForm.patchValue({ cajas });
+    }
   }
 
   saveFactura(): void {
@@ -215,6 +268,7 @@ export class DespachoDetailComponent implements OnInit {
       tipoServicio: raw.tipoServicio || undefined,
       tipoOperacion: raw.tipoOperacion || undefined,
       contenedor: raw.contenedor || undefined,
+      destino: raw.destino || undefined,
       despachoId: this.despachoId(),
     };
 
@@ -272,6 +326,102 @@ export class DespachoDetailComponent implements OnInit {
     });
   }
 
+  // --- Subida múltiple ---
+  onMultipleFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+
+    const newFiles = Array.from(input.files).map(file => ({
+      file,
+      tipoArchivo: this.detectTipoArchivo(file.name),
+      uploading: false,
+    }));
+
+    this.pendingFiles.update(existing => [...existing, ...newFiles]);
+    this.showUploadArchivoModal.set(true);
+    input.value = '';
+  }
+
+  private detectTipoArchivo(filename: string): string {
+    const name = filename.toUpperCase();
+    // CDR: empieza con "R-" seguido de RUC
+    if (/^R-\d{11}-/.test(filename) || /^R-\d{11}-/.test(name)) return 'CDR';
+    // Factura XML: {RUC}-01-{serie}-{correlativo}.xml
+    if (/^\d{11}-01-/.test(filename) && name.endsWith('.XML')) return 'FACTURA_XML';
+    // Guía XML: {RUC}-09-{serie}-{correlativo}.xml
+    if (/^\d{11}-09-/.test(filename) && name.endsWith('.XML')) return 'GUIA_XML';
+    // Packing list PDF
+    if (name.includes('PACKING') || name.includes('PL') && name.endsWith('.PDF')) return 'PACKING_LIST';
+    // Factura PDF
+    if (name.includes('FACTURA') && name.endsWith('.PDF')) return 'FACTURA_PDF';
+    // Guía PDF
+    if ((name.includes('GUIA') || name.includes('GUÍA')) && name.endsWith('.PDF')) return 'GUIA_PDF';
+    return 'OTRO';
+  }
+
+  updateTipoArchivoPending(index: number, tipo: string): void {
+    this.pendingFiles.update(files => {
+      const copy = [...files];
+      copy[index] = { ...copy[index], tipoArchivo: tipo };
+      return copy;
+    });
+  }
+
+  removePendingFile(index: number): void {
+    this.pendingFiles.update(files => files.filter((_, i) => i !== index));
+  }
+
+  async uploadAllPendingFiles(): Promise<void> {
+    const files = this.pendingFiles();
+    if (!files.length) return;
+
+    this.uploadingMultiple.set(true);
+    let successCount = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const entry = files[i];
+      this.pendingFiles.update(f => {
+        const copy = [...f];
+        copy[i] = { ...copy[i], uploading: true };
+        return copy;
+      });
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          this.archivoService.upload(this.despachoId(), entry.tipoArchivo, entry.file).subscribe({
+            next: res => { if (res.status) successCount++; resolve(); },
+            error: () => resolve(), // continuar aunque falle uno
+          });
+        });
+      } finally {
+        this.pendingFiles.update(f => {
+          const copy = [...f];
+          copy[i] = { ...copy[i], uploading: false };
+          return copy;
+        });
+      }
+    }
+
+    this.pendingFiles.set([]);
+    this.uploadingMultiple.set(false);
+    this.showUploadArchivoModal.set(false);
+
+    if (successCount > 0) {
+      this.notification.success(`${successCount} archivo(s) subidos correctamente`);
+      this.archivoService.getByDespacho(this.despachoId()).subscribe(r => {
+        if (r.status) this.archivos.set(r.items);
+      });
+    }
+  }
+
+  closeUploadMultipleModal(): void {
+    if (!this.uploadingMultiple()) {
+      this.pendingFiles.set([]);
+      this.showUploadArchivoModal.set(false);
+    }
+  }
+
+  // --- Subida individual (legacy) ---
   openUploadArchivoModal(): void {
     this.archivoForm.reset({ tipoArchivo: 'OTRO' });
     this.selectedArchivo = null;

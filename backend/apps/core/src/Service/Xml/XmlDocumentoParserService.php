@@ -75,6 +75,12 @@ class XmlDocumentoParserService
             $kgCaja = (int) $m[1];
         }
 
+        // Calcular cajas si tenemos kgCaja y cantidad en TNE
+        $cajas = null;
+        if ($kgCaja !== null && $cantidad !== null) {
+            $cajas = (int) round($cantidad * 1000 / $kgCaja);
+        }
+
         $tipoOperacion = null;
         if ($detalle) {
             if (preg_match('/MAR[IÍ]TIMA|MARITIM[AO]/i', $detalle)) {
@@ -113,6 +119,7 @@ class XmlDocumentoParserService
             'detalle' => $detalle,
             'cantidad' => $cantidad,
             'unidadMedida' => $unidadMedida,
+            'cajas' => $cajas,
             'valorUnitario' => $valorUnitario ?: null,
             'importe' => $importe ?: null,
             'igv' => $igv ?: null,
@@ -151,13 +158,52 @@ class XmlDocumentoParserService
 
         $nombreCliente = $this->xpathValue($xml, '//cac:DeliveryCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName');
 
-        $cantidadNode = $xml->xpath('//cac:DespatchLine/cbc:DeliveredQuantity');
+        // Extraer líneas de despacho: puede haber bultos (cajas) y peso
+        $cajas = null;
         $cantidad = null;
         $unidadMedida = null;
-        if (!empty($cantidadNode)) {
-            $cantidad = (float) (string) $cantidadNode[0];
-            $attrs = $cantidadNode[0]->attributes();
-            $unidadMedida = isset($attrs['unitCode']) ? (string) $attrs['unitCode'] : null;
+
+        $despatchLines = $xml->xpath('//cac:DespatchLine');
+        foreach ($despatchLines as $line) {
+            $line->registerXPathNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+            $line->registerXPathNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+            $quantities = $line->xpath('cbc:DeliveredQuantity');
+            foreach ($quantities as $q) {
+                $attrs = $q->attributes();
+                $unit = isset($attrs['unitCode']) ? strtoupper((string) $attrs['unitCode']) : '';
+                $val = (float) (string) $q;
+                // Bultos/cajas: unitCode BX (box), NIU (número de unidades), ZZ, CAJA, etc.
+                if (in_array($unit, ['BX', 'NIU', 'ZZ', 'CAJA', 'C62', 'PACK', 'CT'], true)) {
+                    $cajas = (int) round($val);
+                } elseif (in_array($unit, ['TNE', 'KGM', 'GRM'], true)) {
+                    $cantidad = $val;
+                    $unidadMedida = $unit;
+                }
+            }
+        }
+
+        // Fallback: DeliveredQuantity en TNE si no se encontró con el loop
+        if ($cantidad === null) {
+            $cantidadNode = $xml->xpath('//cac:DespatchLine/cbc:DeliveredQuantity');
+            if (!empty($cantidadNode)) {
+                $attrs = $cantidadNode[0]->attributes();
+                $unit = isset($attrs['unitCode']) ? strtoupper((string) $attrs['unitCode']) : '';
+                $val = (float) (string) $cantidadNode[0];
+                if (in_array($unit, ['BX', 'NIU', 'ZZ', 'CAJA', 'C62', 'PACK', 'CT'], true)) {
+                    $cajas = (int) round($val);
+                } else {
+                    $cantidad = $val;
+                    $unidadMedida = $unit ?: null;
+                }
+            }
+        }
+
+        // Intentar obtener bultos de TransportHandlingUnit si existe
+        if ($cajas === null) {
+            $pkgQty = $xml->xpath('//cac:Shipment/cac:TransportHandlingUnit/cac:Package/cbc:Quantity');
+            if (!empty($pkgQty)) {
+                $cajas = (int) round((float) (string) $pkgQty[0]);
+            }
         }
 
         $detalle = $this->xpathValue($xml, '//cac:DespatchLine/cac:Item/cbc:Description');
@@ -165,6 +211,11 @@ class XmlDocumentoParserService
         $kgCaja = null;
         if ($detalle && preg_match('/EN CAJAS DE (\d+)\s*KG/i', $detalle, $m)) {
             $kgCaja = (int) $m[1];
+        }
+
+        // Si tenemos kgCaja y cantidad en TNE pero no cajas, calcularlo
+        if ($cajas === null && $kgCaja !== null && $cantidad !== null) {
+            $cajas = (int) round($cantidad * 1000 / $kgCaja);
         }
 
         $tipoOperacion = null;
@@ -192,6 +243,7 @@ class XmlDocumentoParserService
             'detalle' => $detalle,
             'cantidad' => $cantidad,
             'unidadMedida' => $unidadMedida,
+            'cajas' => $cajas,
             'kgCaja' => $kgCaja,
             'tipoOperacion' => $tipoOperacion,
             'contenedor' => $contenedor,

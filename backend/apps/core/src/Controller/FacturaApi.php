@@ -11,6 +11,7 @@ use App\apps\core\Service\Factura\Filter\FacturaFilterDto;
 use App\apps\core\Service\Factura\GetFacturasByDespachoService;
 use App\apps\core\Service\Factura\GetFacturasService;
 use App\apps\core\Service\Factura\UpdateFacturaService;
+use App\apps\core\Service\Factura\ExportReporteFacturacionService;
 use App\apps\core\Service\Xml\XmlDocumentoParserService;
 use App\shared\Api\AbstractSerializerApi;
 use App\shared\Doctrine\UidType;
@@ -56,6 +57,15 @@ class FacturaApi extends AbstractSerializerApi
         $items = $service->execute($id);
 
         return $this->ok(['items' => $items]);
+    }
+
+    #[Route('/export-reporte', name: 'factura_export_reporte', methods: ['GET'])]
+    public function exportReporte(
+        Request $request,
+        ExportReporteFacturacionService $service,
+    ): Response {
+        $search = $request->query->get('search');
+        return $service->execute($search ?: null);
     }
 
     #[Route('/parse-xml', name: 'factura_parse_xml', methods: ['POST'])]

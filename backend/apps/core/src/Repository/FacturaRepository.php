@@ -49,4 +49,23 @@ class FacturaRepository extends DoctrineEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function findAllForReporte(?string $search = null): array
+    {
+        $qb = $this->createQueryBuilder('f')
+            ->select(['f', 'd', 'c', 'fr'])
+            ->leftJoin('f.despacho', 'd')
+            ->leftJoin('d.cliente', 'c')
+            ->leftJoin('d.fruta', 'fr')
+            ->where('f.isActive = true')
+            ->orderBy('f.serie', 'ASC')
+            ->addOrderBy('f.correlativo', 'ASC');
+
+        if ($search) {
+            $qb->andWhere('c.razonSocial LIKE :s OR f.numeroDocumento LIKE :s OR f.contenedor LIKE :s')
+               ->setParameter('s', '%' . $search . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

@@ -99,6 +99,10 @@ export class ReporteFacturacionComponent implements OnInit {
     this.facturasFiltradas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.total ?? 0), 0)
   );
 
+  countActivas = computed(() =>
+    this.facturasFiltradas().filter(f => !f.isAnulada).length
+  );
+
   sortBy(field: SortField): void {
     if (this.sortField() === field) {
       this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');

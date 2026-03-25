@@ -46,6 +46,7 @@ services:
       JWT_SECRET_KEY: /var/www/html/config/jwt/private.pem
       JWT_PUBLIC_KEY: /var/www/html/config/jwt/public.pem
       CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN}
+      APISPERU_TOKEN: ${APISPERU_TOKEN}
     depends_on:
       db:
         condition: service_healthy

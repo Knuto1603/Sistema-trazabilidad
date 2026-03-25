@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ProductorService, ProductorCreateDto } from '../../productor.service';
+import { SenasaService } from '@features/senasa/senasa.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
 import { CampaignService } from '@core/services/campaign.service';
@@ -18,6 +19,7 @@ import { PageHeaderComponent } from '@shared/components/page-header/page-header.
 })
 export class ProductoresListComponent implements OnInit {
   private productorService = inject(ProductorService);
+  private senasaService = inject(SenasaService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
   private campaignService = inject(CampaignService);
@@ -27,6 +29,7 @@ export class ProductoresListComponent implements OnInit {
   pagination = signal<Pagination>({ page: 0, itemsPerPage: 10, count: 0, totalItems: 0, startIndex: 0, endIndex: 0 });
   loading = signal(false);
   saving = signal(false);
+  senasaLoading = signal(false);
   search = signal('');
   currentPage = signal(0);
 
@@ -45,7 +48,15 @@ export class ProductoresListComponent implements OnInit {
     clp: ['', [Validators.pattern(/^\d{3}-\d{5}-\d{2}$/)]],
     mtdCeratitis: ['', [Validators.pattern(/^\d\.\d{4}$/)]],
     mtdAnastrepha: ['', [Validators.pattern(/^\d\.\d{4}$/)]],
-    campahnaId: ['']
+    campahnaId: [''],
+    nombreProductor: [''],
+    direccion: [''],
+    departamento: [''],
+    provincia: [''],
+    distrito: [''],
+    zona: [''],
+    sector: [''],
+    subsector: ['']
   });
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -120,6 +131,37 @@ export class ProductoresListComponent implements OnInit {
     });
   }
 
+  buscarEnSenasa(): void {
+    const clp = this.form.get('clp')?.value?.trim();
+    if (!clp) { this.notification.error('Ingrese el CLP primero'); return; }
+
+    const hoy = new Date().toISOString().split('T')[0];
+    this.senasaLoading.set(true);
+
+    this.senasaService.verificar(clp, hoy).subscribe({
+      next: res => {
+        if (res.success && res.data) {
+          const d = res.data;
+          this.form.patchValue({
+            nombreProductor: d.nombreProductor || '',
+            direccion: d.direccion || '',
+            departamento: d.departamento || '',
+            provincia: d.provincia || '',
+            distrito: d.distrito || '',
+            zona: d.zona || '',
+            sector: d.sector || '',
+            subsector: d.subsector || ''
+          });
+          this.notification.success('Datos cargados desde SENASA');
+        } else {
+          this.notification.error((res as any).error || 'No se encontraron datos en SENASA');
+        }
+        this.senasaLoading.set(false);
+      },
+      error: () => { this.notification.error('Error al consultar SENASA'); this.senasaLoading.set(false); }
+    });
+  }
+
   saveProductor(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.saving.set(true);
@@ -132,6 +174,14 @@ export class ProductoresListComponent implements OnInit {
       clp: raw.clp || undefined,
       mtdCeratitis: raw.mtdCeratitis || undefined,
       mtdAnastrepha: raw.mtdAnastrepha || undefined,
+      nombreProductor: raw.nombreProductor || undefined,
+      direccion: raw.direccion || undefined,
+      departamento: raw.departamento || undefined,
+      provincia: raw.provincia || undefined,
+      distrito: raw.distrito || undefined,
+      zona: raw.zona || undefined,
+      sector: raw.sector || undefined,
+      subsector: raw.subsector || undefined,
       campahnaId: raw.campahnaId || campahna?.id || ''
     };
 

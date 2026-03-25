@@ -42,6 +42,27 @@ class Productor implements \Stringable
     #[ORM\Column(length: 255)]
     private ?string $productor = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $direccion = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $departamento = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $provincia = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $distrito = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $zona = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $sector = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $subsector = null;
+
     /**
      * @var Collection<int, ProductorCampahna>
      */
@@ -128,6 +149,21 @@ class Productor implements \Stringable
         $this->productor = $productor;
         return $this;
     }
+
+    public function getDireccion(): ?string { return $this->direccion; }
+    public function setDireccion(?string $v): static { $this->direccion = $v; return $this; }
+    public function getDepartamento(): ?string { return $this->departamento; }
+    public function setDepartamento(?string $v): static { $this->departamento = $v; return $this; }
+    public function getProvincia(): ?string { return $this->provincia; }
+    public function setProvincia(?string $v): static { $this->provincia = $v; return $this; }
+    public function getDistrito(): ?string { return $this->distrito; }
+    public function setDistrito(?string $v): static { $this->distrito = $v; return $this; }
+    public function getZona(): ?string { return $this->zona; }
+    public function setZona(?string $v): static { $this->zona = $v; return $this; }
+    public function getSector(): ?string { return $this->sector; }
+    public function setSector(?string $v): static { $this->sector = $v; return $this; }
+    public function getSubsector(): ?string { return $this->subsector; }
+    public function setSubsector(?string $v): static { $this->subsector = $v; return $this; }
 
     /**
      * @return Collection<int, ProductorCampahna>

@@ -40,6 +40,16 @@ final class ProductorDto implements DtoRequestInterface
         #[Uid]
         public ?string $campahnaId = null,
 
+        // Campos geográficos del lugar de producción (obtenidos de SENASA)
+        public ?string $nombreProductor = null,
+        public ?string $direccion = null,
+        public ?string $departamento = null,
+        public ?string $provincia = null,
+        public ?string $distrito = null,
+        public ?string $zona = null,
+        public ?string $sector = null,
+        public ?string $subsector = null,
+
         // Campos adicionales para mostrar información de la campaña
         public ?string $campahnaName = null,
         public ?string $frutaName = null,

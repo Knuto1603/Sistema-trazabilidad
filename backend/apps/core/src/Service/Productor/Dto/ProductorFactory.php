@@ -25,7 +25,14 @@ final readonly class ProductorFactory
         $productor->setClp($dto->clp);
         $productor->setMtdCeratitis($dto->mtdCeratitis);
         $productor->setMtdAnastrepha($dto->mtdAnastrepha);
-        $productor->setProductor($dto->nombre); // Campo productor = nombre por defecto
+        $productor->setProductor($dto->nombreProductor ?? $dto->nombre);
+        $productor->setDireccion($dto->direccion);
+        $productor->setDepartamento($dto->departamento);
+        $productor->setProvincia($dto->provincia);
+        $productor->setDistrito($dto->distrito);
+        $productor->setZona($dto->zona);
+        $productor->setSector($dto->sector);
+        $productor->setSubsector($dto->subsector);
 
         match ($dto->isActive) {
             false => $productor->disable(),

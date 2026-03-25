@@ -84,14 +84,16 @@
   <!-- Modal Crear Productor -->
   @if (showModal()) {
     <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
           <h3 class="font-bold text-slate-800">Nuevo Productor</h3>
           <button (click)="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <form [formGroup]="form" (ngSubmit)="saveProductor()" class="p-6 space-y-4">
+        <form [formGroup]="form" (ngSubmit)="saveProductor()" class="p-6 space-y-5">
+
+          <!-- Código y Nombre -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Código * (4 dígitos)</label>
@@ -99,7 +101,7 @@
                 <input formControlName="codigo" type="text" placeholder="Ej: 0042" maxlength="4"
                   class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                   [class.border-red-400]="fieldInvalid('codigo')" [class.border-slate-200]="!fieldInvalid('codigo')">
-                <button type="button" (click)="suggestNextCode()" class="px-2 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors whitespace-nowrap" title="Sugerir siguiente código">
+                <button type="button" (click)="suggestNextCode()" class="px-2 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors" title="Sugerir siguiente código">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 </button>
               </div>
@@ -113,13 +115,28 @@
               @if (fieldInvalid('nombre')) { <p class="text-xs text-red-500 mt-1">Nombre requerido</p> }
             </div>
           </div>
+
+          <!-- CLP con verificación SENASA -->
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">CLP</label>
-            <input formControlName="clp" type="text" placeholder="Ej: 002-08004-02"
-              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-              [class.border-red-400]="fieldInvalid('clp')" [class.border-slate-200]="!fieldInvalid('clp')">
+            <div class="flex gap-2">
+              <input formControlName="clp" type="text" placeholder="Ej: 002-08004-02"
+                class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                [class.border-red-400]="fieldInvalid('clp')" [class.border-slate-200]="!fieldInvalid('clp')">
+              <button type="button" (click)="buscarEnSenasa()" [disabled]="senasaLoading()"
+                class="px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 rounded-xl transition-colors whitespace-nowrap flex items-center gap-1.5">
+                @if (senasaLoading()) {
+                  <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                } @else {
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                }
+                SENASA
+              </button>
+            </div>
             @if (fieldInvalid('clp')) { <p class="text-xs text-red-500 mt-1">Formato: XXX-XXXXX-XX (ej: 002-08004-02)</p> }
           </div>
+
+          <!-- MTD -->
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">MTD Ceratitis</label>
@@ -136,7 +153,58 @@
               @if (fieldInvalid('mtdAnastrepha')) { <p class="text-xs text-red-500 mt-1">Formato: x.xxxx (ej: 1.2345)</p> }
             </div>
           </div>
-          <div class="flex gap-3 justify-end pt-2">
+
+          <!-- Datos geográficos (auto-rellenados desde SENASA) -->
+          <div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Datos del lugar de producción
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre del productor (SENASA)</label>
+                <input formControlName="nombreProductor" type="text" placeholder="Nombre del productor registrado en SENASA"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Dirección</label>
+                <input formControlName="direccion" type="text" placeholder="Dirección del lugar de producción"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Departamento</label>
+                <input formControlName="departamento" type="text" placeholder="Departamento"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Provincia</label>
+                <input formControlName="provincia" type="text" placeholder="Provincia"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Distrito</label>
+                <input formControlName="distrito" type="text" placeholder="Distrito"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Zona</label>
+                <input formControlName="zona" type="text" placeholder="Zona"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Sector</label>
+                <input formControlName="sector" type="text" placeholder="Sector"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Subsector</label>
+                <input formControlName="subsector" type="text" placeholder="Subsector"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">
             <button type="button" (click)="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
             <button type="submit" [disabled]="saving()" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors">
               {{ saving() ? 'Guardando...' : 'Crear' }}

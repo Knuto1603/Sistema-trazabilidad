@@ -34,6 +34,14 @@ final class ProductorDtoTransformer extends DtoTransformer
         $dto->clp = $object->getClp();
         $dto->mtdCeratitis = $object->getMtdCeratitis();
         $dto->mtdAnastrepha = $object->getMtdAnastrepha();
+        $dto->nombreProductor = $object->getProductor();
+        $dto->direccion = $object->getDireccion();
+        $dto->departamento = $object->getDepartamento();
+        $dto->provincia = $object->getProvincia();
+        $dto->distrito = $object->getDistrito();
+        $dto->zona = $object->getZona();
+        $dto->sector = $object->getSector();
+        $dto->subsector = $object->getSubsector();
 
         // Obtener datos de campaña desde la relación ProductorCampahna
         $productorCampahna = $this->findProductorCampahna($object);

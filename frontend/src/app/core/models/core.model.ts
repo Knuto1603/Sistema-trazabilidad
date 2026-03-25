@@ -20,6 +20,9 @@ export interface Parameter {
 export interface Producer {
   id: string; codigo: string; nombre: string;
   clp?: string; mtdCeratitis?: string; mtdAnastrepha?: string;
+  nombreProductor?: string;
+  direccion?: string; departamento?: string; provincia?: string;
+  distrito?: string; zona?: string; sector?: string; subsector?: string;
   campahnaId?: string; campahnaName?: string;
   frutaName?: string; periodoName?: string; isActive: boolean;
 }

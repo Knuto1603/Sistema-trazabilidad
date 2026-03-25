@@ -37,6 +37,7 @@ final class FacturaDtoTransformer extends DtoTransformer
         $dto->tipoOperacion = $object->getTipoOperacion();
         $dto->isAnulada = $object->isAnulada();
         $dto->contenedor = $object->getContenedor();
+        $dto->destino = $object->getDestino();
 
         if ($object->getDespacho()) {
             $dto->despachoId = UidType::toString($object->getDespacho()->uuid());

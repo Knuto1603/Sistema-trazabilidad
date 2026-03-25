@@ -52,6 +52,7 @@ final readonly class FacturaFactory
         $factura->setTipoOperacion($dto->tipoOperacion);
         $factura->setIsAnulada($dto->isAnulada);
         $factura->setContenedor($dto->contenedor);
+        $factura->setDestino($dto->destino);
 
         match ($dto->isActive) {
             false => $factura->disable(),

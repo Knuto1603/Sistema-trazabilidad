@@ -42,6 +42,7 @@ final class FacturaDto implements DtoRequestInterface
         public ?string $tipoOperacion = null,
         public bool $isAnulada = false,
         public ?string $contenedor = null,
+        public ?string $destino = null,
 
         #[Assert\NotBlank]
         #[Uid]

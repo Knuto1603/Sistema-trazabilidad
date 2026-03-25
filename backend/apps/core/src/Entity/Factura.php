@@ -82,6 +82,9 @@ class Factura
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $contenedor = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $destino = null;
+
     #[ORM\ManyToOne(targetEntity: Despacho::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?Despacho $despacho = null;
@@ -150,6 +153,9 @@ class Factura
 
     public function getContenedor(): ?string { return $this->contenedor; }
     public function setContenedor(?string $v): static { $this->contenedor = $v; return $this; }
+
+    public function getDestino(): ?string { return $this->destino; }
+    public function setDestino(?string $v): static { $this->destino = $v; return $this; }
 
     public function getDespacho(): ?Despacho { return $this->despacho; }
     public function setDespacho(?Despacho $despacho): static { $this->despacho = $despacho; return $this; }

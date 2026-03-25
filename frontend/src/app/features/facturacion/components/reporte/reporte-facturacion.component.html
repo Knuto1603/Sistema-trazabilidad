@@ -1,0 +1,168 @@
+<div class="max-w-full mx-auto space-y-4">
+  <app-page-header title="Reporte de Facturación" subtitle="Todas las facturas ordenadas por N° de documento">
+    <button (click)="exportarExcel()" [disabled]="loading()"
+      class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl transition-colors flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Exportar Excel
+    </button>
+  </app-page-header>
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <input type="text" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)"
+        placeholder="Buscar por N° factura, cliente, guía, contenedor, destino..."
+        class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-72">
+
+      <select [ngModel]="filterServicio()" (ngModelChange)="filterServicio.set($event)"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Todos los servicios</option>
+        @for (s of SERVICIOS; track s) { <option [value]="s">{{ s }}</option> }
+      </select>
+
+      <select [ngModel]="filterAnuladas()" (ngModelChange)="filterAnuladas.set($event)"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="activas">Solo activas</option>
+        <option value="todas">Todas</option>
+        <option value="anuladas">Solo anuladas</option>
+      </select>
+
+      <span class="text-xs text-slate-400 shrink-0">{{ facturasFiltradas().length }} registros</span>
+    </div>
+  </div>
+
+  <!-- Totales -->
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Importe Total</p>
+      <p class="text-lg font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">IGV Total</p>
+      <p class="text-lg font-bold text-slate-800">$ {{ totalIgv() | number:'1.2-2' }}</p>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Total General</p>
+      <p class="text-xl font-bold text-emerald-700">$ {{ totalGeneral() | number:'1.2-2' }}</p>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-100">
+            <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 select-none"
+              (click)="sortBy('numeroDocumento')">
+              N° Factura {{ getSortIcon('numeroDocumento') }}
+            </th>
+            <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 select-none"
+              (click)="sortBy('fechaEmision')">
+              Fecha {{ getSortIcon('fechaEmision') }}
+            </th>
+            <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 select-none"
+              (click)="sortBy('clienteRazonSocial')">
+              Cliente {{ getSortIcon('clienteRazonSocial') }}
+            </th>
+            <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">N° Guía</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">KG</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">TN</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">Cajas</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">V.U.</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 select-none"
+              (click)="sortBy('importe')">
+              Importe {{ getSortIcon('importe') }}
+            </th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">IGV</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 select-none"
+              (click)="sortBy('total')">
+              Total {{ getSortIcon('total') }}
+            </th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">T.C.</th>
+            <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">Servicio</th>
+            <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">Operación</th>
+            <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">Destino</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          @if (loading()) {
+            <tr><td colspan="15" class="px-4 py-10 text-center text-slate-400">Cargando...</td></tr>
+          } @else if (facturasFiltradas().length === 0) {
+            <tr><td colspan="15" class="px-4 py-10 text-center text-slate-400">No hay facturas con los filtros aplicados</td></tr>
+          } @else {
+            @for (f of facturasFiltradas(); track f.id) {
+              <tr class="hover:bg-slate-50 transition-colors" [class.opacity-50]="f.isAnulada">
+                <td class="px-3 py-2 font-mono font-semibold">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-1.5 py-0.5 rounded text-xs font-bold"
+                      [class]="f.tipoDocumento === '01' ? 'bg-blue-100 text-blue-700' : f.tipoDocumento === '09' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'">
+                      {{ f.tipoDocumento === '01' ? 'FAC' : f.tipoDocumento === '09' ? 'GR' : 'NC' }}
+                    </span>
+                    {{ f.numeroDocumento }}
+                    @if (f.isAnulada) {
+                      <span class="px-1 py-0.5 bg-red-100 text-red-600 rounded text-xs font-bold">ANULADA</span>
+                    }
+                  </div>
+                </td>
+                <td class="px-3 py-2 text-slate-600">{{ f.fechaEmision }}</td>
+                <td class="px-3 py-2">
+                  <div class="text-slate-700 font-semibold max-w-[180px] truncate" [title]="f.clienteRazonSocial">{{ f.clienteRazonSocial ?? '-' }}</div>
+                </td>
+                <td class="px-3 py-2 font-mono text-slate-500">{{ f.numeroGuia ?? '-' }}</td>
+                <td class="px-3 py-2 text-right text-slate-600">{{ f.kgCaja ?? '-' }}</td>
+                <td class="px-3 py-2 text-right text-slate-600">{{ f.cantidad?.toFixed(4) ?? '-' }}</td>
+                <td class="px-3 py-2 text-right text-slate-600">{{ f.cajas ?? '-' }}</td>
+                <td class="px-3 py-2 text-right text-slate-600">{{ f.valorUnitario?.toFixed(4) ?? '-' }}</td>
+                <td class="px-3 py-2 text-right font-semibold text-slate-700">
+                  {{ f.importe != null ? (f.importe | number:'1.2-2') : '-' }}
+                </td>
+                <td class="px-3 py-2 text-right text-slate-500">
+                  {{ f.igv != null ? (f.igv | number:'1.2-2') : '-' }}
+                </td>
+                <td class="px-3 py-2 text-right font-bold text-slate-800">
+                  {{ f.total != null ? (f.total | number:'1.2-2') : '-' }}
+                </td>
+                <td class="px-3 py-2 text-right text-slate-500">{{ f.tipoCambio?.toFixed(3) ?? '-' }}</td>
+                <td class="px-3 py-2">
+                  @if (f.tipoServicio) {
+                    <span class="px-1.5 py-0.5 rounded text-xs font-semibold"
+                      [class]="f.tipoServicio === 'MAQUILA' ? 'bg-blue-50 text-blue-700' :
+                               f.tipoServicio === 'SOBRECOSTO' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600'">
+                      {{ f.tipoServicio }}
+                    </span>
+                  } @else { <span class="text-slate-400">-</span> }
+                </td>
+                <td class="px-3 py-2">
+                  @if (f.tipoOperacion) {
+                    <span class="px-1.5 py-0.5 rounded text-xs font-semibold"
+                      [class]="f.tipoOperacion === 'MARITIMO' ? 'bg-cyan-50 text-cyan-700' : 'bg-slate-100 text-slate-600'">
+                      {{ f.tipoOperacion }}
+                    </span>
+                  } @else { <span class="text-slate-400">-</span> }
+                </td>
+                <td class="px-3 py-2 text-slate-600">{{ f.destino ?? '-' }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+        @if (facturasFiltradas().length > 0) {
+          <tfoot>
+            <tr class="bg-slate-50 border-t-2 border-slate-200">
+              <td colspan="8" class="px-3 py-2.5 text-xs font-bold text-slate-600 uppercase">
+                Totales ({{ facturasFiltradas().filter(f => !f.isAnulada).length }} facturas activas)
+              </td>
+              <td class="px-3 py-2.5 text-right font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</td>
+              <td class="px-3 py-2.5 text-right font-bold text-slate-700">$ {{ totalIgv() | number:'1.2-2' }}</td>
+              <td class="px-3 py-2.5 text-right font-bold text-emerald-700 text-sm">$ {{ totalGeneral() | number:'1.2-2' }}</td>
+              <td colspan="4"></td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+    </div>
+  </div>
+</div>

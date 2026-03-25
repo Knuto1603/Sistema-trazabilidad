@@ -17,5 +17,9 @@ export const facturacionRoutes: Routes = [
     path: 'tipo-cambio',
     loadComponent: () => import('./components/tipo-cambio/tipo-cambio-list/tipo-cambio-list.component').then(m => m.TipoCambioListComponent)
   },
+  {
+    path: 'reporte',
+    loadComponent: () => import('./components/reporte/reporte-facturacion.component').then(m => m.ReporteFacturacionComponent)
+  },
   { path: '', redirectTo: 'despachos', pathMatch: 'full' }
 ];

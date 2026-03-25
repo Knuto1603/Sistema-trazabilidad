@@ -39,6 +39,10 @@ export const routes: Routes = [
         path: 'senasa',
         loadChildren: () => import('@features/senasa/senasa.routes').then(m => m.senasaRoutes)
       },
+      {
+        path: 'facturacion',
+        loadChildren: () => import('@features/facturacion/facturacion.routes').then(m => m.facturacionRoutes)
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: '**', redirectTo: 'dashboard' }
     ]

@@ -25,6 +25,14 @@ export const SIDEBAR_MENU: MenuBlock[] = [
     ]
   },
   {
+    blockTitle: 'Facturación',
+    items: [
+      { label: 'Despachos', icon: 'despachos', path: '/app/facturacion/despachos', roles: ['KNUTO_ROLE', 'ROLE_ADMIN'] },
+      { label: 'Clientes', icon: 'clients', path: '/app/facturacion/clientes', roles: ['KNUTO_ROLE', 'ROLE_ADMIN'] },
+      { label: 'Tipo de Cambio', icon: 'currency', path: '/app/facturacion/tipo-cambio', roles: ['ROLE_ADMIN'] },
+    ]
+  },
+  {
     blockTitle: 'Administración',
     items: [
       { label: 'Usuarios', icon: 'people', path: '/app/users', roles: ['ROLE_ADMIN'] },

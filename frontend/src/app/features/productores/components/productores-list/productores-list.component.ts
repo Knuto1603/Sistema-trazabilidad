@@ -30,6 +30,7 @@ export class ProductoresListComponent implements OnInit {
   loading = signal(false);
   saving = signal(false);
   senasaLoading = signal(false);
+  senasaMtdWarning = signal<string | null>(null);
   search = signal('');
   currentPage = signal(0);
 
@@ -117,6 +118,7 @@ export class ProductoresListComponent implements OnInit {
   closeModal(): void {
     this.showModal.set(false);
     this.form.reset();
+    this.senasaMtdWarning.set(null);
   }
 
   suggestNextCode(): void {
@@ -142,8 +144,17 @@ export class ProductoresListComponent implements OnInit {
       next: res => {
         if (res.success && res.data) {
           const d = res.data;
+          const mtdPattern = /^\d\.\d{4}$/;
+          const ceratitis = mtdPattern.test(d.mtd_ceratitis) ? d.mtd_ceratitis : '';
+          const anastrepha = mtdPattern.test(d.mtd_anastrepha) ? d.mtd_anastrepha : '';
+
+          const warnings: string[] = [];
+          if (!ceratitis) warnings.push('Ceratitis');
+          if (!anastrepha) warnings.push('Anastrepha');
+          this.senasaMtdWarning.set(warnings.length ? `Sin datos MTD: ${warnings.join(', ')}` : null);
+
           this.form.patchValue({
-            nombre: d.nombreLugar || '',
+            nombre: d.nombreProductor || '',
             nombreProductor: d.nombreProductor || '',
             direccion: d.direccion || '',
             departamento: d.departamento || '',
@@ -152,8 +163,8 @@ export class ProductoresListComponent implements OnInit {
             zona: d.zona || '',
             sector: d.sector || '',
             subsector: d.subsector || '',
-            mtdCeratitis: d.mtd_ceratitis || '',
-            mtdAnastrepha: d.mtd_anastrepha || ''
+            mtdCeratitis: ceratitis,
+            mtdAnastrepha: anastrepha
           });
           this.notification.success('Datos cargados desde SENASA');
         } else {

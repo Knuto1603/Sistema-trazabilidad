@@ -150,7 +150,9 @@ export class ProductoresListComponent implements OnInit {
             distrito: d.distrito || '',
             zona: d.zona || '',
             sector: d.sector || '',
-            subsector: d.subsector || ''
+            subsector: d.subsector || '',
+            mtdCeratitis: d.mtd_ceratitis || '',
+            mtdAnastrepha: d.mtd_anastrepha || ''
           });
           this.notification.success('Datos cargados desde SENASA');
         } else {

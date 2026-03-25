@@ -1,0 +1,175 @@
+<div class="max-w-7xl mx-auto">
+  <app-page-header title="Despachos" subtitle="Gestión de despachos de exportación">
+    <button (click)="openCreateModal()" class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Nuevo Despacho
+    </button>
+  </app-page-header>
+
+  <div class="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+    <input type="text" placeholder="Buscar por cliente, contenedor..." (input)="onSearch($event)"
+      class="w-full sm:w-64 px-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+    <div class="flex items-center gap-2">
+      @for (sede of SEDES; track sede) {
+        <button (click)="onSedeFilter(sefiltro() === sede ? '' : sede)"
+          class="px-3 py-2 text-xs font-semibold rounded-xl border transition-colors"
+          [class]="sefiltro() === sede ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'">
+          {{ sede }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-100">
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider">N° Planta</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider">Cliente</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">Fruta</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">N° Cliente</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider">Sede</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden lg:table-cell">Contenedor</th>
+            <th class="px-4 py-3 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          @if (loading()) {
+            @for (i of skeletonRows; track i) {
+              <tr class="animate-pulse">
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-12"></div></td>
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-40"></div></td>
+                <td class="px-4 py-3 hidden md:table-cell"><div class="h-4 bg-slate-200 rounded w-20"></div></td>
+                <td class="px-4 py-3 hidden md:table-cell"><div class="h-4 bg-slate-200 rounded w-12"></div></td>
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-16"></div></td>
+                <td class="px-4 py-3 hidden lg:table-cell"><div class="h-4 bg-slate-200 rounded w-24"></div></td>
+                <td class="px-4 py-3"><div class="h-8 bg-slate-200 rounded w-16 ml-auto"></div></td>
+              </tr>
+            }
+          } @else if (items().length === 0) {
+            <tr><td colspan="7" class="px-4 py-12 text-center text-sm text-slate-400">No se encontraron despachos</td></tr>
+          } @else {
+            @for (item of items(); track item.id) {
+              <tr class="hover:bg-slate-50 transition-colors cursor-pointer" (click)="verDetalle(item)">
+                <td class="px-4 py-3">
+                  <span class="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold font-mono">
+                    {{ item.numeroPlanta ?? '-' }}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  <p class="font-semibold text-slate-800 text-xs">{{ item.clienteRazonSocial }}</p>
+                  <p class="text-xs text-slate-400 font-mono">{{ item.clienteRuc }}</p>
+                </td>
+                <td class="px-4 py-3 hidden md:table-cell text-slate-600 text-xs">{{ item.frutaNombre }}</td>
+                <td class="px-4 py-3 hidden md:table-cell text-slate-500 text-xs font-mono">{{ item.numeroCliente }}</td>
+                <td class="px-4 py-3">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{{ item.sede }}</span>
+                </td>
+                <td class="px-4 py-3 hidden lg:table-cell text-slate-500 text-xs font-mono">{{ item.contenedor ?? '-' }}</td>
+                <td class="px-4 py-3" (click)="$event.stopPropagation()">
+                  <div class="flex items-center justify-end gap-1">
+                    <button (click)="verDetalle(item)" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Ver detalle">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </button>
+                    @if (isAdmin()) {
+                      <button (click)="confirmDelete(item)" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 pb-4">
+      <app-pagination [pagination]="pagination()" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+
+  @if (showModal()) {
+    <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in duration-200">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 class="font-bold text-slate-800">Nuevo Despacho</h3>
+          <button (click)="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="saveDespacho()" class="p-6 space-y-4">
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Cliente *</label>
+            <select formControlName="clienteId"
+              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('clienteId')" [class.border-slate-200]="!fieldInvalid('clienteId')">
+              <option value="">Seleccionar cliente...</option>
+              @for (c of clientes(); track c.id) {
+                <option [value]="c.id">{{ c.ruc }} - {{ c.razonSocial }}</option>
+              }
+            </select>
+            @if (fieldInvalid('clienteId')) { <p class="text-xs text-red-500 mt-1">Campo requerido</p> }
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Fruta *</label>
+            <select formControlName="frutaId"
+              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('frutaId')" [class.border-slate-200]="!fieldInvalid('frutaId')">
+              <option value="">Seleccionar fruta...</option>
+              @for (f of frutas(); track f.id) {
+                <option [value]="f.id">{{ f.nombre }}</option>
+              }
+            </select>
+            @if (fieldInvalid('frutaId')) { <p class="text-xs text-red-500 mt-1">Campo requerido</p> }
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Sede *</label>
+            <select formControlName="sede"
+              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('sede')" [class.border-slate-200]="!fieldInvalid('sede')">
+              <option value="">Seleccionar sede...</option>
+              @for (s of SEDES; track s) {
+                <option [value]="s">{{ s }}</option>
+              }
+            </select>
+            @if (fieldInvalid('sede')) { <p class="text-xs text-red-500 mt-1">Campo requerido</p> }
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Contenedor</label>
+            <input formControlName="contenedor" type="text" placeholder="Ej: MSCU1234567"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Observaciones</label>
+            <textarea formControlName="observaciones" rows="2" placeholder="Observaciones opcionales"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          </div>
+
+          <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">
+            <button type="button" (click)="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+            <button type="submit" [disabled]="saving()" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors">
+              {{ saving() ? 'Creando...' : 'Crear Despacho' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showDeleteConfirm()) {
+    <app-confirm-dialog
+      title="Eliminar despacho"
+      [message]="'¿Eliminar ' + deletingLabel() + '? Esta acción eliminará también las facturas y archivos asociados.'"
+      confirmLabel="Eliminar"
+      (confirmed)="executeDelete()"
+      (cancelled)="cancelDelete()">
+    </app-confirm-dialog>
+  }
+</div>

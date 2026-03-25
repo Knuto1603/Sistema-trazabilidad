@@ -1,0 +1,103 @@
+<div class="max-w-4xl mx-auto">
+  <app-page-header title="Tipo de Cambio" subtitle="Registro diario del tipo de cambio USD/PEN">
+    <div class="flex items-center gap-2">
+      <button (click)="scrapeFromSunat()" [disabled]="scraping()"
+        class="px-4 py-2 text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 rounded-xl transition-colors flex items-center gap-2">
+        @if (scraping()) {
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          Consultando...
+        } @else {
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Obtener de SUNAT
+        }
+      </button>
+      <button (click)="openModal()" class="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Registrar Manual
+      </button>
+    </div>
+  </app-page-header>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-100">
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider">Fecha</th>
+            <th class="px-4 py-3 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Compra (S/)</th>
+            <th class="px-4 py-3 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Venta (S/)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-50">
+          @if (loading()) {
+            @for (i of skeletonRows; track i) {
+              <tr class="animate-pulse">
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-28"></div></td>
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-16 ml-auto"></div></td>
+                <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-16 ml-auto"></div></td>
+              </tr>
+            }
+          } @else if (items().length === 0) {
+            <tr><td colspan="3" class="px-4 py-12 text-center text-sm text-slate-400">No hay registros de tipo de cambio</td></tr>
+          } @else {
+            @for (item of items(); track item.id) {
+              <tr class="hover:bg-slate-50 transition-colors">
+                <td class="px-4 py-3 font-medium text-slate-700">{{ item.fecha }}</td>
+                <td class="px-4 py-3 text-right font-mono text-slate-700">{{ item.compra.toFixed(3) }}</td>
+                <td class="px-4 py-3 text-right font-mono font-semibold text-slate-800">{{ item.venta.toFixed(3) }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 pb-4">
+      <app-pagination [pagination]="pagination()" (pageChange)="onPageChange($event)"></app-pagination>
+    </div>
+  </div>
+
+  @if (showModal()) {
+    <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in duration-200">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <h3 class="font-bold text-slate-800">Registrar Tipo de Cambio</h3>
+          <button (click)="closeModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="saveTipoCambio()" class="p-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Fecha *</label>
+            <input formControlName="fecha" type="date"
+              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('fecha')" [class.border-slate-200]="!fieldInvalid('fecha')">
+            @if (fieldInvalid('fecha')) { <p class="text-xs text-red-500 mt-1">Campo requerido</p> }
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Compra *</label>
+              <input formControlName="compra" type="number" step="0.001" placeholder="3.750"
+                class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                [class.border-red-400]="fieldInvalid('compra')" [class.border-slate-200]="!fieldInvalid('compra')">
+              @if (fieldInvalid('compra')) { <p class="text-xs text-red-500 mt-1">Requerido</p> }
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Venta *</label>
+              <input formControlName="venta" type="number" step="0.001" placeholder="3.800"
+                class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                [class.border-red-400]="fieldInvalid('venta')" [class.border-slate-200]="!fieldInvalid('venta')">
+              @if (fieldInvalid('venta')) { <p class="text-xs text-red-500 mt-1">Requerido</p> }
+            </div>
+          </div>
+          <p class="text-xs text-slate-400">Si ya existe un registro para la fecha seleccionada, se actualizará automáticamente.</p>
+          <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">
+            <button type="button" (click)="closeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Cancelar</button>
+            <button type="submit" [disabled]="saving()" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors">
+              {{ saving() ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

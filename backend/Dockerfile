@@ -22,10 +22,10 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interactio
 # Código fuente
 COPY backend/ .
 
-# Directorios de cache/logs de cada app
-RUN mkdir -p apps/security/var apps/core/var config/jwt \
-    && chown -R www-data:www-data apps/security/var apps/core/var config/jwt \
-    && chmod -R 775 apps/security/var apps/core/var
+# Directorios de cache/logs de cada app + uploads
+RUN mkdir -p apps/security/var apps/core/var config/jwt apps/core/public/uploads/facturacion \
+    && chown -R www-data:www-data apps/security/var apps/core/var config/jwt apps/core/public/uploads \
+    && chmod -R 775 apps/security/var apps/core/var apps/core/public/uploads
 
 # Configuración PHP-FPM
 COPY docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf

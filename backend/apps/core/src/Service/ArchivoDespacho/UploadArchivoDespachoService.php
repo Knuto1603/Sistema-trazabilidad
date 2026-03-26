@@ -38,6 +38,7 @@ final readonly class UploadArchivoDespachoService
         }
 
         $nombre = uniqid() . '_' . $file->getClientOriginalName();
+        $tamanho = $file->getSize() ?: 0;
         $file->move($directorio, $nombre);
 
         $ruta = 'uploads/facturacion/' . $despachoUuid . '/' . $nombre;
@@ -46,7 +47,7 @@ final readonly class UploadArchivoDespachoService
         $archivo->setNombre($nombre);
         $archivo->setTipoArchivo($tipoArchivo);
         $archivo->setRuta($ruta);
-        $archivo->setTamanho($file->getSize() ?: 0);
+        $archivo->setTamanho($tamanho);
         $archivo->setDespacho($despacho);
 
         if ($facturaUuid) {

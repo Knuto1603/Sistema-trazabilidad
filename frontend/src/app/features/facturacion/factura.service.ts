@@ -68,9 +68,9 @@ export class FacturaService {
     return this.http.post<ApiResponse<any>>(`${this.base}/parse-xml`, formData);
   }
 
-  exportReporte(search?: string): void {
-    let url = `${this.base}/export-reporte`;
-    if (search) url += `?search=${encodeURIComponent(search)}`;
-    window.open(url, '_blank');
+  exportReporte(search?: string): Observable<Blob> {
+    let params: any = {};
+    if (search) params['search'] = search;
+    return this.http.get(`${this.base}/export-reporte`, { params, responseType: 'blob' });
   }
 }

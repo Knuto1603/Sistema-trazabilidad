@@ -118,7 +118,22 @@ export class ReporteFacturacionComponent implements OnInit {
   }
 
   exportarExcel(): void {
+    this.exporting.set(true);
     const search = this.searchText() || undefined;
-    this.facturaService.exportReporte(search);
+    this.facturaService.exportReporte(search).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'reporte-facturacion.xlsx';
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.notification.error('Error al exportar el reporte');
+        this.exporting.set(false);
+      },
+    });
   }
 }

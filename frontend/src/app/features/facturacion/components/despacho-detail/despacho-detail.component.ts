@@ -19,10 +19,12 @@ interface PendingFile {
 
 interface PendingFacturaItem {
   file: File;
-  parsed: any;
+  parsed: any;         // datos del ítem (cantidad, importe, detalle, etc.)
+  header: any;         // datos del encabezado de la factura (serie, correlativo, fecha, etc.)
   destino: string;
   tipoServicio: string;
   linkedGuiaIdx: number | null;
+  itemLabel: string | null;   // "Ítem 1 de 3", null si es factura de un solo ítem
   status: 'pending' | 'saving' | 'done' | 'error';
 }
 
@@ -377,24 +379,32 @@ export class DespachoDetailComponent implements OnInit {
 
         // Índice de guías ya existentes + nuevas para el auto-link
         const allGuias = [...this.pendingGuias(), ...newGuias];
-        const existingGuiasCount = this.pendingGuias().length;
 
-        const newFacturas: PendingFacturaItem[] = facturaResults.map((parsed, i) => {
+        const newFacturas: PendingFacturaItem[] = [];
+        facturaResults.forEach((parsed, fileIdx) => {
+          const items: any[] = parsed.items?.length > 0 ? parsed.items : [parsed];
+          const totalItems = items.length;
+
+          // Auto-link: solo buscar guía para este N° de documento
           const guiaIdx = allGuias.findIndex(g =>
             g.parsed?.facturaReferencia &&
             this.matchNumeroDocumento(g.parsed.facturaReferencia, parsed.numeroDocumento)
           );
-          // Ajustar índice para que sea relativo al array combinado final
-          const resolvedIdx = guiaIdx >= 0 ? guiaIdx : null;
+          const resolvedGuiaIdx = guiaIdx >= 0 ? guiaIdx : null;
 
-          return {
-            file: xmlFacturas[i].file,
-            parsed,
-            destino: '',
-            tipoServicio: parsed.tipoServicio ?? '',
-            linkedGuiaIdx: resolvedIdx,
-            status: 'pending' as const,
-          };
+          items.forEach((item, itemIdx) => {
+            newFacturas.push({
+              file: xmlFacturas[fileIdx].file,
+              parsed: item,
+              header: parsed,
+              destino: '',
+              tipoServicio: item.tipoServicio ?? '',
+              // solo el primer ítem se vincula a la guía
+              linkedGuiaIdx: itemIdx === 0 ? resolvedGuiaIdx : null,
+              itemLabel: totalItems > 1 ? `Ítem ${itemIdx + 1} de ${totalItems}` : null,
+              status: 'pending' as const,
+            });
+          });
         });
 
         this.pendingGuias.update(existing => [...existing, ...newGuias]);
@@ -495,25 +505,27 @@ export class DespachoDetailComponent implements OnInit {
       });
 
       const linkedGuia = f.linkedGuiaIdx !== null ? guias[f.linkedGuiaIdx] : null;
+      const h = f.header ?? f.parsed; // encabezado (serie, correlativo, fecha, etc.)
+      const it = f.parsed;            // datos del ítem (cantidad, importe, detalle, etc.)
       const dto: FacturaCreateDto = {
-        tipoDocumento: f.parsed.tipoDocumento ?? '01',
-        serie: f.parsed.serie ?? '',
-        correlativo: f.parsed.correlativo ?? '',
-        numeroGuia: linkedGuia?.parsed.numeroDocumento ?? f.parsed.numeroGuia ?? undefined,
-        fechaEmision: f.parsed.fechaEmision ?? '',
-        moneda: f.parsed.moneda ?? 'USD',
-        detalle: f.parsed.detalle || undefined,
-        kgCaja: f.parsed.kgCaja ?? undefined,
-        unidadMedida: f.parsed.unidadMedida || undefined,
-        cajas: linkedGuia?.parsed.cajas ?? f.parsed.cajas ?? undefined,
-        cantidad: linkedGuia?.parsed.cantidad ?? f.parsed.cantidad ?? undefined,
-        valorUnitario: f.parsed.valorUnitario ?? undefined,
-        importe: f.parsed.importe ?? undefined,
-        igv: f.parsed.igv ?? undefined,
-        total: f.parsed.total ?? undefined,
+        tipoDocumento: h.tipoDocumento ?? '01',
+        serie: h.serie ?? '',
+        correlativo: h.correlativo ?? '',
+        numeroGuia: linkedGuia?.parsed.numeroDocumento ?? h.numeroGuia ?? undefined,
+        fechaEmision: h.fechaEmision ?? '',
+        moneda: h.moneda ?? 'USD',
+        detalle: it.detalle || undefined,
+        kgCaja: it.kgCaja ?? undefined,
+        unidadMedida: it.unidadMedida || undefined,
+        cajas: linkedGuia?.parsed.cajas ?? it.cajas ?? undefined,
+        cantidad: linkedGuia?.parsed.cantidad ?? it.cantidad ?? undefined,
+        valorUnitario: it.valorUnitario ?? undefined,
+        importe: it.importe ?? undefined,
+        igv: it.igv ?? undefined,
+        total: it.total ?? undefined,
         tipoServicio: f.tipoServicio || undefined,
-        tipoOperacion: f.parsed.tipoOperacion || undefined,
-        contenedor: f.parsed.contenedor || undefined,
+        tipoOperacion: it.tipoOperacion || undefined,
+        contenedor: it.contenedor || undefined,
         destino: f.destino || undefined,
         despachoId,
       };
@@ -534,9 +546,23 @@ export class DespachoDetailComponent implements OnInit {
     }
 
     // 2. Subir todos los archivos, enlazando XMLs a su factura
+    // Para facturas multi-ítem el mismo File puede aparecer en varios PendingFacturaItem:
+    // solo subir el archivo XML una vez (vinculado al primer ítem creado de ese archivo).
+    const uploadedFiles = new Set<File>();
     let successCount = 0;
     for (let i = 0; i < files.length; i++) {
       const entry = files[i];
+
+      // Si ya se subió este archivo (mismo objeto File), saltar
+      if (uploadedFiles.has(entry.file)) {
+        this.pendingFiles.update(f => {
+          const copy = [...f];
+          copy[i] = { ...copy[i], uploading: false };
+          return copy;
+        });
+        continue;
+      }
+
       this.pendingFiles.update(f => {
         const copy = [...f];
         copy[i] = { ...copy[i], uploading: true };
@@ -545,6 +571,7 @@ export class DespachoDetailComponent implements OnInit {
 
       let facturaId: string | undefined;
       if (entry.tipoArchivo === 'FACTURA_XML') {
+        // Buscar el primer ítem creado de este archivo
         const facturaIdx = facturas.findIndex(f => f.file === entry.file);
         if (facturaIdx >= 0 && createdFacturaIds[facturaIdx]) {
           facturaId = createdFacturaIds[facturaIdx]!;
@@ -561,7 +588,7 @@ export class DespachoDetailComponent implements OnInit {
 
       await new Promise<void>(resolve => {
         this.archivoService.upload(despachoId, entry.tipoArchivo, entry.file, facturaId).subscribe({
-          next: res => { if (res.status) successCount++; resolve(); },
+          next: res => { if (res.status) { successCount++; uploadedFiles.add(entry.file); } resolve(); },
           error: () => resolve(),
         });
       });

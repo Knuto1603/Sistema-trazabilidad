@@ -55,79 +55,157 @@ class XmlDocumentoParserService
         $numeroGuiaRaw = $this->xpathValue($xml, '//cac:DespatchDocumentReference/cbc:ID');
         $numeroGuia = $numeroGuiaRaw ? $this->normalizarNumeroGuia($numeroGuiaRaw) : null;
 
-        $cantidadNode = $xml->xpath('//cac:InvoiceLine/cbc:InvoicedQuantity');
-        $cantidad = null;
-        $unidadMedida = null;
-        if (!empty($cantidadNode)) {
-            $cantidad = (float) (string) $cantidadNode[0];
-            $attrs = $cantidadNode[0]->attributes();
-            $unidadMedida = isset($attrs['unitCode']) ? (string) $attrs['unitCode'] : null;
-        }
+        // Extraer todas las líneas del comprobante
+        $invoiceLines = $xml->xpath('//cac:InvoiceLine');
+        $items = [];
 
-        $detalle = $this->xpathValue($xml, '//cac:InvoiceLine/cac:Item/cbc:Description');
-        $valorUnitario = (float) $this->xpathValue($xml, '//cac:InvoiceLine/cac:Price/cbc:PriceAmount');
-        $importe = (float) $this->xpathValue($xml, '//cac:LegalMonetaryTotal/cbc:LineExtensionAmount');
-        $igv = (float) $this->xpathValue($xml, '//cac:TaxTotal/cbc:TaxAmount');
-        $total = (float) $this->xpathValue($xml, '//cac:LegalMonetaryTotal/cbc:PayableAmount');
+        foreach ($invoiceLines as $line) {
+            $line->registerXPathNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+            $line->registerXPathNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
 
-        $kgCaja = null;
-        if ($detalle && preg_match('/EN CAJAS DE (\d+)\s*KG/i', $detalle, $m)) {
-            $kgCaja = (int) $m[1];
-        }
-
-        // Calcular cajas si tenemos kgCaja y cantidad en TNE
-        $cajas = null;
-        if ($kgCaja !== null && $cantidad !== null) {
-            $cajas = (int) round($cantidad * 1000 / $kgCaja);
-        }
-
-        $tipoOperacion = null;
-        if ($detalle) {
-            if (preg_match('/MAR[IÍ]TIMA|MARITIM[AO]/i', $detalle)) {
-                $tipoOperacion = 'MARITIMO';
-            } elseif (stripos($detalle, 'TERRESTRE') !== false) {
-                $tipoOperacion = 'TERRESTRE';
+            // Cantidad y unidad por línea
+            $lineCantidad = null;
+            $lineUnidad = null;
+            $qtyNodes = $line->xpath('cbc:InvoicedQuantity');
+            if (!empty($qtyNodes)) {
+                $lineCantidad = (float)(string)$qtyNodes[0];
+                $attrs = $qtyNodes[0]->attributes();
+                $lineUnidad = isset($attrs['unitCode']) ? (string)$attrs['unitCode'] : null;
             }
-        }
 
-        $contenedor = null;
-        if ($detalle && preg_match('/CONTENEDOR\s+N[°o°]?:?\s*([A-Z0-9\s\-]+)/i', $detalle, $m)) {
-            $contenedor = trim($m[1]);
-        }
-
-        $tipoServicio = null;
-        if ($detalle) {
-            if (stripos($detalle, 'MAQUILA') !== false) {
-                $tipoServicio = 'MAQUILA';
-            } elseif (stripos($detalle, 'SOBRECOSTO') !== false || stripos($detalle, 'COMPLEMENTARIO') !== false) {
-                $tipoServicio = 'SOBRECOSTO';
-            } else {
-                $tipoServicio = 'VENTA_CAJAS';
+            // Importe por línea (valor venta sin IGV)
+            $lineImporte = null;
+            $importeNodes = $line->xpath('cbc:LineExtensionAmount');
+            if (!empty($importeNodes)) {
+                $lineImporte = (float)(string)$importeNodes[0] ?: null;
             }
+
+            // IGV por línea
+            $lineIgv = null;
+            $igvNodes = $line->xpath('cac:TaxTotal/cbc:TaxAmount');
+            if (!empty($igvNodes)) {
+                $lineIgv = (float)(string)$igvNodes[0];
+                if ($lineIgv === 0.0) $lineIgv = 0.0; // mantener 0 explícito
+            }
+
+            // Total por línea
+            $lineTotal = null;
+            if ($lineImporte !== null) {
+                $lineTotal = $lineImporte + ($lineIgv ?? 0.0);
+            }
+
+            // Valor unitario por línea
+            $lineVU = null;
+            $vuNodes = $line->xpath('cac:Price/cbc:PriceAmount');
+            if (!empty($vuNodes)) {
+                $lineVU = (float)(string)$vuNodes[0] ?: null;
+            }
+
+            // Descripción por línea
+            $lineDetalle = null;
+            $descNodes = $line->xpath('cac:Item/cbc:Description');
+            if (!empty($descNodes)) {
+                $lineDetalle = trim((string)$descNodes[0]) ?: null;
+            }
+
+            // Extraer kgCaja, cajas, tipoOperacion, contenedor, tipoServicio del detalle
+            $lineKgCaja = null;
+            if ($lineDetalle && preg_match('/EN CAJAS DE (\d+)\s*KG/i', $lineDetalle, $m)) {
+                $lineKgCaja = (int)$m[1];
+            }
+
+            $lineCajas = null;
+            if ($lineKgCaja !== null && $lineCantidad !== null && $lineUnidad === 'TNE') {
+                $lineCajas = (int)round($lineCantidad * 1000 / $lineKgCaja);
+            } elseif ($lineKgCaja !== null && $lineCantidad !== null && $lineUnidad === 'KGM') {
+                $lineCajas = (int)round($lineCantidad / $lineKgCaja);
+            }
+
+            $lineTipoOperacion = null;
+            if ($lineDetalle) {
+                if (preg_match('/MAR[IÍ]TIMA|MARITIM[AO]/i', $lineDetalle)) {
+                    $lineTipoOperacion = 'MARITIMO';
+                } elseif (stripos($lineDetalle, 'TERRESTRE') !== false) {
+                    $lineTipoOperacion = 'TERRESTRE';
+                }
+            }
+
+            $lineContenedor = null;
+            if ($lineDetalle && preg_match('/CONTENEDOR\s+N[°o°]?:?\s*([A-Z0-9\s\-]+)/i', $lineDetalle, $m)) {
+                $lineContenedor = trim($m[1]);
+            }
+
+            $lineTipoServicio = null;
+            if ($lineDetalle) {
+                if (stripos($lineDetalle, 'MAQUILA') !== false) {
+                    $lineTipoServicio = 'MAQUILA';
+                } elseif (stripos($lineDetalle, 'SOBRECOSTO') !== false || stripos($lineDetalle, 'COMPLEMENTARIO') !== false) {
+                    $lineTipoServicio = 'SOBRECOSTO';
+                } else {
+                    $lineTipoServicio = 'VENTA_CAJAS';
+                }
+            }
+
+            $items[] = [
+                'cantidad'       => $lineCantidad,
+                'unidadMedida'   => $lineUnidad,
+                'valorUnitario'  => $lineVU,
+                'importe'        => $lineImporte,
+                'igv'            => $lineIgv,
+                'total'          => $lineTotal,
+                'kgCaja'         => $lineKgCaja,
+                'cajas'          => $lineCajas,
+                'detalle'        => $lineDetalle,
+                'tipoOperacion'  => $lineTipoOperacion,
+                'contenedor'     => $lineContenedor,
+                'tipoServicio'   => $lineTipoServicio,
+            ];
         }
+
+        // Si no hay líneas (raro), fallback al comportamiento anterior
+        if (empty($items)) {
+            $items[] = [
+                'cantidad'      => null,
+                'unidadMedida'  => null,
+                'valorUnitario' => null,
+                'importe'       => (float)$this->xpathValue($xml, '//cac:LegalMonetaryTotal/cbc:LineExtensionAmount') ?: null,
+                'igv'           => (float)$this->xpathValue($xml, '//cac:TaxTotal/cbc:TaxAmount') ?: null,
+                'total'         => (float)$this->xpathValue($xml, '//cac:LegalMonetaryTotal/cbc:PayableAmount') ?: null,
+                'kgCaja'        => null,
+                'cajas'         => null,
+                'detalle'       => null,
+                'tipoOperacion' => null,
+                'contenedor'    => null,
+                'tipoServicio'  => null,
+            ];
+        }
+
+        $first = $items[0];
 
         return [
-            'tipoDocumento' => $tipoDocumento ?? '01',
-            'serie' => $serie,
-            'correlativo' => $correlativo,
-            'numeroDocumento' => $id,
-            'numeroGuia' => $numeroGuia,
-            'fechaEmision' => $fechaEmision,
-            'moneda' => $moneda ?? 'USD',
-            'rucCliente' => $rucCliente,
-            'nombreCliente' => $nombreCliente,
-            'detalle' => $detalle,
-            'cantidad' => $cantidad,
-            'unidadMedida' => $unidadMedida,
-            'cajas' => $cajas,
-            'valorUnitario' => $valorUnitario ?: null,
-            'importe' => $importe ?: null,
-            'igv' => $igv ?: null,
-            'total' => $total ?: null,
-            'kgCaja' => $kgCaja,
-            'tipoOperacion' => $tipoOperacion,
-            'contenedor' => $contenedor,
-            'tipoServicio' => $tipoServicio,
+            'tipoDocumento'  => $tipoDocumento ?? '01',
+            'serie'          => $serie,
+            'correlativo'    => $correlativo,
+            'numeroDocumento'=> $id,
+            'numeroGuia'     => $numeroGuia,
+            'fechaEmision'   => $fechaEmision,
+            'moneda'         => $moneda ?? 'USD',
+            'rucCliente'     => $rucCliente,
+            'nombreCliente'  => $nombreCliente,
+            'items'          => $items,
+            // Compatibilidad hacia atrás: campos del primer ítem en el nivel raíz
+            'detalle'        => $first['detalle'],
+            'cantidad'       => $first['cantidad'],
+            'unidadMedida'   => $first['unidadMedida'],
+            'cajas'          => $first['cajas'],
+            'valorUnitario'  => $first['valorUnitario'],
+            'importe'        => $first['importe'],
+            'igv'            => $first['igv'],
+            'total'          => $first['total'],
+            'kgCaja'         => $first['kgCaja'],
+            'tipoOperacion'  => $first['tipoOperacion'],
+            'contenedor'     => $first['contenedor'],
+            'tipoServicio'   => $first['tipoServicio'],
         ];
     }
 

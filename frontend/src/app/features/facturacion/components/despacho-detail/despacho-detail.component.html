@@ -261,12 +261,15 @@
                     <div class="flex items-center justify-between">
                       <div class="flex items-center gap-2">
                         <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold">FAC</span>
-                        <span class="text-xs font-mono font-bold text-slate-800">{{ f.parsed.numeroDocumento ?? '—' }}</span>
-                        <span class="text-xs text-slate-400">{{ f.parsed.fechaEmision }}</span>
+                        <span class="text-xs font-mono font-bold text-slate-800">{{ f.header?.numeroDocumento ?? f.parsed.numeroDocumento ?? '—' }}</span>
+                        <span class="text-xs text-slate-400">{{ f.header?.fechaEmision ?? f.parsed.fechaEmision }}</span>
+                        @if (f.itemLabel) {
+                          <span class="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-semibold">{{ f.itemLabel }}</span>
+                        }
                       </div>
                       <div class="flex items-center gap-2">
                         @if (f.parsed.total) {
-                          <span class="text-xs font-bold text-slate-700">{{ f.parsed.total | number:'1.2-2' }} {{ f.parsed.moneda }}</span>
+                          <span class="text-xs font-bold text-slate-700">{{ f.parsed.total | number:'1.2-2' }} {{ f.header?.moneda ?? f.parsed.moneda }}</span>
                         }
                         @if (f.status === 'done') {
                           <span class="text-xs text-emerald-600 font-bold">✓ Registrada</span>

@@ -205,8 +205,36 @@ class TipoCambioSunatService
         $cookies   = null;
         $error     = null;
         $firstItem = null;
+        $htmlSnippets = [];
 
         try {
+            $response = $this->httpClient->request('GET', $this->baseUrl, [
+                'headers' => [
+                    'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language' => 'es-PE,es;q=0.9',
+                ],
+                'timeout'     => 15,
+                'verify_peer' => false,
+                'verify_host' => false,
+            ]);
+
+            $html = $response->getContent(false);
+
+            // Mostrar fragmentos donde aparezca "token" en el HTML
+            $pos = 0;
+            $found = 0;
+            while ($found < 5 && ($pos = stripos($html, 'token', $pos)) !== false) {
+                $htmlSnippets[] = substr($html, max(0, $pos - 80), 200);
+                $pos += 5;
+                $found++;
+            }
+
+            if (empty($htmlSnippets)) {
+                $htmlSnippets[] = substr($html, 0, 500);
+                $htmlSnippets[] = substr($html, 500, 500);
+            }
+
             [$token, $cookies] = $this->extraerTokenYCookies();
         } catch (\Throwable $e) {
             $error = $e->getMessage();
@@ -226,6 +254,7 @@ class TipoCambioSunatService
             'cookies_header' => $cookies,
             'token_error'    => $error,
             'primer_item'    => $firstItem,
+            'html_token_snippets' => $htmlSnippets,
         ];
     }
 

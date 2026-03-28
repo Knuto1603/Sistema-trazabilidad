@@ -5,6 +5,7 @@ import { DecimalPipe, Location } from '@angular/common';
 import { DespachoService } from '../../despacho.service';
 import { FacturaService, FacturaCreateDto } from '../../factura.service';
 import { ArchivoDespachoService } from '../../archivo-despacho.service';
+import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
 import { Despacho, Factura, ArchivoDespacho } from '@core/models/core.model';
@@ -45,6 +46,7 @@ export class DespachoDetailComponent implements OnInit {
   private despachoService = inject(DespachoService);
   private facturaService = inject(FacturaService);
   private archivoService = inject(ArchivoDespachoService);
+  private tipoCambioService = inject(TipoCambioService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
@@ -57,6 +59,7 @@ export class DespachoDetailComponent implements OnInit {
   savingFactura = signal(false);
   uploadingArchivo = signal(false);
   parsingXml = signal(false);
+  fetchingTc = signal(false);
 
   showFacturaModal = signal(false);
   editingFacturaId = signal<string | null>(null);
@@ -123,6 +126,13 @@ export class DespachoDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     this.despachoId.set(id);
     this.loadAll();
+
+    // Auto-rellenar tipo de cambio (venta) cuando cambia la fecha de emisión
+    this.facturaForm.get('fechaEmision')!.valueChanges.subscribe(fecha => {
+      if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+        this.fetchTipoCambio(fecha, false);
+      }
+    });
   }
 
   goBack(): void {
@@ -673,6 +683,26 @@ export class DespachoDetailComponent implements OnInit {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  fetchTipoCambio(fecha?: string, mostrarError = true): void {
+    const f = fecha ?? this.facturaForm.get('fechaEmision')?.value;
+    if (!f) return;
+    this.fetchingTc.set(true);
+    this.tipoCambioService.getByFecha(f).subscribe({
+      next: res => {
+        if (res.status && res.item) {
+          this.facturaForm.patchValue({ tipoCambio: res.item.venta });
+        } else if (mostrarError) {
+          this.notification.error(`No hay tipo de cambio registrado para ${f}`);
+        }
+        this.fetchingTc.set(false);
+      },
+      error: () => {
+        if (mostrarError) this.notification.error('Error al obtener tipo de cambio');
+        this.fetchingTc.set(false);
+      }
+    });
   }
 
   fieldFacturaInvalid(field: string): boolean {

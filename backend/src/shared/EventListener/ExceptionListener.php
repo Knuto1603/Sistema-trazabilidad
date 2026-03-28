@@ -49,7 +49,9 @@ class ExceptionListener
             $response->setStatusCode($exception->getStatusCode());
             $response->headers->replace($exception->getHeaders());
         } else {
-            $response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+            $code = $exception->getCode();
+            $httpCode = ($code >= 400 && $code < 600) ? $code : Response::HTTP_INTERNAL_SERVER_ERROR;
+            $response->setStatusCode($httpCode);
         }
 
         return $response;

@@ -699,14 +699,28 @@ export class DespachoDetailComponent implements OnInit {
         this.tipoCambioService.getByFecha(factura.fechaEmision).subscribe({
           next: res => {
             if (res.status && res.item) {
-              const dto: Partial<FacturaCreateDto> = {
+              const dto: FacturaCreateDto = {
                 tipoDocumento: factura.tipoDocumento,
                 serie: factura.serie,
                 correlativo: factura.correlativo,
+                numeroGuia: factura.numeroGuia,
                 fechaEmision: factura.fechaEmision,
                 moneda: factura.moneda,
-                despachoId: factura.despachoId,
+                detalle: factura.detalle,
+                kgCaja: factura.kgCaja,
+                unidadMedida: factura.unidadMedida,
+                cajas: factura.cajas,
+                cantidad: factura.cantidad !== undefined ? Number(factura.cantidad) : undefined,
+                valorUnitario: factura.valorUnitario !== undefined ? Number(factura.valorUnitario) : undefined,
+                importe: factura.importe !== undefined ? Number(factura.importe) : undefined,
+                igv: factura.igv !== undefined ? Number(factura.igv) : undefined,
+                total: factura.total !== undefined ? Number(factura.total) : undefined,
                 tipoCambio: res.item.venta,
+                tipoServicio: factura.tipoServicio,
+                tipoOperacion: factura.tipoOperacion,
+                contenedor: factura.contenedor,
+                destino: factura.destino,
+                despachoId: factura.despachoId,
               };
               this.facturaService.update(factura.id, dto).subscribe({
                 next: r => { if (r.status) actualizadas++; resolve(); },

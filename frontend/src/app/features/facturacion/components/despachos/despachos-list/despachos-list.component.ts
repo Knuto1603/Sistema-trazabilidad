@@ -39,6 +39,7 @@ export class DespachosListComponent implements OnInit {
   frutas = signal<{ id: string; nombre: string }[]>([]);
 
   showModal = signal(false);
+  editingId = signal<string | null>(null);
   showDeleteConfirm = signal(false);
   deletingId = signal<string | null>(null);
   deletingLabel = signal<string | null>(null);
@@ -55,6 +56,7 @@ export class DespachosListComponent implements OnInit {
     sede: ['', Validators.required],
     contenedor: [''],
     observaciones: [''],
+    numeroPlanta: [null as number | null],
   });
 
   newClienteRuc = signal('');
@@ -111,6 +113,7 @@ export class DespachosListComponent implements OnInit {
   onPageChange(page: number): void { this.currentPage.set(page); this.load(); }
 
   openCreateModal(): void {
+    this.editingId.set(null);
     this.form.reset();
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
@@ -118,8 +121,23 @@ export class DespachosListComponent implements OnInit {
     this.showModal.set(true);
   }
 
+  openEditModal(item: Despacho): void {
+    this.editingId.set(item.id);
+    this.form.patchValue({
+      clienteId: item.clienteId,
+      frutaId: item.frutaId,
+      sede: item.sede,
+      contenedor: item.contenedor ?? '',
+      observaciones: item.observaciones ?? '',
+      numeroPlanta: item.numeroPlanta ?? null,
+    });
+    this.showNewClientePanel.set(false);
+    this.showModal.set(true);
+  }
+
   closeModal(): void {
     this.showModal.set(false);
+    this.editingId.set(null);
     this.form.reset();
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
@@ -201,12 +219,18 @@ export class DespachosListComponent implements OnInit {
       sede: raw.sede!,
       contenedor: raw.contenedor || undefined,
       observaciones: raw.observaciones || undefined,
+      numeroPlanta: raw.numeroPlanta ?? undefined,
     };
 
-    this.despachoService.create(dto).subscribe({
+    const editId = this.editingId();
+    const req = editId
+      ? this.despachoService.update(editId, dto)
+      : this.despachoService.create(dto);
+
+    req.subscribe({
       next: res => {
         if (res.status) {
-          this.notification.success('Despacho creado exitosamente');
+          this.notification.success(editId ? 'Despacho actualizado' : 'Despacho creado exitosamente');
           this.closeModal();
           this.load();
         }

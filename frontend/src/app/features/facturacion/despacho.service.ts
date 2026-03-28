@@ -11,6 +11,8 @@ export interface DespachoCreateDto {
   observaciones?: string;
   clienteId: string;
   frutaId: string;
+  numeroCliente?: number;
+  numeroPlanta?: number;
 }
 
 @Injectable({ providedIn: 'root' })

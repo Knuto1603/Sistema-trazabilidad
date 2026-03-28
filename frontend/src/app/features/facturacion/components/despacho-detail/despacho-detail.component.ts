@@ -60,6 +60,7 @@ export class DespachoDetailComponent implements OnInit {
   uploadingArchivo = signal(false);
   parsingXml = signal(false);
   fetchingTc = signal(false);
+  aplicandoTc = signal(false);
 
   showFacturaModal = signal(false);
   editingFacturaId = signal<string | null>(null);
@@ -683,6 +684,50 @@ export class DespachoDetailComponent implements OnInit {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  async aplicarTcATodas(): Promise<void> {
+    const lista = this.facturas().filter(f => f.fechaEmision && !f.isAnulada);
+    if (!lista.length) return;
+
+    this.aplicandoTc.set(true);
+    let actualizadas = 0;
+    let sinTc = 0;
+
+    for (const factura of lista) {
+      await new Promise<void>(resolve => {
+        this.tipoCambioService.getByFecha(factura.fechaEmision).subscribe({
+          next: res => {
+            if (res.status && res.item) {
+              const dto: Partial<FacturaCreateDto> = {
+                tipoDocumento: factura.tipoDocumento,
+                serie: factura.serie,
+                correlativo: factura.correlativo,
+                fechaEmision: factura.fechaEmision,
+                moneda: factura.moneda,
+                despachoId: factura.despachoId,
+                tipoCambio: res.item.venta,
+              };
+              this.facturaService.update(factura.id, dto).subscribe({
+                next: r => { if (r.status) actualizadas++; resolve(); },
+                error: () => resolve(),
+              });
+            } else {
+              sinTc++;
+              resolve();
+            }
+          },
+          error: () => { sinTc++; resolve(); },
+        });
+      });
+    }
+
+    this.aplicandoTc.set(false);
+    this.loadFacturas();
+
+    const msg = [`${actualizadas} factura(s) actualizadas con TC`];
+    if (sinTc) msg.push(`${sinTc} sin TC registrado para su fecha`);
+    this.notification.success(msg.join(' · '));
   }
 
   fetchTipoCambio(fecha?: string, mostrarError = true): void {

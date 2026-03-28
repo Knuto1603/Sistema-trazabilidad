@@ -109,16 +109,28 @@ export class TipoCambioListComponent implements OnInit {
 
   importarAnio(): void {
     this.importing.set(true);
-    this.tipoCambioService.importarAnio().subscribe({
+    this.importarLote(undefined, 0);
+  }
+
+  private importarLote(desde: string | undefined, totalImportados: number): void {
+    this.tipoCambioService.importarAnio(desde).subscribe({
       next: res => {
-        if (res.status) {
-          const d = res.item as any;
-          this.notification.success(`Importación completada: ${d?.importados ?? 0} registros guardados`);
-          this.load();
-        } else {
+        if (!res.status) {
           this.notification.error('No se pudo importar los tipos de cambio');
+          this.importing.set(false);
+          return;
         }
-        this.importing.set(false);
+        const d = res.item as any;
+        const acumulado = totalImportados + (d?.importados ?? 0);
+
+        if (d?.proxima) {
+          // Hay más fechas pendientes — continuar con el siguiente lote
+          this.importarLote(d.proxima, acumulado);
+        } else {
+          this.notification.success(`Importación completada: ${acumulado} registros guardados`);
+          this.importing.set(false);
+          this.load();
+        }
       },
       error: () => { this.notification.error('Error al importar desde SUNAT'); this.importing.set(false); }
     });

@@ -63,14 +63,22 @@ class TipoCambioApi extends AbstractSerializerApi
     }
 
     #[Route('/importar-anio', name: 'tipo_cambio_importar_anio', methods: ['POST'])]
-    public function importarAnio(ImportarAnioService $service): Response
-    {
+    public function importarAnio(
+        \Symfony\Component\HttpFoundation\Request $request,
+        ImportarAnioService $service,
+    ): Response {
         try {
-            $result = $service->execute();
-            return $this->ok([
-                'message' => "Importación completada: {$result['importados']} registros guardados",
-                'item'    => $result,
-            ]);
+            $body  = json_decode($request->getContent(), true) ?? [];
+            $desde = $body['desde'] ?? null;
+
+            $result = $service->execute($desde);
+
+            $completo = $result['proxima'] === null;
+            $message  = $completo
+                ? "Importación completada: {$result['importados']} registros guardados"
+                : "Lote procesado: {$result['importados']} registros. Continuar desde {$result['proxima']}";
+
+            return $this->ok(['message' => $message, 'item' => $result]);
         } catch (\Throwable $e) {
             return $this->fail($e->getMessage());
         }

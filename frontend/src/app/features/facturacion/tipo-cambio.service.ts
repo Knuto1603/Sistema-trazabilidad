@@ -32,7 +32,7 @@ export class TipoCambioService {
     return this.http.get<ApiResponse<any>>(`${this.base}/scrape-sunat`);
   }
 
-  importarAnio(): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.base}/importar-anio`, {});
+  importarAnio(desde?: string): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.base}/importar-anio`, desde ? { desde } : {});
   }
 }

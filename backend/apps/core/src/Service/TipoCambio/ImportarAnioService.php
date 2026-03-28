@@ -18,25 +18,33 @@ final readonly class ImportarAnioService
     }
 
     /**
-     * Importa los tipos de cambio día a día desde el 01/01 del año actual hasta hoy.
-     * Omite fines de semana (sin cotización) y fechas ya registradas.
+     * Importa los tipos de cambio día a día en lotes de $limite días.
+     * Comienza desde $desde (o 01/01 del año si no se indica).
+     * Las fechas ya registradas se omiten. Devuelve la próxima fecha pendiente.
      *
-     * @return array{importados: int, omitidos: int, errores: int, detalle: string[]}
+     * @return array{importados: int, omitidos: int, errores: int, detalle: string[], proxima: string|null}
      */
-    public function execute(): array
+    public function execute(?string $desde = null, int $limite = 20): array
     {
-        $hoy   = new \DateTimeImmutable('today');
-        $inicio = new \DateTimeImmutable($hoy->format('Y') . '-01-01');
+        set_time_limit(120);
 
-        $importados = 0;
-        $omitidos   = 0;
-        $errores    = 0;
-        $detalle    = [];
+        $hoy    = new \DateTimeImmutable('today');
+        $inicio = $desde
+            ? new \DateTimeImmutable($desde)
+            : new \DateTimeImmutable($hoy->format('Y') . '-01-01');
+
+        $importados  = 0;
+        $omitidos    = 0;
+        $errores     = 0;
+        $detalle     = [];
+        $procesados  = 0;
+        $proxima     = null;
 
         $current = $inicio;
 
         while ($current <= $hoy) {
-            $fecha     = $current->format('Y-m-d');
+            $fecha = $current->format('Y-m-d');
+
             // Omitir si ya existe
             if ($this->tipoCambioRepository->findByFecha(new \DateTime($fecha))) {
                 $omitidos++;
@@ -44,14 +52,15 @@ final readonly class ImportarAnioService
                 continue;
             }
 
+            // Cortar si alcanzamos el límite de peticiones HTTP
+            if ($procesados >= $limite) {
+                $proxima = $fecha;
+                break;
+            }
+
             try {
                 $data = $this->sunatService->obtenerTipoCambio($fecha);
-
-                $dto = new TipoCambioDto(
-                    fecha:  $fecha,
-                    compra: $data['compra'],
-                    venta:  $data['venta'],
-                );
+                $dto  = new TipoCambioDto(fecha: $fecha, compra: $data['compra'], venta: $data['venta']);
                 $this->createOrUpdateService->execute($dto);
                 $importados++;
             } catch (\RuntimeException $e) {
@@ -68,16 +77,16 @@ final readonly class ImportarAnioService
                 $this->logger->warning("Error importando {$fecha}: " . $e->getMessage());
             }
 
+            $procesados++;
             $current = $current->modify('+1 day');
         }
-
-        $detalle[] = "Total: {$importados} importados, {$omitidos} ya existían, {$errores} errores";
 
         return [
             'importados' => $importados,
             'omitidos'   => $omitidos,
             'errores'    => $errores,
             'detalle'    => $detalle,
+            'proxima'    => $proxima, // null = completado
         ];
     }
 }

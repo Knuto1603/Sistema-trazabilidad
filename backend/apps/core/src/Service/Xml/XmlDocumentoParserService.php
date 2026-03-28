@@ -20,6 +20,10 @@ class XmlDocumentoParserService
             return $this->parseDespatchAdvice($xml);
         }
 
+        if ($rootName === 'DebitNote') {
+            return $this->parseDebitNote($xml);
+        }
+
         // CDR de SUNAT: confirmación de recepción, no contiene datos de factura
         if ($rootName === 'ApplicationResponse') {
             return ['tipoDocumento' => 'CDR', 'ignorar' => true];
@@ -351,6 +355,139 @@ class XmlDocumentoParserService
             'tipoOperacion' => $tipoOperacion,
             'contenedor' => $contenedor,
             'facturaReferencia' => $facturaReferencia,
+        ];
+    }
+
+    private function parseDebitNote(\SimpleXMLElement $xml): array
+    {
+        $xml->registerXPathNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+        $xml->registerXPathNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+
+        $id = $this->xpathValue($xml, '//cbc:ID');
+        $parts = explode('-', $id ?? '', 2);
+        $serie = $parts[0] ?? '';
+        $correlativo = $parts[1] ?? '';
+
+        $fechaEmision = $this->xpathValue($xml, '//cbc:IssueDate');
+        $moneda = $this->xpathValue($xml, '//cbc:DocumentCurrencyCode');
+
+        $rucCliente = null;
+        $partyIds = $xml->xpath('//cac:AccountingCustomerParty/cac:Party/cac:PartyIdentification/cbc:ID');
+        foreach ($partyIds as $pid) {
+            $attrs = $pid->attributes();
+            if (isset($attrs['schemeID']) && (string) $attrs['schemeID'] === '6') {
+                $rucCliente = (string) $pid;
+                break;
+            }
+        }
+
+        $nombreCliente = $this->xpathValue($xml, '//cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:RegistrationName');
+
+        // Documento de referencia (factura original que origina la nota de débito)
+        $facturaReferencia = $this->xpathValue($xml, '//cac:BillingReference/cac:InvoiceDocumentReference/cbc:ID');
+
+        // Líneas de la nota de débito
+        $debitLines = $xml->xpath('//cac:DebitNoteLine');
+        $items = [];
+
+        foreach ($debitLines as $line) {
+            $line->registerXPathNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+            $line->registerXPathNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+
+            $lineCantidad = null;
+            $lineUnidad = null;
+            $qtyNodes = $line->xpath('cbc:DebitedQuantity');
+            if (!empty($qtyNodes)) {
+                $lineCantidad = (float)(string)$qtyNodes[0];
+                $attrs = $qtyNodes[0]->attributes();
+                $lineUnidad = isset($attrs['unitCode']) ? (string)$attrs['unitCode'] : null;
+            }
+
+            $lineImporte = null;
+            $importeNodes = $line->xpath('cbc:LineExtensionAmount');
+            if (!empty($importeNodes)) {
+                $lineImporte = (float)(string)$importeNodes[0] ?: null;
+            }
+
+            $lineIgv = null;
+            $igvNodes = $line->xpath('cac:TaxTotal/cbc:TaxAmount');
+            if (!empty($igvNodes)) {
+                $lineIgv = (float)(string)$igvNodes[0];
+            }
+
+            $lineTotal = $lineImporte !== null ? $lineImporte + ($lineIgv ?? 0.0) : null;
+
+            $lineVU = null;
+            $vuNodes = $line->xpath('cac:Price/cbc:PriceAmount');
+            if (!empty($vuNodes)) {
+                $lineVU = (float)(string)$vuNodes[0] ?: null;
+            }
+
+            $lineDetalle = null;
+            $descNodes = $line->xpath('cac:Item/cbc:Description');
+            if (!empty($descNodes)) {
+                $lineDetalle = trim((string)$descNodes[0]) ?: null;
+            }
+
+            $items[] = [
+                'cantidad'      => $lineCantidad,
+                'unidadMedida'  => $lineUnidad,
+                'valorUnitario' => $lineVU,
+                'importe'       => $lineImporte,
+                'igv'           => $lineIgv,
+                'total'         => $lineTotal,
+                'detalle'       => $lineDetalle,
+                'kgCaja'        => null,
+                'cajas'         => null,
+                'tipoOperacion' => null,
+                'contenedor'    => null,
+                'tipoServicio'  => null,
+            ];
+        }
+
+        // Fallback si no hay líneas
+        if (empty($items)) {
+            $items[] = [
+                'cantidad'      => null,
+                'unidadMedida'  => null,
+                'valorUnitario' => null,
+                'importe'       => (float)$this->xpathValue($xml, '//cac:RequestedMonetaryTotal/cbc:LineExtensionAmount') ?: null,
+                'igv'           => (float)$this->xpathValue($xml, '//cac:TaxTotal/cbc:TaxAmount') ?: null,
+                'total'         => (float)$this->xpathValue($xml, '//cac:RequestedMonetaryTotal/cbc:PayableAmount') ?: null,
+                'detalle'       => null,
+                'kgCaja'        => null,
+                'cajas'         => null,
+                'tipoOperacion' => null,
+                'contenedor'    => null,
+                'tipoServicio'  => null,
+            ];
+        }
+
+        $first = $items[0];
+
+        return [
+            'tipoDocumento'   => '08',
+            'serie'           => $serie,
+            'correlativo'     => $correlativo,
+            'numeroDocumento' => $id,
+            'fechaEmision'    => $fechaEmision,
+            'moneda'          => $moneda ?? 'USD',
+            'rucCliente'      => $rucCliente,
+            'nombreCliente'   => $nombreCliente,
+            'facturaReferencia' => $facturaReferencia,
+            'items'           => $items,
+            'detalle'         => $first['detalle'],
+            'cantidad'        => $first['cantidad'],
+            'unidadMedida'    => $first['unidadMedida'],
+            'valorUnitario'   => $first['valorUnitario'],
+            'importe'         => $first['importe'],
+            'igv'             => $first['igv'],
+            'total'           => $first['total'],
+            'kgCaja'          => $first['kgCaja'],
+            'cajas'           => $first['cajas'],
+            'tipoOperacion'   => $first['tipoOperacion'],
+            'contenedor'      => $first['contenedor'],
+            'tipoServicio'    => $first['tipoServicio'],
         ];
     }
 

@@ -81,13 +81,14 @@ export class DespachoDetailComponent implements OnInit {
     { value: '01', label: 'Factura (01)' },
     { value: '09', label: 'Guía de Remisión (09)' },
     { value: '07', label: 'Nota de Crédito (07)' },
+    { value: '08', label: 'Nota de Débito (08)' },
   ];
 
   readonly TIPOS_SERVICIO = ['MAQUILA', 'SOBRECOSTO', 'VENTA_CAJAS'];
   readonly TIPOS_OPERACION = ['MARITIMO', 'TERRESTRE'];
   readonly MONEDAS = ['USD', 'PEN'];
   readonly UNIDADES_MEDIDA = ['TNE', 'KGM', 'KG', 'ZZ', 'UND', 'NIU'];
-  readonly TIPOS_ARCHIVO = ['FACTURA_XML', 'GUIA_XML', 'FACTURA_PDF', 'GUIA_PDF', 'PACKING_LIST', 'CDR', 'OTRO'];
+  readonly TIPOS_ARCHIVO = ['FACTURA_XML', 'GUIA_XML', 'NOTA_CREDITO_XML', 'NOTA_DEBITO_XML', 'FACTURA_PDF', 'GUIA_PDF', 'PACKING_LIST', 'CDR', 'OTRO'];
 
   facturaForm = this.fb.group({
     tipoDocumento: ['01', Validators.required],
@@ -378,7 +379,7 @@ export class DespachoDetailComponent implements OnInit {
     input.value = '';
 
     // Auto-parsear XMLs
-    const xmlFacturas = newFiles.filter(f => f.tipoArchivo === 'FACTURA_XML');
+    const xmlFacturas = newFiles.filter(f => ['FACTURA_XML', 'NOTA_CREDITO_XML', 'NOTA_DEBITO_XML'].includes(f.tipoArchivo));
     const xmlGuias = newFiles.filter(f => f.tipoArchivo === 'GUIA_XML');
 
     if (xmlFacturas.length > 0 || xmlGuias.length > 0) {
@@ -463,6 +464,8 @@ export class DespachoDetailComponent implements OnInit {
     const name = filename.toUpperCase();
     if (/^R-\d{11}-/.test(filename)) return 'CDR';
     if (/^\d{11}-01-/.test(filename) && name.endsWith('.XML')) return 'FACTURA_XML';
+    if (/^\d{11}-07-/.test(filename) && name.endsWith('.XML')) return 'NOTA_CREDITO_XML';
+    if (/^\d{11}-08-/.test(filename) && name.endsWith('.XML')) return 'NOTA_DEBITO_XML';
     if (/^\d{11}-09-/.test(filename) && name.endsWith('.XML')) return 'GUIA_XML';
     if (name.includes('PACKING') && name.endsWith('.PDF')) return 'PACKING_LIST';
     if (name.includes('FACTURA') && name.endsWith('.PDF')) return 'FACTURA_PDF';

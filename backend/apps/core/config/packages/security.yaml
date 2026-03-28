@@ -19,6 +19,7 @@ security:
             pattern: ^/media/cache/resolve
             security: false
     access_control:
+        - { path: ^/api/tipos-cambio/debug-sunat-raw, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/*, roles: PUBLIC_ACCESS }
 

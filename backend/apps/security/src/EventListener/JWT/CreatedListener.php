@@ -15,7 +15,7 @@ final readonly class CreatedListener
         $user = $event->getUser();
         $payload = $event->getData();
         $payload['id'] = UidType::toString($user->uuid());
-        unset($payload['roles']);
+        $payload['roles'] = $user->getRoles();
         $event->setData($payload);
     }
 }

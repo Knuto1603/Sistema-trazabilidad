@@ -308,7 +308,12 @@ export class DespachoDetailComponent implements OnInit {
         }
         this.savingFactura.set(false);
       },
-      error: () => this.savingFactura.set(false)
+      error: (err) => {
+        const detail = err?.error?.detail ?? err?.error?.message ?? JSON.stringify(err?.error ?? err);
+        this.notification.error('Error al guardar: ' + detail);
+        console.error('422 body:', err?.error);
+        this.savingFactura.set(false);
+      }
     });
   }
 

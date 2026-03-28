@@ -226,10 +226,12 @@
                       <p class="text-xs font-semibold text-slate-700 truncate">{{ item.file.name }}</p>
                       <p class="text-xs text-slate-400">{{ formatBytes(item.file.size) }}</p>
                     </div>
-                    <select [value]="item.tipoArchivo" (change)="updateTipoArchivoPending(i, $any($event.target).value)"
+                    <select (change)="updateTipoArchivoPending(i, $any($event.target).value)"
                       [disabled]="item.uploading || processingAll()"
                       class="text-xs px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shrink-0">
-                      @for (t of TIPOS_ARCHIVO; track t) { <option [value]="t">{{ t }}</option> }
+                      @for (t of TIPOS_ARCHIVO; track t) {
+                        <option [value]="t" [selected]="t === item.tipoArchivo">{{ t }}</option>
+                      }
                     </select>
                     @if (item.uploading) {
                       <svg class="w-4 h-4 animate-spin text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>

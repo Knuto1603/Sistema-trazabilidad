@@ -69,9 +69,9 @@
               Cliente {{ getSortIcon('clienteRazonSocial') }}
             </th>
             <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">N° Guía</th>
-            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">KG</th>
-            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">TN</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">KG/Caja</th>
             <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">Cajas</th>
+            <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">Cantidad</th>
             <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">V.U.</th>
             <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 select-none"
               (click)="sortBy('importe')">
@@ -114,8 +114,13 @@
                 </td>
                 <td class="px-3 py-2 font-mono text-slate-500">{{ f.numeroGuia ?? '-' }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.kgCaja ?? '-' }}</td>
-                <td class="px-3 py-2 text-right text-slate-600">{{ f.cantidad?.toFixed(4) ?? '-' }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.cajas ?? '-' }}</td>
+                <td class="px-3 py-2 text-right text-slate-600">
+                  @if (f.cantidad != null) {
+                    {{ f.cantidad | number:'1.4-4' }}
+                    @if (f.unidadMedida) { <span class="text-slate-400 text-xs ml-0.5">{{ f.unidadMedida }}</span> }
+                  } @else { - }
+                </td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.valorUnitario?.toFixed(4) ?? '-' }}</td>
                 <td class="px-3 py-2 text-right font-semibold text-slate-700">
                   {{ f.importe != null ? (f.importe | number:'1.2-2') : '-' }}

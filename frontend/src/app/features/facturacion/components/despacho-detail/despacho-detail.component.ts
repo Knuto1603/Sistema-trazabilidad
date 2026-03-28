@@ -85,7 +85,7 @@ export class DespachoDetailComponent implements OnInit {
   readonly TIPOS_SERVICIO = ['MAQUILA', 'SOBRECOSTO', 'VENTA_CAJAS'];
   readonly TIPOS_OPERACION = ['MARITIMO', 'TERRESTRE'];
   readonly MONEDAS = ['USD', 'PEN'];
-  readonly UNIDADES_MEDIDA = ['TNE', 'UND', 'KGM'];
+  readonly UNIDADES_MEDIDA = ['TNE', 'KGM', 'KG', 'ZZ', 'UND', 'NIU'];
   readonly TIPOS_ARCHIVO = ['FACTURA_XML', 'GUIA_XML', 'FACTURA_PDF', 'GUIA_PDF', 'PACKING_LIST', 'CDR', 'OTRO'];
 
   facturaForm = this.fb.group({
@@ -251,7 +251,7 @@ export class DespachoDetailComponent implements OnInit {
       let cajas: number;
       if (unidad === 'TNE') {
         cajas = Math.round((cantidad * 1000) / kgCaja);
-      } else if (unidad === 'KGM') {
+      } else if (unidad === 'KGM' || unidad === 'KG') {
         cajas = Math.round(cantidad / kgCaja);
       } else {
         return;

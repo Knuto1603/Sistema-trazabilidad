@@ -7,6 +7,7 @@ use App\apps\core\Service\TipoCambio\Dto\TipoCambioDto;
 use App\apps\core\Service\TipoCambio\Dto\TipoCambioDtoTransformer;
 use App\apps\core\Service\TipoCambio\GetTipoCambioByFechaService;
 use App\apps\core\Service\TipoCambio\GetTipoCambiosService;
+use App\apps\core\Service\TipoCambio\ImportarAnioService;
 use App\apps\core\Service\TipoCambioSunat\TipoCambioSunatService;
 use App\shared\Api\AbstractSerializerApi;
 use App\shared\Service\Dto\FilterDto;
@@ -61,13 +62,25 @@ class TipoCambioApi extends AbstractSerializerApi
         }
     }
 
-    #[Route('/debug-sunat-raw', name: 'tipo_cambio_debug_sunat_raw', methods: ['GET'])]
-    public function debugSunatRaw(
-        TipoCambioSunatService $sunatService,
-    ): Response {
+    #[Route('/importar-anio', name: 'tipo_cambio_importar_anio', methods: ['POST'])]
+    public function importarAnio(ImportarAnioService $service): Response
+    {
         try {
-            $raw = $sunatService->debugListarRaw();
-            return $this->ok(['items' => $raw, 'count' => count($raw), 'first' => $raw[0] ?? null]);
+            $result = $service->execute();
+            return $this->ok([
+                'message' => "Importación completada: {$result['importados']} registros guardados",
+                'item'    => $result,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->fail($e->getMessage());
+        }
+    }
+
+    #[Route('/debug-sunat-raw', name: 'tipo_cambio_debug_sunat_raw', methods: ['GET'])]
+    public function debugSunatRaw(TipoCambioSunatService $sunatService): Response
+    {
+        try {
+            return $this->ok($sunatService->debugInfo());
         } catch (\Throwable $e) {
             return $this->fail($e->getMessage());
         }

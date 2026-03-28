@@ -28,4 +28,14 @@ class ArchivoDespachoRepository extends DoctrineEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function deleteByDespacho(object $despacho): void
+    {
+        $this->createQueryBuilder('a')
+            ->delete()
+            ->where('a.despacho = :despacho')
+            ->setParameter('despacho', $despacho)
+            ->getQuery()
+            ->execute();
+    }
 }

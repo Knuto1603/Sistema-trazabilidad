@@ -68,4 +68,14 @@ class FacturaRepository extends DoctrineEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function deleteByDespacho(object $despacho): void
+    {
+        $this->createQueryBuilder('f')
+            ->delete()
+            ->where('f.despacho = :despacho')
+            ->setParameter('despacho', $despacho)
+            ->getQuery()
+            ->execute();
+    }
 }

@@ -195,6 +195,14 @@ export class DespachoDetailComponent implements OnInit {
       next: res => {
         if (res.status && res.item) {
           const d = res.item as any;
+
+          if (d.ignorar) {
+            this.notification.info('El archivo es un CDR (acuse de SUNAT). Solo puede adjuntarse como archivo.');
+            this.parsingXml.set(false);
+            input.value = '';
+            return;
+          }
+
           const isGuia = d.tipoDocumento === '09';
 
           if (isGuia) {
@@ -379,8 +387,8 @@ export class DespachoDetailComponent implements OnInit {
         ...xmlFacturas.map(f => this.parseFileAsync(f.file)),
         ...xmlGuias.map(f => this.parseFileAsync(f.file)),
       ]).then(results => {
-        const facturaResults = results.slice(0, xmlFacturas.length);
-        const guiaResults = results.slice(xmlFacturas.length);
+        const facturaResults = results.slice(0, xmlFacturas.length).filter(r => r !== null);
+        const guiaResults = results.slice(xmlFacturas.length).filter(r => r !== null);
 
         const newGuias: PendingGuiaItem[] = guiaResults.map((parsed, i) => ({
           file: xmlGuias[i].file,
@@ -430,8 +438,11 @@ export class DespachoDetailComponent implements OnInit {
   private parseFileAsync(file: File): Promise<any> {
     return new Promise(resolve => {
       this.facturaService.parseXml(file).subscribe({
-        next: res => resolve(res.status ? (res.item ?? {}) : {}),
-        error: () => resolve({}),
+        next: res => {
+          const item = res.status ? (res.item ?? {}) : {};
+          resolve((item as any).ignorar ? null : item);
+        },
+        error: () => resolve(null),
       });
     });
   }

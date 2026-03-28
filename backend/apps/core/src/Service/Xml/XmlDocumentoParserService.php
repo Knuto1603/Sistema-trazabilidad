@@ -20,6 +20,11 @@ class XmlDocumentoParserService
             return $this->parseDespatchAdvice($xml);
         }
 
+        // CDR de SUNAT: confirmación de recepción, no contiene datos de factura
+        if ($rootName === 'ApplicationResponse') {
+            return ['tipoDocumento' => 'CDR', 'ignorar' => true];
+        }
+
         throw new \RuntimeException('Tipo de documento XML no soportado: ' . $rootName);
     }
 

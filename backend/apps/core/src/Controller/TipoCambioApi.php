@@ -61,6 +61,18 @@ class TipoCambioApi extends AbstractSerializerApi
         }
     }
 
+    #[Route('/debug-sunat-raw', name: 'tipo_cambio_debug_sunat_raw', methods: ['GET'])]
+    public function debugSunatRaw(
+        TipoCambioSunatService $sunatService,
+    ): Response {
+        try {
+            $raw = $sunatService->debugListarRaw();
+            return $this->ok(['items' => $raw, 'count' => count($raw), 'first' => $raw[0] ?? null]);
+        } catch (\Throwable $e) {
+            return $this->fail($e->getMessage());
+        }
+    }
+
     #[Route('/', name: 'tipo_cambio_create_or_update', methods: ['POST'])]
     public function createOrUpdate(
         #[MapRequestPayload]

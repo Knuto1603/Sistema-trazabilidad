@@ -37,7 +37,7 @@ class TipoCambioSunatService
      */
     public function obtenerMes(int $anio, int $mes): array
     {
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
+        $daysInMonth = (int) date('t', mktime(0, 0, 0, $mes, 1, $anio));
         $today       = date('Y-m-d');
         $results     = [];
 

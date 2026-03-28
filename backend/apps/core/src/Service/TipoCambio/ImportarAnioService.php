@@ -18,69 +18,65 @@ final readonly class ImportarAnioService
     }
 
     /**
-     * Importa todos los tipos de cambio desde el 1 de enero del año actual
-     * hasta hoy, mes a mes. Omite fechas ya registradas.
+     * Importa los tipos de cambio día a día desde el 01/01 del año actual hasta hoy.
+     * Omite fines de semana (sin cotización) y fechas ya registradas.
      *
      * @return array{importados: int, omitidos: int, errores: int, detalle: string[]}
      */
     public function execute(): array
     {
-        $hoy      = new \DateTimeImmutable();
-        $anio     = (int) $hoy->format('Y');
-        $mesHoy   = (int) $hoy->format('n');
-        $diaHoy   = (int) $hoy->format('j');
+        $hoy   = new \DateTimeImmutable('today');
+        $inicio = new \DateTimeImmutable($hoy->format('Y') . '-01-01');
 
         $importados = 0;
         $omitidos   = 0;
         $errores    = 0;
         $detalle    = [];
 
-        for ($mes = 1; $mes <= $mesHoy; $mes++) {
+        $current = $inicio;
+
+        while ($current <= $hoy) {
+            $fecha     = $current->format('Y-m-d');
+            $diaSemana = (int) $current->format('N'); // 1=lun … 7=dom
+
+            // Saltar sábado (6) y domingo (7): SUNAT no publica cotización
+            if ($diaSemana >= 6) {
+                $current = $current->modify('+1 day');
+                continue;
+            }
+
+            // Omitir si ya existe
+            if ($this->tipoCambioRepository->findByFecha(new \DateTime($fecha))) {
+                $omitidos++;
+                $current = $current->modify('+1 day');
+                continue;
+            }
+
             try {
-                $items = $this->sunatService->obtenerMes($anio, $mes);
+                $data = $this->sunatService->obtenerTipoCambio($fecha);
 
-                if (empty($items)) {
-                    $detalle[] = "Mes {$mes}: sin datos";
-                    continue;
-                }
+                // apis.net.pe devuelve la fecha real de cotización.
+                // Si difiere de la solicitada es un feriado → guardar con la fecha solicitada
+                // para no dejar el día sin registro.
+                $fechaGuardar = $fecha;
 
-                foreach ($items as $item) {
-                    $item = (array) $item;
-
-                    $fecha  = $this->parsearFecha($item, $anio, $mes);
-                    $compra = $this->leerCompra($item);
-                    $venta  = $this->leerVenta($item);
-
-                    if (!$fecha || !$compra || !$venta) {
-                        $errores++;
-                        continue;
-                    }
-
-                    // No importar fechas futuras
-                    if ($fecha > $hoy->format('Y-m-d')) {
-                        $omitidos++;
-                        continue;
-                    }
-
-                    // Omitir si ya existe
-                    $existing = $this->tipoCambioRepository->findByFecha(new \DateTime($fecha));
-                    if ($existing) {
-                        $omitidos++;
-                        continue;
-                    }
-
-                    $dto = new TipoCambioDto(fecha: $fecha, compra: $compra, venta: $venta);
-                    $this->createOrUpdateService->execute($dto);
-                    $importados++;
-                }
-
-                $detalle[] = "Mes {$mes}: OK";
+                $dto = new TipoCambioDto(
+                    fecha:  $fechaGuardar,
+                    compra: $data['compra'],
+                    venta:  $data['venta'],
+                );
+                $this->createOrUpdateService->execute($dto);
+                $importados++;
             } catch (\Throwable $e) {
                 $errores++;
-                $detalle[] = "Mes {$mes}: ERROR - " . $e->getMessage();
-                $this->logger->error("Error importando mes {$mes}/{$anio}", ['error' => $e->getMessage()]);
+                $detalle[] = "{$fecha}: ERROR - " . $e->getMessage();
+                $this->logger->warning("Error importando {$fecha}: " . $e->getMessage());
             }
+
+            $current = $current->modify('+1 day');
         }
+
+        $detalle[] = "Total: {$importados} importados, {$omitidos} ya existían, {$errores} errores";
 
         return [
             'importados' => $importados,
@@ -88,50 +84,5 @@ final readonly class ImportarAnioService
             'errores'    => $errores,
             'detalle'    => $detalle,
         ];
-    }
-
-    private function parsearFecha(array $item, int $anio, int $mes): ?string
-    {
-        // Formato Y-m-d (de apis.net.pe)
-        foreach (['fecha', 'fecPublicacion', 'Fecha'] as $k) {
-            if (!empty($item[$k])) {
-                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $item[$k])) {
-                    return $item[$k];
-                }
-                // Formato dd/mm/yyyy (legado SUNAT)
-                if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $item[$k], $m)) {
-                    return "{$m[3]}-{$m[2]}-{$m[1]}";
-                }
-            }
-        }
-
-        // Construir desde número de día (legado SUNAT)
-        foreach (['dia', 'Dia', 'DIA', 'numDia', 'nroDia'] as $k) {
-            if (isset($item[$k])) {
-                return sprintf('%04d-%02d-%02d', $anio, $mes, (int) $item[$k]);
-            }
-        }
-
-        return null;
-    }
-
-    private function leerCompra(array $item): ?float
-    {
-        foreach (['compra', 'preCompra', 'numCompra', 'Compra', 'valorCompra'] as $k) {
-            if (isset($item[$k]) && $item[$k] !== '') {
-                return (float) str_replace(',', '.', (string) $item[$k]);
-            }
-        }
-        return null;
-    }
-
-    private function leerVenta(array $item): ?float
-    {
-        foreach (['venta', 'preVenta', 'numVenta', 'Venta', 'valorVenta'] as $k) {
-            if (isset($item[$k]) && $item[$k] !== '') {
-                return (float) str_replace(',', '.', (string) $item[$k]);
-            }
-        }
-        return null;
     }
 }

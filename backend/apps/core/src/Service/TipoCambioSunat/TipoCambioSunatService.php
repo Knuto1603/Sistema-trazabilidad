@@ -24,8 +24,8 @@ class TipoCambioSunatService
         $mes  = (int) $dt->format('n');
         $dia  = (int) $dt->format('j');
 
-        $token = $this->extraerToken();
-        $items = $this->listar($anio, $mes, $token);
+        [$token, $cookies] = $this->extraerTokenYCookies();
+        $items = $this->listar($anio, $mes, $token, $cookies);
 
         return $this->buscarDia($items, $dia, $fechaConsulta);
     }
@@ -35,19 +35,22 @@ class TipoCambioSunatService
      */
     public function obtenerMes(int $anio, int $mes): array
     {
-        $token = $this->extraerToken();
-        return $this->listar($anio, $mes, $token);
+        [$token, $cookies] = $this->extraerTokenYCookies();
+        return $this->listar($anio, $mes, $token, $cookies);
     }
 
-    private function listar(int $anio, int $mes, string $token): array
+    private function listar(int $anio, int $mes, string $token, string $cookies): array
     {
         $response = $this->httpClient->request('POST', $this->listUrl, [
             'json' => ['anio' => $anio, 'mes' => $mes, 'token' => $token],
             'headers' => [
-                'Accept'     => 'application/json, text/javascript, */*; q=0.01',
-                'Origin'     => 'https://e-consulta.sunat.gob.pe',
-                'Referer'    => $this->baseUrl,
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept'           => 'application/json, text/javascript, */*; q=0.01',
+                'Accept-Language'  => 'es-PE,es;q=0.8',
+                'Content-Type'     => 'application/json; charset=UTF-8',
+                'Cookie'           => $cookies,
+                'Origin'           => 'https://e-consulta.sunat.gob.pe',
+                'Referer'          => $this->baseUrl,
+                'User-Agent'       => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'X-Requested-With' => 'XMLHttpRequest',
             ],
             'timeout'     => 15,
@@ -65,12 +68,18 @@ class TipoCambioSunatService
         return $data;
     }
 
-    private function extraerToken(): string
+    /**
+     * Hace GET a la página de SUNAT, extrae el token del HTML
+     * y las cookies de la respuesta para usarlas en el POST.
+     *
+     * @return array{0: string, 1: string} [token, cookieHeader]
+     */
+    private function extraerTokenYCookies(): array
     {
         $response = $this->httpClient->request('GET', $this->baseUrl, [
             'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept'     => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                 'Accept-Language' => 'es-PE,es;q=0.9',
             ],
             'timeout'     => 15,
@@ -78,20 +87,29 @@ class TipoCambioSunatService
             'verify_host' => false,
         ]);
 
-        $html = $response->getContent(false);
+        $html    = $response->getContent(false);
+        $headers = $response->getHeaders(false);
 
-        // Varios patrones posibles donde SUNAT puede incrustar el token
+        // Construir cabecera Cookie a partir de los Set-Cookie recibidos
+        $cookieParts = [];
+        foreach ($headers['set-cookie'] ?? [] as $setCookie) {
+            // Tomar solo "nombre=valor" (primera parte antes del ";")
+            $cookieParts[] = explode(';', $setCookie)[0];
+        }
+        $cookieHeader = implode('; ', $cookieParts);
+
+        // Patrones donde SUNAT puede incrustar el token
         $patterns = [
-            '/["\']token["\']\s*:\s*["\']([a-z0-9]{20,})["\']/',         // token: "abc..."
-            '/var\s+token\s*=\s*["\']([a-z0-9]{20,})["\']/',             // var token = "abc..."
-            '/name=["\']token["\']\s+value=["\']([a-z0-9]{20,})["\']/',  // <input name="token" value="abc...">
-            '/value=["\']([a-z0-9]{20,})["\']\s+name=["\']token["\']/',  // <input value="abc..." name="token">
-            '/token["\']?\s*[=:]\s*["\']([a-z0-9]{30,})["\']/',         // genérico
+            '/["\']token["\']\s*:\s*["\']([a-z0-9]{20,})["\']/',
+            '/var\s+token\s*=\s*["\']([a-z0-9]{20,})["\']/',
+            '/name=["\']token["\']\s+value=["\']([a-z0-9]{20,})["\']/',
+            '/value=["\']([a-z0-9]{20,})["\']\s+name=["\']token["\']/',
+            '/token["\']?\s*[=:]\s*["\']([a-z0-9]{30,})["\']/',
         ];
 
         foreach ($patterns as $pattern) {
             if (preg_match($pattern, $html, $m)) {
-                return $m[1];
+                return [$m[1], $cookieHeader];
             }
         }
 
@@ -183,30 +201,20 @@ class TipoCambioSunatService
      */
     public function debugInfo(): array
     {
-        $response = $this->httpClient->request('GET', $this->baseUrl, [
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept'     => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            ],
-            'timeout'     => 15,
-            'verify_peer' => false,
-            'verify_host' => false,
-        ]);
-
-        $html  = $response->getContent(false);
-        $token = null;
-        $error = null;
+        $token     = null;
+        $cookies   = null;
+        $error     = null;
+        $firstItem = null;
 
         try {
-            $token = $this->extraerToken();
+            [$token, $cookies] = $this->extraerTokenYCookies();
         } catch (\Throwable $e) {
             $error = $e->getMessage();
         }
 
-        $firstItem = null;
-        if ($token) {
+        if ($token && $cookies) {
             try {
-                $items     = $this->listar((int) date('Y'), (int) date('n'), $token);
+                $items     = $this->listar((int) date('Y'), (int) date('n'), $token, $cookies);
                 $firstItem = $items[0] ?? null;
             } catch (\Throwable $e) {
                 $error = $e->getMessage();
@@ -214,23 +222,12 @@ class TipoCambioSunatService
         }
 
         return [
-            'token_extraido'  => $token,
-            'token_error'     => $error,
-            'primer_item'     => $firstItem,
-            // Fragmentos del HTML donde debería estar el token
-            'html_snippet_1'  => substr($html, 0, 1000),
-            'html_snippet_2'  => $this->buscarContextoToken($html),
+            'token_extraido' => $token,
+            'cookies_header' => $cookies,
+            'token_error'    => $error,
+            'primer_item'    => $firstItem,
         ];
     }
 
-    private function buscarContextoToken(string $html): string
-    {
-        foreach (['token', 'Token', 'TOKEN'] as $word) {
-            $pos = strpos($html, $word);
-            if ($pos !== false) {
-                return substr($html, max(0, $pos - 50), 200);
-            }
-        }
-        return '(no se encontró la palabra "token" en el HTML)';
-    }
+
 }

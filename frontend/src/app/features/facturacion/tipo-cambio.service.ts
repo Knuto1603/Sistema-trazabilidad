@@ -31,4 +31,8 @@ export class TipoCambioService {
   scrapeFromSunat(): Observable<ApiResponse<any>> {
     return this.http.get<ApiResponse<any>>(`${this.base}/scrape-sunat`);
   }
+
+  importarAnio(): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.base}/importar-anio`, {});
+  }
 }

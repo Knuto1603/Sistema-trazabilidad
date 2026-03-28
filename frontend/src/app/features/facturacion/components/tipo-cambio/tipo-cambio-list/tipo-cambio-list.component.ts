@@ -23,6 +23,7 @@ export class TipoCambioListComponent implements OnInit {
   loading = signal(false);
   saving = signal(false);
   scraping = signal(false);
+  importing = signal(false);
   currentPage = signal(0);
 
   showModal = signal(false);
@@ -106,10 +107,28 @@ export class TipoCambioListComponent implements OnInit {
     });
   }
 
+  importarAnio(): void {
+    this.importing.set(true);
+    this.tipoCambioService.importarAnio().subscribe({
+      next: res => {
+        if (res.status) {
+          const d = res.item as any;
+          this.notification.success(`Importación completada: ${d?.importados ?? 0} registros guardados`);
+          this.load();
+        } else {
+          this.notification.error('No se pudo importar los tipos de cambio');
+        }
+        this.importing.set(false);
+      },
+      error: () => { this.notification.error('Error al importar desde SUNAT'); this.importing.set(false); }
+    });
+  }
+
   fieldInvalid(field: string): boolean {
     const c = this.form.get(field);
     return !!(c?.invalid && c?.touched);
   }
 
   skeletonRows = [1, 2, 3, 4, 5];
+  currentYear = new Date().getFullYear();
 }

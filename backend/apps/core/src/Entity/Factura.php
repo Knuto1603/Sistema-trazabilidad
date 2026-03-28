@@ -43,8 +43,8 @@ class Factura
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $detalle = null;
 
-    #[ORM\Column(type: 'smallint', nullable: true)]
-    private ?int $kgCaja = null;
+    #[ORM\Column(type: 'decimal', precision: 8, scale: 3, nullable: true)]
+    private ?float $kgCaja = null;
 
     #[ORM\Column(length: 5, nullable: true)]
     private ?string $unidadMedida = null;
@@ -115,8 +115,8 @@ class Factura
     public function getDetalle(): ?string { return $this->detalle; }
     public function setDetalle(?string $v): static { $this->detalle = $v; return $this; }
 
-    public function getKgCaja(): ?int { return $this->kgCaja; }
-    public function setKgCaja(?int $v): static { $this->kgCaja = $v; return $this; }
+    public function getKgCaja(): ?float { return $this->kgCaja !== null ? (float) $this->kgCaja : null; }
+    public function setKgCaja(?float $v): static { $this->kgCaja = $v; return $this; }
 
     public function getUnidadMedida(): ?string { return $this->unidadMedida; }
     public function setUnidadMedida(?string $v): static { $this->unidadMedida = $v; return $this; }

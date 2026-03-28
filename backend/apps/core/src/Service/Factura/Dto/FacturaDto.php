@@ -29,7 +29,7 @@ final class FacturaDto implements DtoRequestInterface
 
         public string $moneda = 'USD',
         public ?string $detalle = null,
-        public ?int $kgCaja = null,
+        public ?float $kgCaja = null,
         public ?string $unidadMedida = null,
         public ?int $cajas = null,
         public ?float $cantidad = null,

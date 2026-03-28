@@ -102,7 +102,20 @@
         <form [formGroup]="form" (ngSubmit)="saveDespacho()" class="p-6 space-y-4">
 
           <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Cliente *</label>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide">Cliente *</label>
+              <button type="button" (click)="toggleNewClientePanel()"
+                class="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-lg transition-colors"
+                [class]="showNewClientePanel() ? 'text-slate-500 bg-slate-100 hover:bg-slate-200' : 'text-blue-600 hover:bg-blue-50'">
+                @if (showNewClientePanel()) {
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  Cancelar
+                } @else {
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  Nuevo cliente
+                }
+              </button>
+            </div>
             <select formControlName="clienteId"
               class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               [class.border-red-400]="fieldInvalid('clienteId')" [class.border-slate-200]="!fieldInvalid('clienteId')">
@@ -112,6 +125,32 @@
               }
             </select>
             @if (fieldInvalid('clienteId')) { <p class="text-xs text-red-500 mt-1">Campo requerido</p> }
+
+            @if (showNewClientePanel()) {
+              <div class="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-xl space-y-2">
+                <p class="text-xs font-bold text-blue-700 uppercase tracking-wide">Nuevo Cliente</p>
+                <div class="flex gap-2">
+                  <input type="text" placeholder="RUC (11 dígitos)" maxlength="11"
+                    [value]="newClienteRuc()"
+                    (input)="newClienteRuc.set($any($event.target).value)"
+                    class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <button type="button" (click)="buscarRucCliente()" [disabled]="rucLoadingCliente()"
+                    class="px-3 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg transition-colors whitespace-nowrap">
+                    {{ rucLoadingCliente() ? '...' : 'Buscar' }}
+                  </button>
+                </div>
+                <input type="text" placeholder="Razón social *"
+                  [value]="newClienteRazonSocial()"
+                  (input)="newClienteRazonSocial.set($any($event.target).value)"
+                  class="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="flex justify-end">
+                  <button type="button" (click)="saveNewCliente()" [disabled]="savingCliente()"
+                    class="px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-60 rounded-lg transition-colors">
+                    {{ savingCliente() ? 'Guardando...' : 'Guardar cliente' }}
+                  </button>
+                </div>
+              </div>
+            }
           </div>
 
           <div>
@@ -141,8 +180,9 @@
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Contenedor</label>
-            <input formControlName="contenedor" type="text" placeholder="Ej: MSCU1234567"
+            <label class="block text-xs font-semibold text-slate-500 mb-1">Contenedor <span class="text-slate-400 font-normal normal-case">(Ej: MSCU 123456-7)</span></label>
+            <input formControlName="contenedor" type="text" placeholder="MSCU 123456-7" maxlength="13"
+              (input)="formatContenedor($event)"
               class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
           </div>
 

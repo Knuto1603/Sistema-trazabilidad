@@ -2,7 +2,7 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DespachoService, DespachoCreateDto } from '../../../despacho.service';
-import { ClienteService } from '../../../cliente.service';
+import { ClienteService, ClienteCreateDto } from '../../../cliente.service';
 import { FrutaService } from '@features/settings/services/fruta.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
@@ -43,6 +43,10 @@ export class DespachosListComponent implements OnInit {
   deletingId = signal<string | null>(null);
   deletingLabel = signal<string | null>(null);
 
+  showNewClientePanel = signal(false);
+  savingCliente = signal(false);
+  rucLoadingCliente = signal(false);
+
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
 
   form = this.fb.group({
@@ -52,6 +56,9 @@ export class DespachosListComponent implements OnInit {
     contenedor: [''],
     observaciones: [''],
   });
+
+  newClienteRuc = signal('');
+  newClienteRazonSocial = signal('');
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -105,12 +112,82 @@ export class DespachosListComponent implements OnInit {
 
   openCreateModal(): void {
     this.form.reset();
+    this.newClienteRuc.set('');
+    this.newClienteRazonSocial.set('');
+    this.showNewClientePanel.set(false);
     this.showModal.set(true);
   }
 
   closeModal(): void {
     this.showModal.set(false);
     this.form.reset();
+    this.newClienteRuc.set('');
+    this.newClienteRazonSocial.set('');
+    this.showNewClientePanel.set(false);
+  }
+
+  toggleNewClientePanel(): void {
+    this.showNewClientePanel.update(v => !v);
+    if (!this.showNewClientePanel()) {
+      this.newClienteRuc.set('');
+      this.newClienteRazonSocial.set('');
+    }
+  }
+
+  buscarRucCliente(): void {
+    const ruc = this.newClienteRuc().trim();
+    if (ruc.length !== 11) { this.notification.error('Ingrese un RUC de 11 dígitos'); return; }
+    this.rucLoadingCliente.set(true);
+    this.clienteService.searchByRuc(ruc).subscribe({
+      next: res => {
+        if (res.status && res.item) {
+          const d = res.item as any;
+          this.newClienteRazonSocial.set(d.razonSocial ?? d.nombre ?? '');
+          this.notification.success('Datos cargados desde SUNAT');
+        } else {
+          this.notification.error('RUC no encontrado');
+        }
+        this.rucLoadingCliente.set(false);
+      },
+      error: () => { this.notification.error('Error al consultar el RUC'); this.rucLoadingCliente.set(false); }
+    });
+  }
+
+  saveNewCliente(): void {
+    const ruc = this.newClienteRuc().trim();
+    const razonSocial = this.newClienteRazonSocial().trim();
+    if (!/^\d{11}$/.test(ruc)) { this.notification.error('El RUC debe tener 11 dígitos'); return; }
+    if (!razonSocial) { this.notification.error('La razón social es obligatoria'); return; }
+    this.savingCliente.set(true);
+    const dto: ClienteCreateDto = { ruc, razonSocial };
+    this.clienteService.create(dto).subscribe({
+      next: res => {
+        if (res.status && res.item) {
+          this.notification.success('Cliente creado correctamente');
+          this.loadClientes();
+          this.form.patchValue({ clienteId: res.item.id });
+          this.newClienteRuc.set('');
+          this.newClienteRazonSocial.set('');
+          this.showNewClientePanel.set(false);
+        }
+        this.savingCliente.set(false);
+      },
+      error: () => this.savingCliente.set(false)
+    });
+  }
+
+  formatContenedor(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const letterPart = raw.substring(0, 4);
+    const digitPart = raw.substring(4);
+    const digits6 = digitPart.substring(0, 6);
+    const digit1 = digitPart.substring(6, 7);
+    let formatted = letterPart;
+    if (digits6) formatted += ' ' + digits6;
+    if (digit1) formatted += '-' + digit1;
+    input.value = formatted;
+    this.form.get('contenedor')?.setValue(formatted, { emitEvent: false });
   }
 
   saveDespacho(): void {

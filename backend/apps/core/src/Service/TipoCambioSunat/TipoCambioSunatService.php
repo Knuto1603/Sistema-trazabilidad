@@ -12,7 +12,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  */
 class TipoCambioSunatService
 {
-    private string $apiBase = 'https://api.apis.net.pe/v2/tipo-cambio';
+    private string $apiBase = 'https://api.apis.net.pe/v1/tipo-cambio-sunat';
 
     public function __construct(
         private HttpClientInterface $httpClient,
@@ -49,7 +49,7 @@ class TipoCambioSunatService
                 break;
             }
             $responses[$fecha] = $this->httpClient->request('GET', $this->apiBase, [
-                'query'   => ['moneda' => 'USD', 'fecha' => $fecha],
+                'query'   => ['fecha' => $fecha],
                 'headers' => [
                     'Accept'     => 'application/json',
                     'User-Agent' => 'Mozilla/5.0 (compatible; InterFruits/1.0)',
@@ -105,7 +105,7 @@ class TipoCambioSunatService
 
         return [
             'fuente'      => 'apis.net.pe v2',
-            'url'         => $this->apiBase . '?moneda=USD&fecha=' . date('Y-m-d'),
+            'url'         => $this->apiBase . '?fecha=' . date('Y-m-d'),
             'fecha_hoy'   => date('Y-m-d'),
             'primer_item' => $firstItem,
             'error'       => $error,
@@ -115,7 +115,7 @@ class TipoCambioSunatService
     private function fetchDia(string $fecha): array
     {
         $response = $this->httpClient->request('GET', $this->apiBase, [
-            'query'   => ['moneda' => 'USD', 'fecha' => $fecha],
+            'query'   => ['fecha' => $fecha],
             'headers' => [
                 'Accept'     => 'application/json',
                 'User-Agent' => 'Mozilla/5.0 (compatible; InterFruits/1.0)',

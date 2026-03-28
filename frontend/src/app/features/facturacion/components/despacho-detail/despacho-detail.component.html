@@ -3,6 +3,10 @@
     <app-page-header
       [title]="'Despacho N° ' + (despacho()?.numeroPlanta ?? despacho()?.numeroCliente)"
       subtitle="Detalle del despacho y sus documentos">
+      <button (click)="goBack()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        Volver
+      </button>
     </app-page-header>
 
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
@@ -60,8 +64,8 @@
             <th class="px-3 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">N° Doc</th>
             <th class="px-3 py-2 text-left font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
             <th class="px-3 py-2 text-right font-bold text-slate-500 uppercase tracking-wider">KG/Caja</th>
-            <th class="px-3 py-2 text-right font-bold text-slate-500 uppercase tracking-wider">TN</th>
             <th class="px-3 py-2 text-right font-bold text-slate-500 uppercase tracking-wider">Cajas</th>
+            <th class="px-3 py-2 text-right font-bold text-slate-500 uppercase tracking-wider">Cantidad</th>
             <th class="px-3 py-2 text-right font-bold text-slate-500 uppercase tracking-wider">V.U.</th>
             <th class="px-3 py-2 text-right font-bold text-slate-500 uppercase tracking-wider">Importe</th>
             <th class="px-3 py-2 text-right font-bold text-slate-500 uppercase tracking-wider">IGV</th>
@@ -89,8 +93,13 @@
                 <td class="px-3 py-2 font-mono font-semibold text-slate-700">{{ f.numeroDocumento }}</td>
                 <td class="px-3 py-2 text-slate-600">{{ f.fechaEmision }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.kgCaja ?? '-' }}</td>
-                <td class="px-3 py-2 text-right text-slate-600">{{ f.cantidad?.toFixed(4) ?? '-' }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.cajas ?? '-' }}</td>
+                <td class="px-3 py-2 text-right text-slate-600">
+                  @if (f.cantidad != null) {
+                    {{ f.cantidad.toFixed(4) }}
+                    @if (f.unidadMedida) { <span class="text-slate-400 ml-0.5">{{ f.unidadMedida }}</span> }
+                  } @else { - }
+                </td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.valorUnitario?.toFixed(4) ?? '-' }}</td>
                 <td class="px-3 py-2 text-right font-semibold text-slate-700">{{ f.importe?.toFixed(2) ?? '-' }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.igv?.toFixed(2) ?? '-' }}</td>

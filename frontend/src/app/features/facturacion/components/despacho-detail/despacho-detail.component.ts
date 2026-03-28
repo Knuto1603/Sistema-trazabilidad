@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { DecimalPipe } from '@angular/common';
+import { DecimalPipe, Location } from '@angular/common';
 import { DespachoService } from '../../despacho.service';
 import { FacturaService, FacturaCreateDto } from '../../factura.service';
 import { ArchivoDespachoService } from '../../archivo-despacho.service';
@@ -41,6 +41,7 @@ interface PendingGuiaItem {
 })
 export class DespachoDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private location = inject(Location);
   private despachoService = inject(DespachoService);
   private facturaService = inject(FacturaService);
   private archivoService = inject(ArchivoDespachoService);
@@ -121,6 +122,10 @@ export class DespachoDetailComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     this.despachoId.set(id);
     this.loadAll();
+  }
+
+  goBack(): void {
+    this.location.back();
   }
 
   loadAll(): void {

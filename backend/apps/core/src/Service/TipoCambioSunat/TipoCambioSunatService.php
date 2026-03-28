@@ -221,18 +221,13 @@ class TipoCambioSunatService
 
             $html = $response->getContent(false);
 
-            // Mostrar fragmentos donde aparezca "token" en el HTML
-            $pos = 0;
-            $found = 0;
-            while ($found < 5 && ($pos = stripos($html, 'token', $pos)) !== false) {
-                $htmlSnippets[] = substr($html, max(0, $pos - 80), 200);
-                $pos += 5;
-                $found++;
-            }
-
-            if (empty($htmlSnippets)) {
-                $htmlSnippets[] = substr($html, 0, 500);
-                $htmlSnippets[] = substr($html, 500, 500);
+            // Extraer todos los bloques <script> inline para buscar el token
+            preg_match_all('/<script[^>]*>(.*?)<\/script>/si', $html, $scripts);
+            foreach ($scripts[1] as $i => $script) {
+                $script = trim($script);
+                if (strlen($script) > 10) {
+                    $htmlSnippets["script_{$i}"] = substr($script, 0, 800);
+                }
             }
 
             [$token, $cookies] = $this->extraerTokenYCookies();

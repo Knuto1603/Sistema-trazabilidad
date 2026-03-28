@@ -232,6 +232,26 @@ class XmlDocumentoParserService
             $contenedor = trim($m[1]);
         }
 
+        // Referencia a la factura que origina esta guía
+        $facturaReferencia = null;
+        $docRefs = $xml->xpath('//cac:AdditionalDocumentReference');
+        foreach ($docRefs as $ref) {
+            $ref->registerXPathNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+            $typeNodes = $ref->xpath('cbc:DocumentTypeCode');
+            $typeCode = !empty($typeNodes) ? (string) $typeNodes[0] : '';
+            if ($typeCode === '01' || $typeCode === '03') {
+                $idNodes = $ref->xpath('cbc:ID');
+                $refId = !empty($idNodes) ? trim((string) $idNodes[0]) : '';
+                if ($refId !== '') {
+                    $facturaReferencia = $refId;
+                    break;
+                }
+            }
+        }
+        if (!$facturaReferencia) {
+            $facturaReferencia = $this->xpathValue($xml, '//cac:OrderReference/cbc:ID');
+        }
+
         return [
             'tipoDocumento' => '09',
             'serie' => $serie,
@@ -247,6 +267,7 @@ class XmlDocumentoParserService
             'kgCaja' => $kgCaja,
             'tipoOperacion' => $tipoOperacion,
             'contenedor' => $contenedor,
+            'facturaReferencia' => $facturaReferencia,
         ];
     }
 

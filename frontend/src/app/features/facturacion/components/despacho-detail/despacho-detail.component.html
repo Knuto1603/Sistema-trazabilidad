@@ -178,6 +178,191 @@
     </div>
   </div>
 
+  <!-- Modal de subida múltiple + auto-procesado -->
+  @if (showUploadArchivoModal()) {
+    <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <div>
+            <h3 class="font-bold text-slate-800">Subir Archivos del Despacho</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Los XMLs se parsean automáticamente para registrar las facturas.</p>
+          </div>
+          <button (click)="closeUploadMultipleModal()" [disabled]="processingAll()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="p-6 space-y-5">
+          <!-- Zona de selección -->
+          <label class="block border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
+            <input type="file" multiple class="sr-only" (change)="onMultipleFilesSelected($event)">
+            <svg class="w-8 h-8 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            <p class="text-xs font-semibold text-slate-500">Arrastra o <span class="text-blue-600">selecciona todos los archivos del despacho</span></p>
+            <p class="text-xs text-slate-400 mt-0.5">XMLs de factura y guía se detectan y procesan automáticamente</p>
+          </label>
+
+          <!-- Lista de archivos -->
+          @if (pendingFiles().length > 0) {
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">{{ pendingFiles().length }} archivo(s)</p>
+                @if (parsingXmls()) {
+                  <span class="text-xs text-blue-500 flex items-center gap-1">
+                    <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Leyendo XMLs...
+                  </span>
+                }
+              </div>
+              <div class="space-y-2">
+                @for (item of pendingFiles(); track item.file.name; let i = $index) {
+                  <div class="flex items-center gap-3 p-2.5 rounded-xl border border-slate-100 bg-slate-50">
+                    <div class="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
+                      [class]="item.tipoArchivo === 'FACTURA_XML' || item.tipoArchivo === 'GUIA_XML' ? 'bg-emerald-100 text-emerald-700' :
+                               item.tipoArchivo === 'CDR' ? 'bg-purple-100 text-purple-700' :
+                               item.tipoArchivo === 'PACKING_LIST' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs font-semibold text-slate-700 truncate">{{ item.file.name }}</p>
+                      <p class="text-xs text-slate-400">{{ formatBytes(item.file.size) }}</p>
+                    </div>
+                    <select [value]="item.tipoArchivo" (change)="updateTipoArchivoPending(i, $any($event.target).value)"
+                      [disabled]="item.uploading || processingAll()"
+                      class="text-xs px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white shrink-0">
+                      @for (t of TIPOS_ARCHIVO; track t) { <option [value]="t">{{ t }}</option> }
+                    </select>
+                    @if (item.uploading) {
+                      <svg class="w-4 h-4 animate-spin text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    } @else {
+                      <button (click)="removePendingFile(i)" [disabled]="processingAll()"
+                        class="p-1 text-slate-300 hover:text-red-500 rounded shrink-0 disabled:opacity-40">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Facturas detectadas de XMLs -->
+          @if (pendingFacturas().length > 0) {
+            <div>
+              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
+                {{ pendingFacturas().length }} factura(s) detectada(s) — revisa y completa
+              </p>
+              <div class="space-y-3">
+                @for (f of pendingFacturas(); track f.file.name; let i = $index) {
+                  <div class="border rounded-xl p-3 space-y-2"
+                    [class]="f.status === 'done' ? 'border-emerald-200 bg-emerald-50' :
+                             f.status === 'error' ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50/40'">
+
+                    <!-- Cabecera: número, fecha, total -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-bold">FAC</span>
+                        <span class="text-xs font-mono font-bold text-slate-800">{{ f.parsed.numeroDocumento ?? '—' }}</span>
+                        <span class="text-xs text-slate-400">{{ f.parsed.fechaEmision }}</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        @if (f.parsed.total) {
+                          <span class="text-xs font-bold text-slate-700">{{ f.parsed.total | number:'1.2-2' }} {{ f.parsed.moneda }}</span>
+                        }
+                        @if (f.status === 'done') {
+                          <span class="text-xs text-emerald-600 font-bold">✓ Registrada</span>
+                        } @else if (f.status === 'error') {
+                          <span class="text-xs text-red-500 font-bold">✗ Error</span>
+                        } @else if (f.status === 'saving') {
+                          <svg class="w-3.5 h-3.5 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        }
+                      </div>
+                    </div>
+
+                    <!-- Detalle -->
+                    @if (f.parsed.detalle) {
+                      <p class="text-xs text-slate-500 truncate" [title]="f.parsed.detalle">{{ f.parsed.detalle }}</p>
+                    }
+
+                    <!-- Campos editables -->
+                    <div class="grid grid-cols-2 gap-2">
+                      <div>
+                        <label class="text-xs text-slate-500 font-semibold">Tipo Servicio</label>
+                        <select [value]="f.tipoServicio"
+                          (change)="updatePendingFacturaTipoServicio(i, $any($event.target).value)"
+                          [disabled]="f.status === 'done' || f.status === 'saving' || processingAll()"
+                          class="w-full mt-0.5 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option value="">-</option>
+                          @for (ts of TIPOS_SERVICIO; track ts) { <option [value]="ts">{{ ts }}</option> }
+                        </select>
+                      </div>
+                      <div>
+                        <label class="text-xs text-slate-500 font-semibold">Destino (País) *</label>
+                        <input type="text" [value]="f.destino"
+                          (input)="updatePendingFacturaDestino(i, $any($event.target).value)"
+                          [disabled]="f.status === 'done' || f.status === 'saving' || processingAll()"
+                          placeholder="CANADA, USA, REINO UNIDO..."
+                          class="w-full mt-0.5 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      </div>
+                    </div>
+
+                    <!-- Guía vinculada -->
+                    <div>
+                      <label class="text-xs text-slate-500 font-semibold">Guía de Remisión vinculada</label>
+                      @if (pendingGuias().length > 0) {
+                        <select [value]="f.linkedGuiaIdx ?? ''"
+                          (change)="updatePendingFacturaGuia(i, $any($event.target).value)"
+                          [disabled]="f.status === 'done' || f.status === 'saving' || processingAll()"
+                          class="w-full mt-0.5 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option value="">Sin guía</option>
+                          @for (g of pendingGuias(); track g.file.name; let gi = $index) {
+                            <option [value]="gi">
+                              {{ g.parsed.numeroDocumento ?? g.file.name }}
+                              @if (g.parsed.cajas) { — {{ g.parsed.cajas }} cajas }
+                            </option>
+                          }
+                        </select>
+                      } @else {
+                        <p class="text-xs text-slate-400 mt-0.5 italic">No se detectaron guías XML</p>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (pendingFiles().length === 0 && pendingFacturas().length === 0) {
+            <p class="text-xs text-center text-slate-400 py-4">Selecciona los archivos del despacho para continuar</p>
+          }
+
+          <!-- Botones -->
+          @if (pendingFiles().length > 0 || pendingFacturas().length > 0) {
+            <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">
+              <button type="button" (click)="closeUploadMultipleModal()" [disabled]="processingAll()"
+                class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50">
+                Cancelar
+              </button>
+              <button type="button" (click)="processAll()" [disabled]="processingAll() || parsingXmls()"
+                class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors flex items-center gap-2">
+                @if (processingAll()) {
+                  <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  Procesando...
+                } @else if (parsingXmls()) {
+                  Leyendo XMLs...
+                } @else if (pendingFacturas().length > 0) {
+                  Registrar {{ pendingFacturas().length }} factura(s) y subir {{ pendingFiles().length }} archivo(s)
+                } @else {
+                  Subir {{ pendingFiles().length }} archivo(s)
+                }
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal factura manual -->
   @if (showFacturaModal()) {
     <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
@@ -325,86 +510,6 @@
             </button>
           </div>
         </form>
-      </div>
-    </div>
-  }
-
-  @if (showUploadArchivoModal()) {
-    <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white z-10">
-          <div>
-            <h3 class="font-bold text-slate-800">Subir Archivos del Despacho</h3>
-            <p class="text-xs text-slate-400 mt-0.5">El tipo se detecta automáticamente. Puedes modificarlo antes de subir.</p>
-          </div>
-          <button (click)="closeUploadMultipleModal()" [disabled]="uploadingMultiple()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
-        </div>
-        <div class="p-6 space-y-4">
-          <!-- Zona de drop/agregar más archivos -->
-          <label class="block border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-            <input type="file" multiple class="sr-only" (change)="onMultipleFilesSelected($event)">
-            <svg class="w-8 h-8 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-            <p class="text-xs font-semibold text-slate-500">Arrastra archivos aquí o <span class="text-blue-600">haz clic para seleccionar</span></p>
-            <p class="text-xs text-slate-400 mt-1">Selecciona todos los archivos del despacho a la vez</p>
-          </label>
-
-          @if (pendingFiles().length > 0) {
-            <div class="space-y-2">
-              <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">{{ pendingFiles().length }} archivo(s) a subir</p>
-              @for (item of pendingFiles(); track item.file.name; let i = $index) {
-                <div class="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
-                  <!-- Icono por tipo -->
-                  <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-                    [class]="item.tipoArchivo === 'FACTURA_XML' || item.tipoArchivo === 'GUIA_XML' ? 'bg-emerald-100 text-emerald-700' :
-                             item.tipoArchivo === 'CDR' ? 'bg-purple-100 text-purple-700' :
-                             item.tipoArchivo === 'PACKING_LIST' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                  </div>
-                  <!-- Nombre + tamaño -->
-                  <div class="flex-1 min-w-0">
-                    <p class="text-xs font-semibold text-slate-700 truncate">{{ item.file.name }}</p>
-                    <p class="text-xs text-slate-400">{{ formatBytes(item.file.size) }}</p>
-                  </div>
-                  <!-- Selector de tipo -->
-                  <select [value]="item.tipoArchivo" (change)="updateTipoArchivoPending(i, $any($event.target).value)"
-                    [disabled]="item.uploading || uploadingMultiple()"
-                    class="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shrink-0">
-                    @for (t of TIPOS_ARCHIVO; track t) { <option [value]="t">{{ t }}</option> }
-                  </select>
-                  <!-- Estado / Eliminar -->
-                  @if (item.uploading) {
-                    <svg class="w-4 h-4 animate-spin text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                  } @else {
-                    <button (click)="removePendingFile(i)" [disabled]="uploadingMultiple()"
-                      class="p-1 text-slate-300 hover:text-red-500 rounded shrink-0 disabled:opacity-40">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-
-            <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">
-              <button type="button" (click)="closeUploadMultipleModal()" [disabled]="uploadingMultiple()"
-                class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50">
-                Cancelar
-              </button>
-              <button type="button" (click)="uploadAllPendingFiles()" [disabled]="uploadingMultiple()"
-                class="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors flex items-center gap-2">
-                @if (uploadingMultiple()) {
-                  <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                  Subiendo...
-                } @else {
-                  Subir {{ pendingFiles().length }} archivo(s)
-                }
-              </button>
-            </div>
-          } @else {
-            <p class="text-xs text-center text-slate-400 py-4">Selecciona los archivos del despacho para continuar</p>
-          }
-        </div>
       </div>
     </div>
   }

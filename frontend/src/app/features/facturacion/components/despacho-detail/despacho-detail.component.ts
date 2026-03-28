@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
 import { DespachoService } from '../../despacho.service';
 import { FacturaService, FacturaCreateDto } from '../../factura.service';
 import { ArchivoDespachoService } from '../../archivo-despacho.service';
@@ -10,10 +11,30 @@ import { Despacho, Factura, ArchivoDespacho } from '@core/models/core.model';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 
+interface PendingFile {
+  file: File;
+  tipoArchivo: string;
+  uploading: boolean;
+}
+
+interface PendingFacturaItem {
+  file: File;
+  parsed: any;
+  destino: string;
+  tipoServicio: string;
+  linkedGuiaIdx: number | null;
+  status: 'pending' | 'saving' | 'done' | 'error';
+}
+
+interface PendingGuiaItem {
+  file: File;
+  parsed: any; // incluye facturaReferencia
+}
+
 @Component({
   selector: 'app-despacho-detail',
   standalone: true,
-  imports: [ReactiveFormsModule, ConfirmDialogComponent, PageHeaderComponent],
+  imports: [ReactiveFormsModule, DecimalPipe, ConfirmDialogComponent, PageHeaderComponent],
   templateUrl: './despacho-detail.component.html'
 })
 export class DespachoDetailComponent implements OnInit {
@@ -43,9 +64,13 @@ export class DespachoDetailComponent implements OnInit {
   showDeleteArchivoConfirm = signal(false);
   deletingArchivoId = signal<string | null>(null);
   showUploadArchivoModal = signal(false);
-  // Subida múltiple de archivos
-  pendingFiles = signal<{ file: File; tipoArchivo: string; uploading: boolean }[]>([]);
-  uploadingMultiple = signal(false);
+
+  // Subida múltiple + auto-procesado de XMLs
+  pendingFiles = signal<PendingFile[]>([]);
+  pendingFacturas = signal<PendingFacturaItem[]>([]);
+  pendingGuias = signal<PendingGuiaItem[]>([]);
+  parsingXmls = signal(false);
+  processingAll = signal(false);
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
 
@@ -166,14 +191,9 @@ export class DespachoDetailComponent implements OnInit {
           const isGuia = d.tipoDocumento === '09';
 
           if (isGuia) {
-            // XML de guía: solo completa/confirma datos que faltan (no sobrescribe factura)
             const current = this.facturaForm.value;
             const patch: any = {};
-
-            // Número de guía: prioridad al de la guía
             if (d.numeroDocumento) patch['numeroGuia'] = d.numeroDocumento;
-
-            // Completar si faltan
             if (!current['cajas'] && d.cajas) patch['cajas'] = d.cajas;
             if (!current['kgCaja'] && d.kgCaja) patch['kgCaja'] = d.kgCaja;
             if (!current['cantidad'] && d.cantidad) patch['cantidad'] = d.cantidad;
@@ -181,13 +201,10 @@ export class DespachoDetailComponent implements OnInit {
             if (!current['tipoOperacion'] && d.tipoOperacion) patch['tipoOperacion'] = d.tipoOperacion;
             if (!current['contenedor'] && d.contenedor) patch['contenedor'] = d.contenedor;
             if (!current['detalle'] && d.detalle) patch['detalle'] = d.detalle;
-
             this.facturaForm.patchValue(patch);
-            // Auto-calcular cajas si tenemos datos
             this.autocalcularCajas();
-            this.notification.success('Guía XML procesada. Datos completados/confirmados.');
+            this.notification.success('Guía XML procesada. Datos completados.');
           } else {
-            // XML de factura: llena todos los campos
             this.facturaForm.patchValue({
               tipoDocumento: d.tipoDocumento ?? '01',
               serie: d.serie ?? '',
@@ -208,11 +225,10 @@ export class DespachoDetailComponent implements OnInit {
               tipoOperacion: d.tipoOperacion ?? '',
               contenedor: d.contenedor ?? '',
             });
-            // Auto-calcular cajas si no vinieron del XML
             if (!d.cajas) this.autocalcularCajas();
             this.showFacturaModal.set(true);
             this.editingFacturaId.set(null);
-            this.notification.success('Factura XML procesada. Revise y confirme los datos.');
+            this.notification.success('Factura XML procesada. Revise y confirme.');
           }
         } else {
           this.notification.error('No se pudo procesar el XML');
@@ -229,7 +245,6 @@ export class DespachoDetailComponent implements OnInit {
     const kgCaja = v['kgCaja'];
     const cantidad = v['cantidad'];
     const unidad = v['unidadMedida'];
-
     if (kgCaja && cantidad && !v['cajas']) {
       let cajas: number;
       if (unidad === 'TNE') {
@@ -326,12 +341,13 @@ export class DespachoDetailComponent implements OnInit {
     });
   }
 
-  // --- Subida múltiple ---
+  // --- Subida múltiple con auto-parseo de XMLs ---
+
   onMultipleFilesSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length) return;
 
-    const newFiles = Array.from(input.files).map(file => ({
+    const newFiles: PendingFile[] = Array.from(input.files).map(file => ({
       file,
       tipoArchivo: this.detectTipoArchivo(file.name),
       uploading: false,
@@ -340,21 +356,85 @@ export class DespachoDetailComponent implements OnInit {
     this.pendingFiles.update(existing => [...existing, ...newFiles]);
     this.showUploadArchivoModal.set(true);
     input.value = '';
+
+    // Auto-parsear XMLs
+    const xmlFacturas = newFiles.filter(f => f.tipoArchivo === 'FACTURA_XML');
+    const xmlGuias = newFiles.filter(f => f.tipoArchivo === 'GUIA_XML');
+
+    if (xmlFacturas.length > 0 || xmlGuias.length > 0) {
+      this.parsingXmls.set(true);
+      Promise.all([
+        ...xmlFacturas.map(f => this.parseFileAsync(f.file)),
+        ...xmlGuias.map(f => this.parseFileAsync(f.file)),
+      ]).then(results => {
+        const facturaResults = results.slice(0, xmlFacturas.length);
+        const guiaResults = results.slice(xmlFacturas.length);
+
+        const newGuias: PendingGuiaItem[] = guiaResults.map((parsed, i) => ({
+          file: xmlGuias[i].file,
+          parsed,
+        }));
+
+        // Índice de guías ya existentes + nuevas para el auto-link
+        const allGuias = [...this.pendingGuias(), ...newGuias];
+        const existingGuiasCount = this.pendingGuias().length;
+
+        const newFacturas: PendingFacturaItem[] = facturaResults.map((parsed, i) => {
+          const guiaIdx = allGuias.findIndex(g =>
+            g.parsed?.facturaReferencia &&
+            this.matchNumeroDocumento(g.parsed.facturaReferencia, parsed.numeroDocumento)
+          );
+          // Ajustar índice para que sea relativo al array combinado final
+          const resolvedIdx = guiaIdx >= 0 ? guiaIdx : null;
+
+          return {
+            file: xmlFacturas[i].file,
+            parsed,
+            destino: '',
+            tipoServicio: parsed.tipoServicio ?? '',
+            linkedGuiaIdx: resolvedIdx,
+            status: 'pending' as const,
+          };
+        });
+
+        this.pendingGuias.update(existing => [...existing, ...newGuias]);
+        this.pendingFacturas.update(existing => [...existing, ...newFacturas]);
+        this.parsingXmls.set(false);
+      }).catch(() => {
+        this.parsingXmls.set(false);
+        this.notification.error('Error al procesar algunos XMLs');
+      });
+    }
+  }
+
+  private parseFileAsync(file: File): Promise<any> {
+    return new Promise(resolve => {
+      this.facturaService.parseXml(file).subscribe({
+        next: res => resolve(res.status ? (res.item ?? {}) : {}),
+        error: () => resolve({}),
+      });
+    });
+  }
+
+  private matchNumeroDocumento(ref: string, num: string): boolean {
+    if (!ref || !num) return false;
+    const normalize = (s: string) => {
+      const parts = s.split('-');
+      if (parts.length >= 2) {
+        return parts[0].toUpperCase() + '-' + parseInt(parts[parts.length - 1], 10);
+      }
+      return s.toUpperCase();
+    };
+    return normalize(ref) === normalize(num);
   }
 
   private detectTipoArchivo(filename: string): string {
     const name = filename.toUpperCase();
-    // CDR: empieza con "R-" seguido de RUC
-    if (/^R-\d{11}-/.test(filename) || /^R-\d{11}-/.test(name)) return 'CDR';
-    // Factura XML: {RUC}-01-{serie}-{correlativo}.xml
+    if (/^R-\d{11}-/.test(filename)) return 'CDR';
     if (/^\d{11}-01-/.test(filename) && name.endsWith('.XML')) return 'FACTURA_XML';
-    // Guía XML: {RUC}-09-{serie}-{correlativo}.xml
     if (/^\d{11}-09-/.test(filename) && name.endsWith('.XML')) return 'GUIA_XML';
-    // Packing list PDF
-    if (name.includes('PACKING') || name.includes('PL') && name.endsWith('.PDF')) return 'PACKING_LIST';
-    // Factura PDF
+    if (name.includes('PACKING') && name.endsWith('.PDF')) return 'PACKING_LIST';
     if (name.includes('FACTURA') && name.endsWith('.PDF')) return 'FACTURA_PDF';
-    // Guía PDF
     if ((name.includes('GUIA') || name.includes('GUÍA')) && name.endsWith('.PDF')) return 'GUIA_PDF';
     return 'OTRO';
   }
@@ -371,13 +451,90 @@ export class DespachoDetailComponent implements OnInit {
     this.pendingFiles.update(files => files.filter((_, i) => i !== index));
   }
 
-  async uploadAllPendingFiles(): Promise<void> {
+  updatePendingFacturaTipoServicio(idx: number, value: string): void {
+    this.pendingFacturas.update(list => {
+      const copy = [...list];
+      copy[idx] = { ...copy[idx], tipoServicio: value };
+      return copy;
+    });
+  }
+
+  updatePendingFacturaDestino(idx: number, value: string): void {
+    this.pendingFacturas.update(list => {
+      const copy = [...list];
+      copy[idx] = { ...copy[idx], destino: value };
+      return copy;
+    });
+  }
+
+  updatePendingFacturaGuia(idx: number, value: string): void {
+    this.pendingFacturas.update(list => {
+      const copy = [...list];
+      copy[idx] = { ...copy[idx], linkedGuiaIdx: value === '' ? null : parseInt(value, 10) };
+      return copy;
+    });
+  }
+
+  async processAll(): Promise<void> {
+    if (this.processingAll()) return;
+    this.processingAll.set(true);
+
+    const despachoId = this.despachoId();
     const files = this.pendingFiles();
-    if (!files.length) return;
+    const facturas = this.pendingFacturas();
+    const guias = this.pendingGuias();
 
-    this.uploadingMultiple.set(true);
+    // 1. Crear todas las facturas desde XMLs
+    const createdFacturaIds: (string | null)[] = [];
+    for (let i = 0; i < facturas.length; i++) {
+      const f = facturas[i];
+      this.pendingFacturas.update(list => {
+        const copy = [...list];
+        copy[i] = { ...copy[i], status: 'saving' };
+        return copy;
+      });
+
+      const linkedGuia = f.linkedGuiaIdx !== null ? guias[f.linkedGuiaIdx] : null;
+      const dto: FacturaCreateDto = {
+        tipoDocumento: f.parsed.tipoDocumento ?? '01',
+        serie: f.parsed.serie ?? '',
+        correlativo: f.parsed.correlativo ?? '',
+        numeroGuia: linkedGuia?.parsed.numeroDocumento ?? f.parsed.numeroGuia ?? undefined,
+        fechaEmision: f.parsed.fechaEmision ?? '',
+        moneda: f.parsed.moneda ?? 'USD',
+        detalle: f.parsed.detalle || undefined,
+        kgCaja: f.parsed.kgCaja ?? undefined,
+        unidadMedida: f.parsed.unidadMedida || undefined,
+        cajas: linkedGuia?.parsed.cajas ?? f.parsed.cajas ?? undefined,
+        cantidad: linkedGuia?.parsed.cantidad ?? f.parsed.cantidad ?? undefined,
+        valorUnitario: f.parsed.valorUnitario ?? undefined,
+        importe: f.parsed.importe ?? undefined,
+        igv: f.parsed.igv ?? undefined,
+        total: f.parsed.total ?? undefined,
+        tipoServicio: f.tipoServicio || undefined,
+        tipoOperacion: f.parsed.tipoOperacion || undefined,
+        contenedor: f.parsed.contenedor || undefined,
+        destino: f.destino || undefined,
+        despachoId,
+      };
+
+      const facturaId = await new Promise<string | null>(resolve => {
+        this.facturaService.create(dto).subscribe({
+          next: res => resolve(res.status && res.item ? (res.item as any).id : null),
+          error: () => resolve(null),
+        });
+      });
+
+      createdFacturaIds.push(facturaId);
+      this.pendingFacturas.update(list => {
+        const copy = [...list];
+        copy[i] = { ...copy[i], status: facturaId ? 'done' : 'error' };
+        return copy;
+      });
+    }
+
+    // 2. Subir todos los archivos, enlazando XMLs a su factura
     let successCount = 0;
-
     for (let i = 0; i < files.length; i++) {
       const entry = files[i];
       this.pendingFiles.update(f => {
@@ -386,79 +543,61 @@ export class DespachoDetailComponent implements OnInit {
         return copy;
       });
 
-      try {
-        await new Promise<void>((resolve, reject) => {
-          this.archivoService.upload(this.despachoId(), entry.tipoArchivo, entry.file).subscribe({
-            next: res => { if (res.status) successCount++; resolve(); },
-            error: () => resolve(), // continuar aunque falle uno
-          });
-        });
-      } finally {
-        this.pendingFiles.update(f => {
-          const copy = [...f];
-          copy[i] = { ...copy[i], uploading: false };
-          return copy;
-        });
+      let facturaId: string | undefined;
+      if (entry.tipoArchivo === 'FACTURA_XML') {
+        const facturaIdx = facturas.findIndex(f => f.file === entry.file);
+        if (facturaIdx >= 0 && createdFacturaIds[facturaIdx]) {
+          facturaId = createdFacturaIds[facturaIdx]!;
+        }
+      } else if (entry.tipoArchivo === 'GUIA_XML') {
+        const guiaIdx = guias.findIndex(g => g.file === entry.file);
+        if (guiaIdx >= 0) {
+          const linkedFacturaIdx = facturas.findIndex(f => f.linkedGuiaIdx === guiaIdx);
+          if (linkedFacturaIdx >= 0 && createdFacturaIds[linkedFacturaIdx]) {
+            facturaId = createdFacturaIds[linkedFacturaIdx]!;
+          }
+        }
       }
+
+      await new Promise<void>(resolve => {
+        this.archivoService.upload(despachoId, entry.tipoArchivo, entry.file, facturaId).subscribe({
+          next: res => { if (res.status) successCount++; resolve(); },
+          error: () => resolve(),
+        });
+      });
+
+      this.pendingFiles.update(f => {
+        const copy = [...f];
+        copy[i] = { ...copy[i], uploading: false };
+        return copy;
+      });
     }
 
+    // 3. Finalizar
+    const createdCount = createdFacturaIds.filter(id => id !== null).length;
     this.pendingFiles.set([]);
-    this.uploadingMultiple.set(false);
+    this.pendingFacturas.set([]);
+    this.pendingGuias.set([]);
+    this.processingAll.set(false);
     this.showUploadArchivoModal.set(false);
 
-    if (successCount > 0) {
-      this.notification.success(`${successCount} archivo(s) subidos correctamente`);
-      this.archivoService.getByDespacho(this.despachoId()).subscribe(r => {
-        if (r.status) this.archivos.set(r.items);
-      });
+    if (createdCount > 0 || successCount > 0) {
+      const msg = [
+        createdCount > 0 ? `${createdCount} factura(s) registrada(s)` : '',
+        successCount > 0 ? `${successCount} archivo(s) subido(s)` : '',
+      ].filter(Boolean).join(' y ');
+      this.notification.success(msg);
+      this.loadAll();
     }
   }
 
   closeUploadMultipleModal(): void {
-    if (!this.uploadingMultiple()) {
+    if (!this.processingAll()) {
       this.pendingFiles.set([]);
+      this.pendingFacturas.set([]);
+      this.pendingGuias.set([]);
       this.showUploadArchivoModal.set(false);
     }
-  }
-
-  // --- Subida individual (legacy) ---
-  openUploadArchivoModal(): void {
-    this.archivoForm.reset({ tipoArchivo: 'OTRO' });
-    this.selectedArchivo = null;
-    this.showUploadArchivoModal.set(true);
-  }
-
-  closeUploadArchivoModal(): void {
-    this.showUploadArchivoModal.set(false);
-    this.selectedArchivo = null;
-    this.archivoForm.reset({ tipoArchivo: 'OTRO' });
-  }
-
-  onArchivoSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files?.length) {
-      this.selectedArchivo = input.files[0];
-    }
-  }
-
-  uploadArchivo(): void {
-    if (!this.selectedArchivo || this.archivoForm.invalid) return;
-    this.uploadingArchivo.set(true);
-    const tipo = this.archivoForm.get('tipoArchivo')?.value ?? 'OTRO';
-
-    this.archivoService.upload(this.despachoId(), tipo, this.selectedArchivo).subscribe({
-      next: res => {
-        if (res.status) {
-          this.notification.success('Archivo subido exitosamente');
-          this.closeUploadArchivoModal();
-          this.archivoService.getByDespacho(this.despachoId()).subscribe(r => {
-            if (r.status) this.archivos.set(r.items);
-          });
-        }
-        this.uploadingArchivo.set(false);
-      },
-      error: () => { this.notification.error('Error al subir el archivo'); this.uploadingArchivo.set(false); }
-    });
   }
 
   confirmDeleteArchivo(archivo: ArchivoDespacho): void {

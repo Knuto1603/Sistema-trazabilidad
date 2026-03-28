@@ -125,10 +125,15 @@ class TipoCambioSunatService
             'verify_host' => false,
         ]);
 
-        $data = $response->toArray(false);
+        $body = $response->getContent(false);
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+            throw new \RuntimeException("Sin cotización para {$fecha}");
+        }
 
         if (!isset($data['compra'], $data['venta'])) {
-            throw new \RuntimeException('Respuesta inesperada de apis.net.pe para ' . $fecha . ': ' . json_encode($data));
+            throw new \RuntimeException("Sin cotización para {$fecha}");
         }
 
         return [

@@ -47,18 +47,21 @@ final readonly class ImportarAnioService
             try {
                 $data = $this->sunatService->obtenerTipoCambio($fecha);
 
-                // apis.net.pe devuelve la fecha real de cotización.
-                // Si difiere de la solicitada es un feriado → guardar con la fecha solicitada
-                // para no dejar el día sin registro.
-                $fechaGuardar = $fecha;
-
                 $dto = new TipoCambioDto(
-                    fecha:  $fechaGuardar,
+                    fecha:  $fecha,
                     compra: $data['compra'],
                     venta:  $data['venta'],
                 );
                 $this->createOrUpdateService->execute($dto);
                 $importados++;
+            } catch (\RuntimeException $e) {
+                if (str_starts_with($e->getMessage(), 'Sin cotización')) {
+                    $omitidos++;
+                } else {
+                    $errores++;
+                    $detalle[] = "{$fecha}: ERROR - " . $e->getMessage();
+                    $this->logger->warning("Error importando {$fecha}: " . $e->getMessage());
+                }
             } catch (\Throwable $e) {
                 $errores++;
                 $detalle[] = "{$fecha}: ERROR - " . $e->getMessage();

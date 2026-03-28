@@ -37,14 +37,6 @@ final readonly class ImportarAnioService
 
         while ($current <= $hoy) {
             $fecha     = $current->format('Y-m-d');
-            $diaSemana = (int) $current->format('N'); // 1=lun … 7=dom
-
-            // Saltar sábado (6) y domingo (7): SUNAT no publica cotización
-            if ($diaSemana >= 6) {
-                $current = $current->modify('+1 day');
-                continue;
-            }
-
             // Omitir si ya existe
             if ($this->tipoCambioRepository->findByFecha(new \DateTime($fecha))) {
                 $omitidos++;

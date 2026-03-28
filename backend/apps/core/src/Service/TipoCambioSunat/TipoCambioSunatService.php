@@ -5,10 +5,14 @@ namespace App\apps\core\Service\TipoCambioSunat;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
+/**
+ * Obtiene tipos de cambio USD/PEN desde apis.net.pe (que a su vez consulta SUNAT).
+ * La API de SUNAT directa requiere reCAPTCHA v3 generado por un navegador real,
+ * por lo que no es accesible desde el servidor.
+ */
 class TipoCambioSunatService
 {
-    private string $baseUrl = 'https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias';
-    private string $listUrl = 'https://e-consulta.sunat.gob.pe/cl-at-ittipcam/tcS01Alias/listarTipoCambio';
+    private string $apiBase = 'https://api.apis.net.pe/v1/tipo-cambio-sunat';
 
     public function __construct(
         private HttpClientInterface $httpClient,
@@ -16,242 +20,110 @@ class TipoCambioSunatService
     ) {
     }
 
+    /**
+     * Obtiene el tipo de cambio de una fecha específica (o hoy si no se indica).
+     * Si la fecha no tiene cotización (fin de semana/feriado), devuelve el último disponible.
+     */
     public function obtenerTipoCambio(?string $fecha = null): array
     {
         $fechaConsulta = $fecha ?? date('Y-m-d');
-        $dt   = new \DateTimeImmutable($fechaConsulta);
-        $anio = (int) $dt->format('Y');
-        $mes  = (int) $dt->format('n');
-        $dia  = (int) $dt->format('j');
-
-        [$token, $cookies] = $this->extraerTokenYCookies();
-        $items = $this->listar($anio, $mes, $token, $cookies);
-
-        return $this->buscarDia($items, $dia, $fechaConsulta);
+        return $this->fetchDia($fechaConsulta);
     }
 
     /**
-     * Carga todos los tipos de cambio de un mes completo.
+     * Obtiene todos los tipos de cambio de un mes completo.
+     * Hace peticiones concurrentes para cada día del mes y filtra
+     * solo los días que tienen cotización real (excluye fines de semana y feriados).
      */
     public function obtenerMes(int $anio, int $mes): array
     {
-        [$token, $cookies] = $this->extraerTokenYCookies();
-        return $this->listar($anio, $mes, $token, $cookies);
-    }
+        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
+        $today       = date('Y-m-d');
+        $results     = [];
 
-    private function listar(int $anio, int $mes, string $token, string $cookies): array
-    {
-        $response = $this->httpClient->request('POST', $this->listUrl, [
-            'json' => ['anio' => $anio, 'mes' => $mes, 'token' => $token],
-            'headers' => [
-                'Accept'           => 'application/json, text/javascript, */*; q=0.01',
-                'Accept-Language'  => 'es-PE,es;q=0.8',
-                'Content-Type'     => 'application/json; charset=UTF-8',
-                'Cookie'           => $cookies,
-                'Origin'           => 'https://e-consulta.sunat.gob.pe',
-                'Referer'          => $this->baseUrl,
-                'User-Agent'       => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'X-Requested-With' => 'XMLHttpRequest',
-            ],
-            'timeout'     => 15,
-            'verify_peer' => false,
-            'verify_host' => false,
-        ]);
-
-        $data = $response->toArray(false);
-
-        // SUNAT devuelve {"status":false,"message":"Token no encontrado."} si el token expiró
-        if (isset($data['status']) && $data['status'] === false) {
-            throw new \RuntimeException($data['message'] ?? 'Error SUNAT');
-        }
-
-        return $data;
-    }
-
-    /**
-     * Hace GET a la página de SUNAT, extrae el token del HTML
-     * y las cookies de la respuesta para usarlas en el POST.
-     *
-     * @return array{0: string, 1: string} [token, cookieHeader]
-     */
-    private function extraerTokenYCookies(): array
-    {
-        $response = $this->httpClient->request('GET', $this->baseUrl, [
-            'headers' => [
-                'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language' => 'es-PE,es;q=0.9',
-            ],
-            'timeout'     => 15,
-            'verify_peer' => false,
-            'verify_host' => false,
-        ]);
-
-        $html    = $response->getContent(false);
-        $headers = $response->getHeaders(false);
-
-        // Construir cabecera Cookie a partir de los Set-Cookie recibidos
-        $cookieParts = [];
-        foreach ($headers['set-cookie'] ?? [] as $setCookie) {
-            // Tomar solo "nombre=valor" (primera parte antes del ";")
-            $cookieParts[] = explode(';', $setCookie)[0];
-        }
-        $cookieHeader = implode('; ', $cookieParts);
-
-        // Patrones donde SUNAT puede incrustar el token
-        $patterns = [
-            '/["\']token["\']\s*:\s*["\']([a-z0-9]{20,})["\']/',
-            '/var\s+token\s*=\s*["\']([a-z0-9]{20,})["\']/',
-            '/name=["\']token["\']\s+value=["\']([a-z0-9]{20,})["\']/',
-            '/value=["\']([a-z0-9]{20,})["\']\s+name=["\']token["\']/',
-            '/token["\']?\s*[=:]\s*["\']([a-z0-9]{30,})["\']/',
-        ];
-
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $html, $m)) {
-                return [$m[1], $cookieHeader];
-            }
-        }
-
-        throw new \RuntimeException('No se pudo extraer el token de la página de SUNAT');
-    }
-
-    private function buscarDia(array $items, int $dia, string $fecha): array
-    {
-        $compra = null;
-        $venta  = null;
-        $fechaReal = $fecha;
-
-        foreach ($items as $item) {
-            $item = (array) $item;
-            $diaCandidato = $this->leerDia($item);
-
-            if ($diaCandidato === $dia) {
-                $compra    = $this->leerCompra($item);
-                $venta     = $this->leerVenta($item);
-                $fechaReal = $this->leerFecha($item) ?? $fecha;
+        // Lanzar todas las peticiones del mes de forma concurrente
+        $responses = [];
+        for ($dia = 1; $dia <= $daysInMonth; $dia++) {
+            $fecha = sprintf('%04d-%02d-%02d', $anio, $mes, $dia);
+            if ($fecha > $today) {
                 break;
             }
+            $responses[$fecha] = $this->httpClient->request('GET', $this->apiBase, [
+                'query'   => ['fecha' => $fecha],
+                'headers' => ['Accept' => 'application/json'],
+                'timeout' => 10,
+            ]);
         }
 
-        // Días sin cotización (feriados/fines de semana): usar el último disponible
-        if ($compra === null && !empty($items)) {
-            $ultimo    = (array) end($items);
-            $compra    = $this->leerCompra($ultimo);
-            $venta     = $this->leerVenta($ultimo);
-            $fechaReal = $this->leerFecha($ultimo) ?? $fecha;
-        }
+        foreach ($responses as $fecha => $response) {
+            try {
+                $data = $response->toArray(false);
 
-        if ($compra === null) {
-            throw new \RuntimeException('No se encontró tipo de cambio para ' . $fecha);
-        }
-
-        return ['compra' => $compra, 'venta' => $venta, 'fecha' => $fechaReal];
-    }
-
-    private function leerDia(array $item): ?int
-    {
-        foreach (['dia', 'Dia', 'DIA', 'numDia', 'nroDia', 'numDiaAnio'] as $k) {
-            if (isset($item[$k])) return (int) $item[$k];
-        }
-        foreach (['fecPublicacion', 'fecha', 'Fecha'] as $k) {
-            if (!empty($item[$k])) {
-                $p = preg_split('/[\/\-]/', $item[$k]);
-                if (count($p) === 3) return (int) $p[0];
-            }
-        }
-        return null;
-    }
-
-    private function leerCompra(array $item): ?float
-    {
-        foreach (['preCompra', 'numCompra', 'compra', 'Compra', 'valorCompra'] as $k) {
-            if (isset($item[$k]) && $item[$k] !== '') {
-                return (float) str_replace(',', '.', (string) $item[$k]);
-            }
-        }
-        return null;
-    }
-
-    private function leerVenta(array $item): ?float
-    {
-        foreach (['preVenta', 'numVenta', 'venta', 'Venta', 'valorVenta'] as $k) {
-            if (isset($item[$k]) && $item[$k] !== '') {
-                return (float) str_replace(',', '.', (string) $item[$k]);
-            }
-        }
-        return null;
-    }
-
-    private function leerFecha(array $item): ?string
-    {
-        foreach (['fecPublicacion', 'fecha', 'Fecha'] as $k) {
-            if (!empty($item[$k])) {
-                if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $item[$k], $m)) {
-                    return "{$m[3]}-{$m[2]}-{$m[1]}";
+                // apis.net.pe devuelve la fecha real de cotización:
+                // si es fin de semana/feriado, devuelve el último día hábil con esa fecha.
+                // Solo guardamos si la fecha coincide (evita duplicados).
+                $fechaReal = $data['fecha'] ?? null;
+                if ($fechaReal !== $fecha) {
+                    continue; // feriado/fin de semana, ya habrá sido guardado como el día hábil
                 }
-                return $item[$k];
+
+                if (!isset($data['compra'], $data['venta'])) {
+                    continue;
+                }
+
+                $results[] = [
+                    'fecha'  => $fechaReal,
+                    'compra' => (float) $data['compra'],
+                    'venta'  => (float) $data['venta'],
+                ];
+            } catch (\Throwable $e) {
+                $this->logger->warning("No se pudo obtener tipo de cambio para {$fecha}: " . $e->getMessage());
             }
         }
-        return null;
+
+        return $results;
     }
 
     /**
-     * Debug: devuelve HTML recortado + token extraído + primer ítem de la lista.
+     * Debug: comprueba conectividad con apis.net.pe y devuelve el dato de hoy.
      */
     public function debugInfo(): array
     {
-        $token     = null;
-        $cookies   = null;
         $error     = null;
         $firstItem = null;
-        $htmlSnippets = [];
 
         try {
-            $response = $this->httpClient->request('GET', $this->baseUrl, [
-                'headers' => [
-                    'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept'          => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language' => 'es-PE,es;q=0.9',
-                ],
-                'timeout'     => 15,
-                'verify_peer' => false,
-                'verify_host' => false,
-            ]);
-
-            $html = $response->getContent(false);
-
-            // Extraer todos los bloques <script> inline para buscar el token
-            preg_match_all('/<script[^>]*>(.*?)<\/script>/si', $html, $scripts);
-            foreach ($scripts[1] as $i => $script) {
-                $script = trim($script);
-                if (strlen($script) > 10) {
-                    $htmlSnippets["script_{$i}"] = substr($script, 0, 800);
-                }
-            }
-
-            [$token, $cookies] = $this->extraerTokenYCookies();
+            $firstItem = $this->fetchDia(date('Y-m-d'));
         } catch (\Throwable $e) {
             $error = $e->getMessage();
         }
 
-        if ($token && $cookies) {
-            try {
-                $items     = $this->listar((int) date('Y'), (int) date('n'), $token, $cookies);
-                $firstItem = $items[0] ?? null;
-            } catch (\Throwable $e) {
-                $error = $e->getMessage();
-            }
-        }
-
         return [
-            'token_extraido' => $token,
-            'cookies_header' => $cookies,
-            'token_error'    => $error,
-            'primer_item'    => $firstItem,
-            'html_token_snippets' => $htmlSnippets,
+            'fuente'      => 'apis.net.pe',
+            'fecha_hoy'   => date('Y-m-d'),
+            'primer_item' => $firstItem,
+            'error'       => $error,
         ];
     }
 
+    private function fetchDia(string $fecha): array
+    {
+        $response = $this->httpClient->request('GET', $this->apiBase, [
+            'query'   => ['fecha' => $fecha],
+            'headers' => ['Accept' => 'application/json'],
+            'timeout' => 10,
+        ]);
 
+        $data = $response->toArray(false);
+
+        if (!isset($data['compra'], $data['venta'])) {
+            throw new \RuntimeException('Respuesta inesperada de apis.net.pe para ' . $fecha);
+        }
+
+        return [
+            'fecha'  => $data['fecha'] ?? $fecha,
+            'compra' => (float) $data['compra'],
+            'venta'  => (float) $data['venta'],
+        ];
+    }
 }

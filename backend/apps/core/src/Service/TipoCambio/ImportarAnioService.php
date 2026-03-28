@@ -92,23 +92,23 @@ final readonly class ImportarAnioService
 
     private function parsearFecha(array $item, int $anio, int $mes): ?string
     {
-        // Formato dd/mm/yyyy
-        foreach (['fecPublicacion', 'fecha', 'Fecha'] as $k) {
+        // Formato Y-m-d (de apis.net.pe)
+        foreach (['fecha', 'fecPublicacion', 'Fecha'] as $k) {
             if (!empty($item[$k])) {
-                if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $item[$k], $m)) {
-                    return "{$m[3]}-{$m[2]}-{$m[1]}";
-                }
                 if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $item[$k])) {
                     return $item[$k];
+                }
+                // Formato dd/mm/yyyy (legado SUNAT)
+                if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $item[$k], $m)) {
+                    return "{$m[3]}-{$m[2]}-{$m[1]}";
                 }
             }
         }
 
-        // Construir desde número de día
+        // Construir desde número de día (legado SUNAT)
         foreach (['dia', 'Dia', 'DIA', 'numDia', 'nroDia'] as $k) {
             if (isset($item[$k])) {
-                $dia = (int) $item[$k];
-                return sprintf('%04d-%02d-%02d', $anio, $mes, $dia);
+                return sprintf('%04d-%02d-%02d', $anio, $mes, (int) $item[$k]);
             }
         }
 
@@ -117,7 +117,7 @@ final readonly class ImportarAnioService
 
     private function leerCompra(array $item): ?float
     {
-        foreach (['preCompra', 'numCompra', 'compra', 'Compra', 'valorCompra'] as $k) {
+        foreach (['compra', 'preCompra', 'numCompra', 'Compra', 'valorCompra'] as $k) {
             if (isset($item[$k]) && $item[$k] !== '') {
                 return (float) str_replace(',', '.', (string) $item[$k]);
             }
@@ -127,7 +127,7 @@ final readonly class ImportarAnioService
 
     private function leerVenta(array $item): ?float
     {
-        foreach (['preVenta', 'numVenta', 'venta', 'Venta', 'valorVenta'] as $k) {
+        foreach (['venta', 'preVenta', 'numVenta', 'Venta', 'valorVenta'] as $k) {
             if (isset($item[$k]) && $item[$k] !== '') {
                 return (float) str_replace(',', '.', (string) $item[$k]);
             }

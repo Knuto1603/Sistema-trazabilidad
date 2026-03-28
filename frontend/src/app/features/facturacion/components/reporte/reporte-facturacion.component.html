@@ -86,13 +86,14 @@
             <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">Servicio</th>
             <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">Operación</th>
             <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider">Destino</th>
+            <th class="px-3 py-2.5 text-center font-bold text-slate-500 uppercase tracking-wider">Acción</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-50">
           @if (loading()) {
-            <tr><td colspan="15" class="px-4 py-10 text-center text-slate-400">Cargando...</td></tr>
+            <tr><td colspan="16" class="px-4 py-10 text-center text-slate-400">Cargando...</td></tr>
           } @else if (facturasFiltradas().length === 0) {
-            <tr><td colspan="15" class="px-4 py-10 text-center text-slate-400">No hay facturas con los filtros aplicados</td></tr>
+            <tr><td colspan="16" class="px-4 py-10 text-center text-slate-400">No hay facturas con los filtros aplicados</td></tr>
           } @else {
             @for (f of facturasFiltradas(); track f.id) {
               <tr class="hover:bg-slate-50 transition-colors" [class.opacity-50]="f.isAnulada">
@@ -100,7 +101,7 @@
                   <div class="flex items-center gap-1.5">
                     <span class="px-1.5 py-0.5 rounded text-xs font-bold"
                       [class]="f.tipoDocumento === '01' ? 'bg-blue-100 text-blue-700' : f.tipoDocumento === '09' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'">
-                      {{ f.tipoDocumento === '01' ? 'FAC' : f.tipoDocumento === '09' ? 'GR' : 'NC' }}
+                      {{ f.tipoDocumento === '01' ? 'FAC' : f.tipoDocumento === '09' ? 'GR' : f.tipoDocumento === '07' ? 'NC' : 'ND' }}
                     </span>
                     {{ f.numeroDocumento }}
                     @if (f.isAnulada) {
@@ -150,6 +151,17 @@
                   } @else { <span class="text-slate-400">-</span> }
                 </td>
                 <td class="px-3 py-2 text-slate-600">{{ f.destino ?? '-' }}</td>
+                <td class="px-3 py-2 text-center">
+                  @if (!f.isAnulada) {
+                    <button (click)="openEditFactura(f)" title="Editar factura"
+                      class="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                      </svg>
+                    </button>
+                  }
+                </td>
               </tr>
             }
           }
@@ -163,7 +175,7 @@
               <td class="px-3 py-2.5 text-right font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</td>
               <td class="px-3 py-2.5 text-right font-bold text-slate-700">$ {{ totalIgv() | number:'1.2-2' }}</td>
               <td class="px-3 py-2.5 text-right font-bold text-emerald-700 text-sm">$ {{ totalGeneral() | number:'1.2-2' }}</td>
-              <td colspan="4"></td>
+              <td colspan="5"></td>
             </tr>
           </tfoot>
         }
@@ -171,3 +183,185 @@
     </div>
   </div>
 </div>
+
+<!-- Modal editar factura -->
+@if (showEditModal()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50" (click)="closeEditModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between p-5 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-800">Editar Factura</h3>
+        <button (click)="closeEditModal()" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="facturaForm" (ngSubmit)="saveFactura()" class="p-5 space-y-4">
+
+        <!-- Tipo + Serie + Correlativo -->
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo doc.</label>
+            <select formControlName="tipoDocumento"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('tipoDocumento')">
+              @for (t of TIPOS_DOCUMENTO; track t.value) {
+                <option [value]="t.value">{{ t.label }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Serie *</label>
+            <input formControlName="serie" type="text" placeholder="FFF1"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('serie')">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Correlativo *</label>
+            <input formControlName="correlativo" type="text" placeholder="0001"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('correlativo')">
+          </div>
+        </div>
+
+        <!-- Fecha + Moneda + N° Guía -->
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha emisión *</label>
+            <input formControlName="fechaEmision" type="date"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              [class.border-red-400]="fieldInvalid('fechaEmision')">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Moneda</label>
+            <select formControlName="moneda"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+              @for (m of MONEDAS; track m) { <option [value]="m">{{ m }}</option> }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">N° Guía</label>
+            <input formControlName="numeroGuia" type="text" placeholder="T001-00001"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <!-- KG/Caja + Unidad + Cajas + Cantidad -->
+        <div class="grid grid-cols-4 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">KG/Caja</label>
+            <input formControlName="kgCaja" type="number" step="0.001" placeholder="0.000"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Unidad</label>
+            <select formControlName="unidadMedida"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+              @for (u of UNIDADES_MEDIDA; track u) { <option [value]="u">{{ u }}</option> }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Cajas</label>
+            <input formControlName="cajas" type="number" placeholder="0"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Cantidad</label>
+            <input formControlName="cantidad" type="number" step="0.0001" placeholder="0.0000"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <!-- V.U. + Importe + IGV + Total -->
+        <div class="grid grid-cols-4 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Unitario</label>
+            <input formControlName="valorUnitario" type="number" step="0.0001" placeholder="0.00"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibond text-slate-600 mb-1">Importe</label>
+            <input formControlName="importe" type="number" step="0.01" placeholder="0.00"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">IGV</label>
+            <input formControlName="igv" type="number" step="0.01" placeholder="0.00"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Total</label>
+            <input formControlName="total" type="number" step="0.01" placeholder="0.00"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <!-- T.C. + Servicio + Operación -->
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">
+              Tipo de Cambio
+              <button type="button" (click)="fetchTipoCambio()" [disabled]="fetchingTc()"
+                class="ml-1 text-blue-500 hover:text-blue-700 disabled:opacity-50 text-xs underline">
+                {{ fetchingTc() ? '...' : 'buscar' }}
+              </button>
+            </label>
+            <input formControlName="tipoCambio" type="number" step="0.001" placeholder="0.000"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo Servicio</label>
+            <select formControlName="tipoServicio"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">— Sin servicio —</option>
+              @for (s of SERVICIOS; track s) { <option [value]="s">{{ s }}</option> }
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo Operación</label>
+            <select formControlName="tipoOperacion"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">— Sin operación —</option>
+              @for (o of TIPOS_OPERACION; track o) { <option [value]="o">{{ o }}</option> }
+            </select>
+          </div>
+        </div>
+
+        <!-- Detalle -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Detalle</label>
+          <textarea formControlName="detalle" rows="2" placeholder="Descripción del servicio..."
+            class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+        </div>
+
+        <!-- Contenedor + Destino -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Contenedor</label>
+            <input formControlName="contenedor" type="text" placeholder="ABCD 123456-7"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Destino</label>
+            <input formControlName="destino" type="text" placeholder="País de destino"
+              class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
+          <button type="button" (click)="closeEditModal()"
+            class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" [disabled]="savingFactura()"
+            class="px-5 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-xl transition-colors">
+            {{ savingFactura() ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

@@ -109,6 +109,8 @@ final readonly class ExportReporteFacturacionService
                 $mes = $meses[(int)$fecha->format('n') - 1];
             }
 
+            $anulada = $factura->isAnulada();
+
             $values = [
                 'A' => $semana,
                 'B' => $mes,
@@ -117,16 +119,16 @@ final readonly class ExportReporteFacturacionService
                 'E' => $fechaStr ? \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel($fecha) : null,
                 'F' => $factura->getNumeroGuia(),
                 'G' => $factura->getNumeroDocumento(),
-                'H' => $factura->getKgCaja(),
-                'I' => $factura->getDetalle(),
+                'H' => $anulada ? 0 : $factura->getKgCaja(),
+                'I' => $anulada ? 'ANULADA' : $factura->getDetalle(),
                 'J' => $factura->getTipoServicio(),
                 'K' => $factura->getUnidadMedida(),
-                'L' => $factura->getCajas(),
-                'M' => $factura->getCantidad() !== null ? (float) $factura->getCantidad() : null,
-                'N' => $factura->getValorUnitario() !== null ? (float) $factura->getValorUnitario() : null,
-                'O' => $factura->getImporte() !== null ? (float) $factura->getImporte() : null,
-                'P' => $factura->getIgv() !== null ? (float) $factura->getIgv() : null,
-                'Q' => $factura->getTotal() !== null ? (float) $factura->getTotal() : null,
+                'L' => $anulada ? 0 : $factura->getCajas(),
+                'M' => $anulada ? 0 : ($factura->getCantidad() !== null ? (float) $factura->getCantidad() : null),
+                'N' => $anulada ? 0 : ($factura->getValorUnitario() !== null ? (float) $factura->getValorUnitario() : null),
+                'O' => $anulada ? 0 : ($factura->getImporte() !== null ? (float) $factura->getImporte() : null),
+                'P' => $anulada ? 0 : ($factura->getIgv() !== null ? (float) $factura->getIgv() : null),
+                'Q' => $anulada ? 0 : ($factura->getTotal() !== null ? (float) $factura->getTotal() : null),
                 'R' => $factura->getTipoCambio() !== null ? (float) $factura->getTipoCambio() : null,
                 'S' => $fruta?->getNombre(),
                 'T' => $despacho?->getSede(),
@@ -159,11 +161,11 @@ final readonly class ExportReporteFacturacionService
                 ]);
             }
 
-            // Marcar anuladas en gris
+            // Marcar anuladas con fondo rojizo (sin tachado)
             if ($factura->isAnulada()) {
                 $sheet->getStyle("A{$row}:V{$row}")->applyFromArray([
-                    'font' => ['strikethrough' => true, 'color' => ['rgb' => '9CA3AF']],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F3F4F6']],
+                    'font' => ['color' => ['rgb' => '9CA3AF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FEE2E2']],
                 ]);
             }
 

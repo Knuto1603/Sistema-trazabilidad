@@ -39,14 +39,12 @@ class ArchivoDespachoRepository extends DoctrineEntityRepository
             ->execute();
     }
 
-    public function unlinkFactura(object $factura): void
+    public function findByFactura(object $factura): array
     {
-        $this->createQueryBuilder('a')
-            ->update()
-            ->set('a.factura', 'NULL')
+        return $this->createQueryBuilder('a')
             ->where('a.factura = :factura')
             ->setParameter('factura', $factura)
             ->getQuery()
-            ->execute();
+            ->getResult();
     }
 }

@@ -37,6 +37,9 @@ class Campahna implements \Stringable
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $fechaFin = null;
 
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $sede = null;
+
     #[ORM\ManyToOne(targetEntity: Fruta::class)]
     #[ORM\JoinColumn(name: 'fruta_id', nullable: false)]
     private ?Fruta $fruta = null;
@@ -75,6 +78,9 @@ class Campahna implements \Stringable
     public function getFechaFin(): ?\DateTimeInterface { return $this->fechaFin; }
 
     public function setFechaFin(?\DateTimeInterface $fechaFin): self { $this->fechaFin = $fechaFin; return $this; }
+
+    public function getSede(): ?string { return $this->sede; }
+    public function setSede(?string $sede): static { $this->sede = $sede; return $this; }
 
     public function getFruta(): ?Fruta { return $this->fruta; }
 

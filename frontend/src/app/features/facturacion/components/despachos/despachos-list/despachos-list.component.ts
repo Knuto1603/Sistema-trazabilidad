@@ -4,9 +4,11 @@ import { Router } from '@angular/router';
 import { DespachoService, DespachoCreateDto } from '../../../despacho.service';
 import { ClienteService, ClienteCreateDto } from '../../../cliente.service';
 import { FrutaService } from '@features/settings/services/fruta.service';
+import { OperacionService } from '@features/settings/services/operacion.service';
+import { CampaignService } from '@core/services/campaign.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
-import { Despacho, Cliente, Fruit } from '@core/models/core.model';
+import { Despacho, Cliente, Operacion } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
@@ -22,6 +24,8 @@ export class DespachosListComponent implements OnInit {
   private despachoService = inject(DespachoService);
   private clienteService = inject(ClienteService);
   private frutaService = inject(FrutaService);
+  private operacionService = inject(OperacionService);
+  private campaignService = inject(CampaignService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
   private router = inject(Router);
@@ -37,6 +41,9 @@ export class DespachosListComponent implements OnInit {
 
   clientes = signal<Cliente[]>([]);
   frutas = signal<{ id: string; nombre: string }[]>([]);
+  operaciones = signal<Operacion[]>([]);
+  proximoNumeroPlanta = signal<number | null>(null);
+  loadingNumero = signal(false);
 
   showModal = signal(false);
   editingId = signal<string | null>(null);
@@ -54,6 +61,7 @@ export class DespachosListComponent implements OnInit {
     clienteId: ['', Validators.required],
     frutaId: ['', Validators.required],
     sede: ['', Validators.required],
+    operacionId: ['' as string],
     contenedor: [''],
     observaciones: [''],
     numeroPlanta: [null as number | null],
@@ -115,9 +123,12 @@ export class DespachosListComponent implements OnInit {
   openCreateModal(): void {
     this.editingId.set(null);
     this.form.reset();
+    this.proximoNumeroPlanta.set(null);
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
     this.showNewClientePanel.set(false);
+    const sede = this.campaignService.activeCampaign()?.sede ?? undefined;
+    this.loadOperacionesBySede(sede);
     this.showModal.set(true);
   }
 
@@ -127,11 +138,14 @@ export class DespachosListComponent implements OnInit {
       clienteId: item.clienteId,
       frutaId: item.frutaId,
       sede: item.sede,
+      operacionId: item.operacionId ?? '',
       contenedor: item.contenedor ?? '',
       observaciones: item.observaciones ?? '',
       numeroPlanta: item.numeroPlanta ?? null,
     });
+    this.proximoNumeroPlanta.set(null);
     this.showNewClientePanel.set(false);
+    this.loadOperacionesBySede(item.sede);
     this.showModal.set(true);
   }
 
@@ -139,9 +153,36 @@ export class DespachosListComponent implements OnInit {
     this.showModal.set(false);
     this.editingId.set(null);
     this.form.reset();
+    this.proximoNumeroPlanta.set(null);
+    this.operaciones.set([]);
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
     this.showNewClientePanel.set(false);
+  }
+
+  private loadOperacionesBySede(sede?: string): void {
+    this.operacionService.getAll(sede).subscribe(res => {
+      if (res.status) this.operaciones.set(res.items);
+    });
+  }
+
+  onOperacionChange(operacionId: string): void {
+    if (operacionId) {
+      const op = this.operaciones().find(o => o.id === operacionId);
+      if (op) this.form.patchValue({ sede: op.sede });
+      if (!this.editingId()) {
+        this.loadingNumero.set(true);
+        this.despachoService.proximoNumero(operacionId).subscribe({
+          next: res => {
+            if (res.status) this.proximoNumeroPlanta.set(res.item.numeroPlanta);
+            this.loadingNumero.set(false);
+          },
+          error: () => this.loadingNumero.set(false)
+        });
+      }
+    } else {
+      this.proximoNumeroPlanta.set(null);
+    }
   }
 
   toggleNewClientePanel(): void {
@@ -217,6 +258,7 @@ export class DespachosListComponent implements OnInit {
       clienteId: raw.clienteId!,
       frutaId: raw.frutaId!,
       sede: raw.sede!,
+      operacionId: (raw as any).operacionId || undefined,
       contenedor: raw.contenedor || undefined,
       observaciones: raw.observaciones || undefined,
       numeroPlanta: raw.numeroPlanta ?? undefined,

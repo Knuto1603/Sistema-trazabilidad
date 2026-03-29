@@ -42,5 +42,7 @@ final readonly class CampahnaFactory
             $fruta = $this->frutaRepository->ofId($campahnaDto->frutaId);
             $campahna->setFruta($fruta);
         }
+
+        $campahna->setSede($campahnaDto->sede);
     }
 }

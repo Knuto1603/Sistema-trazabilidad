@@ -41,6 +41,10 @@ class Despacho
     #[ORM\JoinColumn(nullable: false)]
     private ?Fruta $fruta = null;
 
+    #[ORM\ManyToOne(targetEntity: Operacion::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Operacion $operacion = null;
+
     public function getId(): ?int { return $this->id; }
 
     public function getNumeroCliente(): ?int { return $this->numeroCliente; }
@@ -63,6 +67,9 @@ class Despacho
 
     public function getFruta(): ?Fruta { return $this->fruta; }
     public function setFruta(?Fruta $fruta): static { $this->fruta = $fruta; return $this; }
+
+    public function getOperacion(): ?Operacion { return $this->operacion; }
+    public function setOperacion(?Operacion $operacion): static { $this->operacion = $operacion; return $this; }
 
     public function setIsActive(bool $isActive): static { $this->isActive = $isActive; return $this; }
 }

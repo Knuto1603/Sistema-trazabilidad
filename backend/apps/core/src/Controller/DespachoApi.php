@@ -2,6 +2,8 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Repository\DespachoRepository;
+use App\apps\core\Repository\OperacionRepository;
 use App\apps\core\Service\Despacho\CreateDespachoService;
 use App\apps\core\Service\Despacho\DeleteDespachoService;
 use App\apps\core\Service\Despacho\Dto\DespachoDto;
@@ -12,6 +14,7 @@ use App\apps\core\Service\Despacho\GetDespachosService;
 use App\apps\core\Service\Despacho\UpdateDespachoService;
 use App\shared\Api\AbstractSerializerApi;
 use App\shared\Doctrine\UidType;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -21,6 +24,28 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[Route('/despachos')]
 class DespachoApi extends AbstractSerializerApi
 {
+    #[Route('/proximo-numero', name: 'despacho_proximo_numero', methods: ['GET'])]
+    public function proximoNumero(
+        Request $request,
+        DespachoRepository $despachoRepository,
+        OperacionRepository $operacionRepository,
+    ): Response {
+        $operacionUid = $request->query->get('operacionId');
+
+        if ($operacionUid) {
+            try {
+                $operacion = $operacionRepository->ofId($operacionUid, true);
+                $numeroPlanta = $despachoRepository->findMaxNumeroPlantaByOperacion($operacion->getId()) + 1;
+            } catch (\Throwable) {
+                $numeroPlanta = 1;
+            }
+        } else {
+            $numeroPlanta = $despachoRepository->findMaxNumeroPlanta() + 1;
+        }
+
+        return $this->ok(['item' => ['numeroPlanta' => $numeroPlanta]]);
+    }
+
     #[Route('/', name: 'despacho_list', methods: ['GET'])]
     public function list(
         #[MapQueryString]

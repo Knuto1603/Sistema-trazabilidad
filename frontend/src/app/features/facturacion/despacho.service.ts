@@ -11,6 +11,7 @@ export interface DespachoCreateDto {
   observaciones?: string;
   clienteId: string;
   frutaId: string;
+  operacionId?: string;
   numeroCliente?: number;
   numeroPlanta?: number;
 }
@@ -38,5 +39,11 @@ export class DespachoService {
 
   delete(id: string): Observable<ApiResponse<null>> {
     return this.http.delete<ApiResponse<null>>(`${this.base}/${id}`);
+  }
+
+  proximoNumero(operacionId?: string): Observable<ApiResponse<{ numeroPlanta: number }>> {
+    const params: any = {};
+    if (operacionId) params['operacionId'] = operacionId;
+    return this.http.get<ApiResponse<{ numeroPlanta: number }>>(`${this.base}/proximo-numero`, { params });
   }
 }

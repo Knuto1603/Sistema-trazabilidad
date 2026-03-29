@@ -22,6 +22,10 @@ export const settingsRoutes: Routes = [
         path: 'roles',
         loadComponent: () => import('./components/roles/roles.component').then(m => m.RolesComponent)
       },
+      {
+        path: 'operaciones',
+        loadComponent: () => import('./components/operaciones/operaciones.component').then(m => m.OperacionesComponent)
+      },
       { path: '', redirectTo: 'campanhas', pathMatch: 'full' }
     ]
   }

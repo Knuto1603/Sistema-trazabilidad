@@ -40,12 +40,15 @@ export class CampanhasComponent implements OnInit {
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
 
+  readonly SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'];
+
   form = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]],
     descripcion: [''],
     fechaInicio: ['', Validators.required],
     fechaFin: [''],
-    frutaId: ['', Validators.required]
+    frutaId: ['', Validators.required],
+    sede: ['' as string],
   });
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -105,7 +108,8 @@ export class CampanhasComponent implements OnInit {
       descripcion: item.descripcion ?? '',
       fechaInicio: item.fechaInicio,
       fechaFin: item.fechaFin ?? '',
-      frutaId: item.frutaId
+      frutaId: item.frutaId,
+      sede: item.sede ?? '',
     });
     this.showModal.set(true);
   }
@@ -128,7 +132,8 @@ export class CampanhasComponent implements OnInit {
       descripcion: raw.descripcion ?? undefined,
       fechaInicio: raw.fechaInicio!,
       fechaFin: raw.fechaFin ?? undefined,
-      frutaId: raw.frutaId!
+      frutaId: raw.frutaId!,
+      sede: (raw.sede as any) || undefined,
     };
 
     const current = this.editing();

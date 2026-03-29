@@ -5,12 +5,14 @@ namespace App\apps\core\Service\Despacho\Dto;
 use App\apps\core\Entity\Despacho;
 use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\FrutaRepository;
+use App\apps\core\Repository\OperacionRepository;
 
 final readonly class DespachoFactory
 {
     public function __construct(
         private ClienteRepository $clienteRepository,
         private FrutaRepository $frutaRepository,
+        private OperacionRepository $operacionRepository,
     ) {
     }
 
@@ -41,6 +43,16 @@ final readonly class DespachoFactory
         $despacho->setSede($dto->sede);
         $despacho->setContenedor($dto->contenedor);
         $despacho->setObservaciones($dto->observaciones);
+
+        // Fix: guardar numeroPlanta cuando se edita
+        if ($dto->numeroPlanta !== null) {
+            $despacho->setNumeroPlanta($dto->numeroPlanta);
+        }
+
+        if ($dto->operacionId) {
+            $operacion = $this->operacionRepository->ofId($dto->operacionId, true);
+            $despacho->setOperacion($operacion);
+        }
 
         match ($dto->isActive) {
             false => $despacho->disable(),

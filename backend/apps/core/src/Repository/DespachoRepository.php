@@ -22,9 +22,10 @@ class DespachoRepository extends DoctrineEntityRepository
     public function allQuery(): QueryBuilder
     {
         return $this->createQueryBuilder('despacho')
-            ->select(['despacho', 'cliente', 'fruta'])
+            ->select(['despacho', 'cliente', 'fruta', 'operacion'])
             ->leftJoin('despacho.cliente', 'cliente')
             ->leftJoin('despacho.fruta', 'fruta')
+            ->leftJoin('despacho.operacion', 'operacion')
             ->orderBy('despacho.id', 'DESC');
     }
 
@@ -53,6 +54,35 @@ class DespachoRepository extends DoctrineEntityRepository
     {
         $result = $this->createQueryBuilder('d')
             ->select('MAX(d.numeroPlanta)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $result;
+    }
+
+    public function findMaxNumeroPlantaByOperacion(int $operacionDbId): int
+    {
+        $result = $this->createQueryBuilder('d')
+            ->select('MAX(d.numeroPlanta)')
+            ->join('d.operacion', 'o')
+            ->where('o.id = :operacionId')
+            ->setParameter('operacionId', $operacionDbId)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $result;
+    }
+
+    public function findMaxNumeroClienteByOperacion(int $clienteDbId, int $operacionDbId): int
+    {
+        $result = $this->createQueryBuilder('d')
+            ->select('MAX(d.numeroCliente)')
+            ->join('d.cliente', 'c')
+            ->join('d.operacion', 'o')
+            ->where('c.id = :clienteId')
+            ->andWhere('o.id = :operacionId')
+            ->setParameter('clienteId', $clienteDbId)
+            ->setParameter('operacionId', $operacionDbId)
             ->getQuery()
             ->getSingleScalarResult();
 

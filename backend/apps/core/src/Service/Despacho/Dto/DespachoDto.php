@@ -30,9 +30,13 @@ final class DespachoDto implements DtoRequestInterface
         #[Uid]
         public ?string $frutaId = null,
 
+        #[Uid]
+        public ?string $operacionId = null,
+
         public ?string $clienteRuc = null,
         public ?string $clienteRazonSocial = null,
         public ?string $frutaNombre = null,
+        public ?string $operacionNombre = null,
     ) {
     }
 }

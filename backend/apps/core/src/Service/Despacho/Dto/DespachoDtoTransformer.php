@@ -33,6 +33,11 @@ final class DespachoDtoTransformer extends DtoTransformer
             $dto->frutaNombre = $object->getFruta()->getNombre();
         }
 
+        if ($object->getOperacion()) {
+            $dto->operacionId = UidType::toString($object->getOperacion()->uuid());
+            $dto->operacionNombre = $object->getOperacion()->getNombre();
+        }
+
         $dto->ofEntity($object);
 
         return $dto;

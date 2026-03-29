@@ -30,6 +30,9 @@ final class CampahnaDto implements DtoRequestInterface
         #[Uid]
         public ?string $frutaId = null,
 
+        #[Assert\Choice(choices: ['SULLANA', 'TAMBOGRANDE', 'GENERAL'])]
+        public ?string $sede = null,
+
         // Campos complementarios para respuestas (Output)
         public ?string $frutaNombre = null,
         public ?string $nombreCompleto = null,

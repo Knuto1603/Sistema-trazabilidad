@@ -5,6 +5,7 @@ namespace App\apps\core\Service\Despacho;
 use App\apps\core\Entity\Despacho;
 use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\DespachoRepository;
+use App\apps\core\Repository\OperacionRepository;
 use App\apps\core\Service\Despacho\Dto\DespachoDto;
 use App\apps\core\Service\Despacho\Dto\DespachoFactory;
 
@@ -14,6 +15,7 @@ final readonly class CreateDespachoService
         private DespachoRepository $despachoRepository,
         private DespachoFactory $despachoFactory,
         private ClienteRepository $clienteRepository,
+        private OperacionRepository $operacionRepository,
     ) {
     }
 
@@ -21,8 +23,20 @@ final readonly class CreateDespachoService
     {
         $cliente = $this->clienteRepository->ofId($dto->clienteId, true);
 
-        $numeroCliente = $this->despachoRepository->findMaxNumeroCliente($cliente->getId()) + 1;
-        $numeroPlanta = $this->despachoRepository->findMaxNumeroPlanta() + 1;
+        if ($dto->operacionId !== null) {
+            $operacion = $this->operacionRepository->ofId($dto->operacionId, true);
+            $numeroCliente = $this->despachoRepository->findMaxNumeroClienteByOperacion(
+                $cliente->getId(),
+                $operacion->getId()
+            ) + 1;
+            $numeroPlanta = $this->despachoRepository->findMaxNumeroPlantaByOperacion(
+                $operacion->getId()
+            ) + 1;
+        } else {
+            // Comportamiento legacy para despachos sin operación
+            $numeroCliente = $this->despachoRepository->findMaxNumeroCliente($cliente->getId()) + 1;
+            $numeroPlanta  = $this->despachoRepository->findMaxNumeroPlanta() + 1;
+        }
 
         $despacho = $this->despachoFactory->ofDto($dto);
         $despacho->setNumeroCliente($numeroCliente);

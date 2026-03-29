@@ -2,7 +2,14 @@
 export interface Campaign {
   id: string; nombre: string; descripcion?: string;
   fechaInicio: string; fechaFin?: string;
-  frutaId: string; frutaNombre: string; nombreCompleto: string; isActive: boolean;
+  frutaId: string; frutaNombre: string; nombreCompleto: string;
+  sede?: 'SULLANA' | 'TAMBOGRANDE' | 'GENERAL';
+  isActive: boolean;
+}
+
+// Operación (por sede)
+export interface Operacion {
+  id: string; nombre: string; sede: 'SULLANA' | 'TAMBOGRANDE' | 'GENERAL'; isActive: boolean;
 }
 
 // Fruta (NO tiene update/delete en backend, solo create + enable/disable)
@@ -54,7 +61,9 @@ export interface Despacho {
   id: string; numeroCliente: number; numeroPlanta?: number; sede: 'SULLANA' | 'TAMBOGRANDE' | 'GENERAL';
   contenedor?: string; observaciones?: string;
   clienteId: string; clienteRuc?: string; clienteRazonSocial?: string;
-  frutaId: string; frutaNombre?: string; isActive: boolean;
+  frutaId: string; frutaNombre?: string;
+  operacionId?: string; operacionNombre?: string;
+  isActive: boolean;
 }
 
 export interface Factura {

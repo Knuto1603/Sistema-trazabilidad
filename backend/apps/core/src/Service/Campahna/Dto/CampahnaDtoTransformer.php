@@ -27,6 +27,8 @@ final class CampahnaDtoTransformer extends DtoTransformer
         $dto->frutaId = UidType::toString($object->getFruta()?->uuid());
         $dto->frutaNombre = $object->getFruta()?->getNombre();
 
+        $dto->sede = $object->getSede();
+
         // Información consolidada para el frontend
         $dto->nombreCompleto = $object->getNombreCompleto();
 

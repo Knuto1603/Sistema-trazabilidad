@@ -10,6 +10,7 @@ export interface CampahnaCreateDto {
   fechaInicio: string;
   fechaFin?: string;
   frutaId: string;
+  sede?: 'SULLANA' | 'TAMBOGRANDE' | 'GENERAL';
 }
 
 @Injectable({ providedIn: 'root' })

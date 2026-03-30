@@ -174,7 +174,7 @@ export class DespachosListComponent implements OnInit {
         this.loadingNumero.set(true);
         this.despachoService.proximoNumero(operacionId).subscribe({
           next: res => {
-            if (res.status) this.proximoNumeroPlanta.set(res.item.numeroPlanta);
+            if (res.status && res.item) this.proximoNumeroPlanta.set(res.item.numeroPlanta);
             this.loadingNumero.set(false);
           },
           error: () => this.loadingNumero.set(false)

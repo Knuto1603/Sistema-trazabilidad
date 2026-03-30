@@ -1,8 +1,7 @@
 <div>
   <!-- Barra de filtro y botón -->
   <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
-    <select [ngModel]="filtroSede()" (ngModelChange)="filtroSede.set($event)"
-      [ngModelOptions]="{standalone: true}"
+    <select [value]="filtroSede()" (change)="filtroSede.set($any($event.target).value)"
       class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
       <option value="">Todas las sedes</option>
       @for (s of SEDES; track s) { <option [value]="s">{{ s }}</option> }
@@ -153,9 +152,12 @@
   </div>
 }
 
-<app-confirm-dialog
-  [show]="showConfirm()"
-  title="Eliminar operación"
-  message="¿Estás seguro de eliminar esta operación? Esta acción no se puede deshacer."
-  (confirmed)="doDelete()"
-  (cancelled)="cancelDelete()" />
+@if (showConfirm()) {
+  <app-confirm-dialog
+    title="Eliminar operación"
+    message="¿Estás seguro de eliminar esta operación? Esta acción no se puede deshacer."
+    confirmLabel="Eliminar"
+    (confirmed)="doDelete()"
+    (cancelled)="cancelDelete()">
+  </app-confirm-dialog>
+}

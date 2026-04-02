@@ -46,4 +46,18 @@ export class DespachoService {
     if (operacionId) params['operacionId'] = operacionId;
     return this.http.get<ApiResponse<{ numeroPlanta: number }>>(`${this.base}/proximo-numero`, { params });
   }
+
+  proximoNumeroCliente(clienteId: string, operacionId?: string): Observable<ApiResponse<{ numeroCliente: number }>> {
+    const params: any = { clienteId };
+    if (operacionId) params['operacionId'] = operacionId;
+    return this.http.get<ApiResponse<{ numeroCliente: number }>>(`${this.base}/proximo-numero-cliente`, { params });
+  }
+
+  previewCorreo(id: string): Observable<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string }>> {
+    return this.http.get<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string }>>(`${this.base}/${id}/preview-correo`);
+  }
+
+  enviarCorreo(id: string, dto: { asunto: string; cuerpo: string; destinatarios: string; archivosIds: string[] }): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.base}/${id}/enviar-correo`, dto);
+  }
 }

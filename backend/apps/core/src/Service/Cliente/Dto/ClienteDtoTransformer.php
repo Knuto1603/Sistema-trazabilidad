@@ -27,6 +27,7 @@ final class ClienteDtoTransformer extends DtoTransformer
         $dto->tipoContribuyente = $object->getTipoContribuyente();
         $dto->telefono = $object->getTelefono();
         $dto->email = $object->getEmail();
+        $dto->emailDestinatarios = $object->getEmailDestinatarios();
 
         $dto->ofEntity($object);
 

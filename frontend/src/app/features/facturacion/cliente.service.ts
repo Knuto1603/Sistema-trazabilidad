@@ -18,6 +18,7 @@ export interface ClienteCreateDto {
   tipoContribuyente?: string;
   telefono?: string;
   email?: string;
+  emailDestinatarios?: string;
 }
 
 @Injectable({ providedIn: 'root' })

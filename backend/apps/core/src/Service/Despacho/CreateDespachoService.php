@@ -39,8 +39,9 @@ final readonly class CreateDespachoService
         }
 
         $despacho = $this->despachoFactory->ofDto($dto);
-        $despacho->setNumeroCliente($numeroCliente);
-        $despacho->setNumeroPlanta($numeroPlanta);
+        // Si el DTO trae valores explícitos, usarlos; si no, usar el autogenerado
+        $despacho->setNumeroCliente($dto->numeroCliente ?? $numeroCliente);
+        $despacho->setNumeroPlanta($dto->numeroPlanta ?? $numeroPlanta);
 
         $this->despachoRepository->save($despacho);
 

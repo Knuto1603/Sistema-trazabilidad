@@ -50,7 +50,7 @@ export interface Cliente {
   id: string; ruc: string; razonSocial: string; nombreComercial?: string;
   direccion?: string; departamento?: string; provincia?: string; distrito?: string;
   estado?: string; condicion?: string; tipoContribuyente?: string;
-  telefono?: string; email?: string; isActive: boolean;
+  telefono?: string; email?: string; emailDestinatarios?: string; isActive: boolean;
 }
 
 export interface TipoCambio {

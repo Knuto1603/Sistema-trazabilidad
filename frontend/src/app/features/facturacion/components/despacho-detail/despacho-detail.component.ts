@@ -72,6 +72,15 @@ export class DespachoDetailComponent implements OnInit {
   deletingArchivoId = signal<string | null>(null);
   showUploadArchivoModal = signal(false);
 
+  // Modal de envío de correo
+  showCorreoModal = signal(false);
+  loadingPreviewCorreo = signal(false);
+  enviandoCorreo = signal(false);
+  correoAsunto = signal('');
+  correoCuerpo = signal('');
+  correoDestinatarios = signal('');
+  correoArchivosSeleccionados = signal<Set<string>>(new Set());
+
   // Subida múltiple + auto-procesado de XMLs
   pendingFiles = signal<PendingFile[]>([]);
   pendingFacturas = signal<PendingFacturaItem[]>([]);
@@ -761,6 +770,63 @@ export class DespachoDetailComponent implements OnInit {
         if (mostrarError) this.notification.error('Error al obtener tipo de cambio');
         this.fetchingTc.set(false);
       }
+    });
+  }
+
+  openCorreoModal(): void {
+    this.showCorreoModal.set(true);
+    this.correoArchivosSeleccionados.set(new Set());
+    this.loadingPreviewCorreo.set(true);
+    this.despachoService.previewCorreo(this.despachoId()).subscribe({
+      next: res => {
+        if (res.status && res.item) {
+          this.correoAsunto.set(res.item.asunto);
+          this.correoCuerpo.set(res.item.cuerpo);
+          this.correoDestinatarios.set(res.item.destinatarios);
+        }
+        this.loadingPreviewCorreo.set(false);
+      },
+      error: () => this.loadingPreviewCorreo.set(false),
+    });
+  }
+
+  closeCorreoModal(): void {
+    this.showCorreoModal.set(false);
+  }
+
+  toggleArchivoCorreo(archivoId: string): void {
+    this.correoArchivosSeleccionados.update(set => {
+      const copy = new Set(set);
+      copy.has(archivoId) ? copy.delete(archivoId) : copy.add(archivoId);
+      return copy;
+    });
+  }
+
+  enviarCorreo(): void {
+    if (!this.correoAsunto() || !this.correoCuerpo() || !this.correoDestinatarios()) {
+      this.notification.error('Completa asunto, cuerpo y destinatarios');
+      return;
+    }
+    this.enviandoCorreo.set(true);
+    this.despachoService.enviarCorreo(this.despachoId(), {
+      asunto: this.correoAsunto(),
+      cuerpo: this.correoCuerpo(),
+      destinatarios: this.correoDestinatarios(),
+      archivosIds: Array.from(this.correoArchivosSeleccionados()),
+    }).subscribe({
+      next: res => {
+        if (res.status) {
+          this.notification.success('Correo enviado exitosamente');
+          this.closeCorreoModal();
+        } else {
+          this.notification.error('Error al enviar el correo');
+        }
+        this.enviandoCorreo.set(false);
+      },
+      error: (err) => {
+        this.notification.error(err?.error?.message ?? 'Error al enviar el correo');
+        this.enviandoCorreo.set(false);
+      },
     });
   }
 

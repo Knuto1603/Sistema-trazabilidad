@@ -43,7 +43,9 @@ export class DespachosListComponent implements OnInit {
   frutas = signal<{ id: string; nombre: string }[]>([]);
   operaciones = signal<Operacion[]>([]);
   proximoNumeroPlanta = signal<number | null>(null);
+  proximoNumeroCliente = signal<number | null>(null);
   loadingNumero = signal(false);
+  loadingNumeroCliente = signal(false);
 
   showModal = signal(false);
   editingId = signal<string | null>(null);
@@ -65,6 +67,7 @@ export class DespachosListComponent implements OnInit {
     contenedor: [''],
     observaciones: [''],
     numeroPlanta: [null as number | null],
+    numeroCliente: [null as number | null],
   });
 
   newClienteRuc = signal('');
@@ -124,6 +127,7 @@ export class DespachosListComponent implements OnInit {
     this.editingId.set(null);
     this.form.reset();
     this.proximoNumeroPlanta.set(null);
+    this.proximoNumeroCliente.set(null);
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
     this.showNewClientePanel.set(false);
@@ -142,8 +146,10 @@ export class DespachosListComponent implements OnInit {
       contenedor: item.contenedor ?? '',
       observaciones: item.observaciones ?? '',
       numeroPlanta: item.numeroPlanta ?? null,
+      numeroCliente: item.numeroCliente ?? null,
     });
     this.proximoNumeroPlanta.set(null);
+    this.proximoNumeroCliente.set(null);
     this.showNewClientePanel.set(false);
     this.loadOperacionesBySede(item.sede);
     this.showModal.set(true);
@@ -154,6 +160,7 @@ export class DespachosListComponent implements OnInit {
     this.editingId.set(null);
     this.form.reset();
     this.proximoNumeroPlanta.set(null);
+    this.proximoNumeroCliente.set(null);
     this.operaciones.set([]);
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
@@ -166,22 +173,54 @@ export class DespachosListComponent implements OnInit {
     });
   }
 
+  onClienteChange(clienteId: string): void {
+    if (!clienteId || this.editingId()) return;
+    const operacionId = this.form.get('operacionId')?.value || undefined;
+    this.cargarProximosNumeros(clienteId, operacionId);
+  }
+
   onOperacionChange(operacionId: string): void {
     if (operacionId) {
       const op = this.operaciones().find(o => o.id === operacionId);
       if (op) this.form.patchValue({ sede: op.sede });
       if (!this.editingId()) {
-        this.loadingNumero.set(true);
-        this.despachoService.proximoNumero(operacionId).subscribe({
-          next: res => {
-            if (res.status && res.item) this.proximoNumeroPlanta.set(res.item.numeroPlanta);
-            this.loadingNumero.set(false);
-          },
-          error: () => this.loadingNumero.set(false)
-        });
+        const clienteId = this.form.get('clienteId')?.value || undefined;
+        this.cargarProximosNumeros(clienteId, operacionId);
       }
     } else {
       this.proximoNumeroPlanta.set(null);
+      this.proximoNumeroCliente.set(null);
+      this.form.patchValue({ numeroPlanta: null, numeroCliente: null });
+    }
+  }
+
+  private cargarProximosNumeros(clienteId?: string, operacionId?: string): void {
+    this.loadingNumero.set(true);
+    this.despachoService.proximoNumero(operacionId).subscribe({
+      next: res => {
+        if (res.status && res.item) {
+          const n = res.item.numeroPlanta;
+          this.proximoNumeroPlanta.set(n);
+          this.form.patchValue({ numeroPlanta: n });
+        }
+        this.loadingNumero.set(false);
+      },
+      error: () => this.loadingNumero.set(false)
+    });
+
+    if (clienteId) {
+      this.loadingNumeroCliente.set(true);
+      this.despachoService.proximoNumeroCliente(clienteId, operacionId).subscribe({
+        next: res => {
+          if (res.status && res.item) {
+            const n = res.item.numeroCliente;
+            this.proximoNumeroCliente.set(n);
+            this.form.patchValue({ numeroCliente: n });
+          }
+          this.loadingNumeroCliente.set(false);
+        },
+        error: () => this.loadingNumeroCliente.set(false)
+      });
     }
   }
 
@@ -262,6 +301,7 @@ export class DespachosListComponent implements OnInit {
       contenedor: raw.contenedor || undefined,
       observaciones: raw.observaciones || undefined,
       numeroPlanta: raw.numeroPlanta ?? undefined,
+      numeroCliente: (raw as any).numeroCliente ?? undefined,
     };
 
     const editId = this.editingId();

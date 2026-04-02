@@ -3,10 +3,16 @@
     <app-page-header
       [title]="'Despacho N° ' + (despacho()?.numeroPlanta ?? despacho()?.numeroCliente)"
       subtitle="Detalle del despacho y sus documentos">
-      <button (click)="goBack()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-        Volver
-      </button>
+      <div class="flex items-center gap-2">
+        <button (click)="openCorreoModal()" class="px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-xl transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          Enviar correo
+        </button>
+        <button (click)="goBack()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          Volver
+        </button>
+      </div>
     </app-page-header>
 
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
@@ -574,5 +580,98 @@
       (confirmed)="executeDeleteArchivo()"
       (cancelled)="showDeleteArchivoConfirm.set(false)">
     </app-confirm-dialog>
+  }
+
+  @if (showCorreoModal()) {
+    <div class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-in zoom-in duration-200 max-h-[92vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+          <h3 class="font-bold text-slate-800 flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Enviar por correo
+          </h3>
+          <button (click)="closeCorreoModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        @if (loadingPreviewCorreo()) {
+          <div class="flex-1 flex items-center justify-center py-12">
+            <svg class="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          </div>
+        } @else {
+          <div class="flex-1 overflow-y-auto p-6 space-y-4">
+
+            <!-- Archivos adjuntos -->
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Archivos a adjuntar</label>
+              @if (archivos().length === 0) {
+                <p class="text-sm text-slate-400 italic">No hay archivos en este despacho</p>
+              } @else {
+                <div class="space-y-1 max-h-36 overflow-y-auto border border-slate-200 rounded-xl p-3">
+                  @for (archivo of archivos(); track archivo.id) {
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 rounded-lg px-2 py-1">
+                      <input type="checkbox"
+                        [checked]="correoArchivosSeleccionados().has(archivo.id)"
+                        (change)="toggleArchivoCorreo(archivo.id)"
+                        class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                      <span class="text-xs font-mono text-slate-600 truncate flex-1">{{ archivo.nombre }}</span>
+                      <span class="text-xs text-slate-400 flex-shrink-0">{{ formatBytes(archivo.tamanho) }}</span>
+                    </label>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Destinatarios -->
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Destinatarios *</label>
+              <textarea rows="2"
+                [value]="correoDestinatarios()"
+                (input)="correoDestinatarios.set($any($event.target).value)"
+                placeholder="correo1@empresa.com; correo2@empresa.com"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono text-xs"></textarea>
+              <p class="text-xs text-slate-400 mt-0.5">Separados por punto y coma (;)</p>
+            </div>
+
+            <!-- Asunto -->
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Asunto *</label>
+              <input type="text"
+                [value]="correoAsunto()"
+                (input)="correoAsunto.set($any($event.target).value)"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Cuerpo -->
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Cuerpo *</label>
+              <textarea rows="7"
+                [value]="correoCuerpo()"
+                (input)="correoCuerpo.set($any($event.target).value)"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono text-xs"></textarea>
+            </div>
+
+          </div>
+
+          <div class="flex gap-3 justify-end px-6 py-4 border-t border-slate-100 flex-shrink-0">
+            <button type="button" (click)="closeCorreoModal()"
+              class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+              Cancelar
+            </button>
+            <button type="button" (click)="enviarCorreo()" [disabled]="enviandoCorreo()"
+              class="px-4 py-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 rounded-xl transition-colors flex items-center gap-2">
+              @if (enviandoCorreo()) {
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Enviando...
+              } @else {
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                Enviar correo
+              }
+            </button>
+          </div>
+        }
+      </div>
+    </div>
   }
 </div>

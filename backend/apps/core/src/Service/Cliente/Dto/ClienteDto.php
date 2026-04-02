@@ -30,6 +30,7 @@ final class ClienteDto implements DtoRequestInterface
         public ?string $tipoContribuyente = null,
         public ?string $telefono = null,
         public ?string $email = null,
+        public ?string $emailDestinatarios = null,
     ) {
     }
 }

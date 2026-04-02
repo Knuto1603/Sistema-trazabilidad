@@ -135,6 +135,13 @@
                 [class.border-red-400]="fieldInvalid('email')" [class.border-slate-200]="!fieldInvalid('email')">
               @if (fieldInvalid('email')) { <p class="text-xs text-red-500 mt-1">Email inválido</p> }
             </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-500 mb-1">Destinatarios de correo</label>
+              <textarea formControlName="emailDestinatarios" rows="2"
+                placeholder="kalburqueque@empresa.com; contabilidad@empresa.com; otro@empresa.com"
+                class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono text-xs"></textarea>
+              <p class="text-xs text-slate-400 mt-0.5">Separa los correos con punto y coma (;). Se usarán al enviar documentos de despacho.</p>
+            </div>
           </div>
 
           <div class="p-3 bg-slate-50 rounded-xl space-y-2">

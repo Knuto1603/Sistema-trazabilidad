@@ -32,6 +32,7 @@ final readonly class ClienteFactory
         $cliente->setTipoContribuyente($dto->tipoContribuyente);
         $cliente->setTelefono($dto->telefono);
         $cliente->setEmail($dto->email);
+        $cliente->setEmailDestinatarios($dto->emailDestinatarios);
 
         match ($dto->isActive) {
             false => $cliente->disable(),

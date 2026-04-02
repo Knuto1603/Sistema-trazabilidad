@@ -86,6 +86,15 @@ class ParametroRepository extends DoctrineEntityRepository
             ->getOneOrNullResult();
     }
 
+    public function findByAlias(string $alias): ?Parametro
+    {
+        return $this->createQueryBuilder('p')
+            ->where('p.alias = :alias')
+            ->setParameter('alias', \strtoupper($alias))
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function allShared(): array
     {
         return $this->createQueryBuilder('parametro')

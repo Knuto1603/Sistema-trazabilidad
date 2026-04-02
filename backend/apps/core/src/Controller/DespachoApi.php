@@ -2,9 +2,12 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\DespachoRepository;
 use App\apps\core\Repository\OperacionRepository;
 use App\apps\core\Service\Despacho\CreateDespachoService;
+use App\apps\core\Service\Despacho\Dto\EnviarCorreoDto;
+use App\apps\core\Service\Despacho\EnviarCorreoDespachoService;
 use App\apps\core\Service\Despacho\DeleteDespachoService;
 use App\apps\core\Service\Despacho\Dto\DespachoDto;
 use App\apps\core\Service\Despacho\Dto\DespachoDtoTransformer;
@@ -44,6 +47,39 @@ class DespachoApi extends AbstractSerializerApi
         }
 
         return $this->ok(['item' => ['numeroPlanta' => $numeroPlanta]]);
+    }
+
+    #[Route('/proximo-numero-cliente', name: 'despacho_proximo_numero_cliente', methods: ['GET'])]
+    public function proximoNumeroCliente(
+        Request $request,
+        DespachoRepository $despachoRepository,
+        ClienteRepository $clienteRepository,
+        OperacionRepository $operacionRepository,
+    ): Response {
+        $clienteUid = $request->query->get('clienteId');
+        $operacionUid = $request->query->get('operacionId');
+
+        if (!$clienteUid) {
+            return $this->ok(['item' => ['numeroCliente' => 1]]);
+        }
+
+        try {
+            $cliente = $clienteRepository->ofId($clienteUid, true);
+
+            if ($operacionUid) {
+                $operacion = $operacionRepository->ofId($operacionUid, true);
+                $numeroCliente = $despachoRepository->findMaxNumeroClienteByOperacion(
+                    $cliente->getId(),
+                    $operacion->getId()
+                ) + 1;
+            } else {
+                $numeroCliente = $despachoRepository->findMaxNumeroCliente($cliente->getId()) + 1;
+            }
+        } catch (\Throwable) {
+            $numeroCliente = 1;
+        }
+
+        return $this->ok(['item' => ['numeroCliente' => $numeroCliente]]);
     }
 
     #[Route('/', name: 'despacho_list', methods: ['GET'])]
@@ -98,6 +134,34 @@ class DespachoApi extends AbstractSerializerApi
             'message' => 'Despacho actualizado exitosamente',
             'item' => $transformer->fromObject($despacho),
         ]);
+    }
+
+    #[Route('/{id}/preview-correo', name: 'despacho_preview_correo', requirements: ['id' => UidType::REGEX], methods: ['GET'])]
+    public function previewCorreo(
+        string $id,
+        EnviarCorreoDespachoService $service,
+    ): Response {
+        try {
+            $preview = $service->preview($id);
+            return $this->ok(['item' => $preview]);
+        } catch (\Throwable $e) {
+            return $this->fail($e->getMessage());
+        }
+    }
+
+    #[Route('/{id}/enviar-correo', name: 'despacho_enviar_correo', requirements: ['id' => UidType::REGEX], methods: ['POST'])]
+    public function enviarCorreo(
+        string $id,
+        #[MapRequestPayload]
+        EnviarCorreoDto $dto,
+        EnviarCorreoDespachoService $service,
+    ): Response {
+        try {
+            $service->execute($id, $dto->asunto, $dto->cuerpo, $dto->destinatarios, $dto->archivosIds);
+            return $this->ok(['message' => 'Correo enviado exitosamente', 'item' => null]);
+        } catch (\Throwable $e) {
+            return $this->fail($e->getMessage());
+        }
     }
 
     #[Route('/{id}', name: 'despacho_delete', requirements: ['id' => UidType::REGEX], methods: ['DELETE'])]

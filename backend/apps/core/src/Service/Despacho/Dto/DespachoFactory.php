@@ -44,9 +44,12 @@ final readonly class DespachoFactory
         $despacho->setContenedor($dto->contenedor);
         $despacho->setObservaciones($dto->observaciones);
 
-        // Fix: guardar numeroPlanta cuando se edita
         if ($dto->numeroPlanta !== null) {
             $despacho->setNumeroPlanta($dto->numeroPlanta);
+        }
+
+        if ($dto->numeroCliente !== null) {
+            $despacho->setNumeroCliente($dto->numeroCliente);
         }
 
         if ($dto->operacionId) {

@@ -54,6 +54,9 @@ class Cliente implements \Stringable
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $email = null;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $emailDestinatarios = null;
+
     public function __toString(): string
     {
         return $this->razonSocial ?? '';
@@ -96,6 +99,9 @@ class Cliente implements \Stringable
 
     public function getEmail(): ?string { return $this->email; }
     public function setEmail(?string $v): static { $this->email = $v; return $this; }
+
+    public function getEmailDestinatarios(): ?string { return $this->emailDestinatarios; }
+    public function setEmailDestinatarios(?string $v): static { $this->emailDestinatarios = $v; return $this; }
 
     public function setIsActive(bool $isActive): static { $this->isActive = $isActive; return $this; }
 }

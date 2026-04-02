@@ -12,6 +12,14 @@ use Symfony\Component\Mime\Address;
 
 final readonly class EnviarCorreoDespachoService
 {
+    // Aliases de parámetros (máx 6 caracteres)
+    private const ALIAS_FIRMA_NOMBRE  = 'FRNOMB';
+    private const ALIAS_FIRMA_CARGO   = 'FRCARG';
+    private const ALIAS_FIRMA_EMPRESA = 'FRNEMP';
+    private const ALIAS_REM_NOMBRE    = 'REMNOM';
+    private const ALIAS_REM_EMAIL     = 'REMAIL';
+    private const ALIAS_CC_MAIL       = 'CCMAIL'; // copia fija a correos de la empresa
+
     public function __construct(
         private DespachoRepository $despachoRepository,
         private ArchivoDespachoRepository $archivoDespachoRepository,
@@ -30,16 +38,16 @@ final readonly class EnviarCorreoDespachoService
         $despacho = $this->despachoRepository->ofId($despachoUuid, true);
 
         return [
-            'asunto'         => $this->buildAsunto($despacho),
-            'cuerpo'         => $this->buildCuerpo($despacho),
-            'destinatarios'  => $despacho->getCliente()?->getEmailDestinatarios() ?? '',
+            'asunto'        => $this->buildAsunto($despacho),
+            'cuerpo'        => $this->buildCuerpo($despacho),
+            'destinatarios' => $despacho->getCliente()?->getEmailDestinatarios() ?? '',
         ];
     }
 
     /**
      * Envía el correo con los adjuntos seleccionados.
      *
-     * @param string[] $archivosIds  UUIDs de archivos a adjuntar
+     * @param string[] $archivosIds UUIDs de archivos a adjuntar
      */
     public function execute(
         string $despachoUuid,
@@ -50,17 +58,16 @@ final readonly class EnviarCorreoDespachoService
     ): void {
         $despacho = $this->despachoRepository->ofId($despachoUuid, true);
 
-        // Parsear destinatarios (separados por ; o coma)
-        $emails = $this->parseDestinatarios($destinatarios);
-        if (empty($emails)) {
+        $toEmails = $this->parseDestinatarios($destinatarios);
+        if (empty($toEmails)) {
             throw new \RuntimeException('No hay destinatarios válidos para enviar el correo.');
         }
 
-        $remitenteNombre = $this->parametroRepository->findByAlias('REM_NOMBRE')?->getName() ?? 'Facturación';
-        $remitenteEmail  = $this->parametroRepository->findByAlias('REM_EMAIL')?->getName() ?? '';
+        $remitenteNombre = $this->parametroRepository->findByAlias(self::ALIAS_REM_NOMBRE)?->getName() ?? 'Facturación';
+        $remitenteEmail  = $this->parametroRepository->findByAlias(self::ALIAS_REM_EMAIL)?->getName() ?? '';
 
         if (!$remitenteEmail) {
-            throw new \RuntimeException('No hay email remitente configurado. Configure el parámetro REM_EMAIL en Configuración > Parámetros.');
+            throw new \RuntimeException('No hay email remitente configurado. Cree el parámetro con alias REMAIL en Configuración > Parámetros.');
         }
 
         $email = (new Email())
@@ -68,8 +75,14 @@ final readonly class EnviarCorreoDespachoService
             ->subject($asunto)
             ->text($cuerpo);
 
-        foreach ($emails as $to) {
+        foreach ($toEmails as $to) {
             $email->addTo($to);
+        }
+
+        // CC fijo a correos internos de la empresa
+        $ccRaw = $this->parametroRepository->findByAlias(self::ALIAS_CC_MAIL)?->getName() ?? '';
+        foreach ($this->parseDestinatarios($ccRaw) as $cc) {
+            $email->addCc($cc);
         }
 
         // Adjuntar archivos seleccionados
@@ -104,12 +117,12 @@ final readonly class EnviarCorreoDespachoService
 
     private function buildCuerpo(\App\apps\core\Entity\Despacho $despacho): string
     {
-        $saludo    = $this->saludoPorHora();
-        $numero    = $despacho->getNumeroCliente();
-        $fecha     = $despacho->createdAt()?->format('d/m/Y') ?? date('d/m/Y');
-        $nombre    = $this->parametroRepository->findByAlias('FRM_NOMBRE')?->getName() ?? '';
-        $cargo     = $this->parametroRepository->findByAlias('FRM_CARGO')?->getName() ?? '';
-        $empresa   = $this->parametroRepository->findByAlias('FRM_EMPRESA')?->getName() ?? '';
+        $saludo  = $this->saludoPorHora();
+        $numero  = $despacho->getNumeroCliente();
+        $fecha   = $despacho->createdAt()?->format('d/m/Y') ?? date('d/m/Y');
+        $nombre  = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_NOMBRE)?->getName() ?? '';
+        $cargo   = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_CARGO)?->getName() ?? '';
+        $empresa = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_EMPRESA)?->getName() ?? '';
 
         $firma = implode("\n", array_filter([$nombre, $cargo, $empresa]));
 
@@ -138,6 +151,7 @@ TXT;
     private function parseDestinatarios(string $raw): array
     {
         $parts = preg_split('/[;,\s]+/', $raw);
+
         return array_values(array_filter(
             array_map('trim', $parts),
             static fn(string $e) => filter_var($e, FILTER_VALIDATE_EMAIL) !== false

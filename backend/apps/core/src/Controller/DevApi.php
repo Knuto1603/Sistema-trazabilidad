@@ -138,7 +138,6 @@ class DevApi extends AbstractSerializerApi
     #[Route('/correo/test', name: 'dev_correo_test', methods: ['POST'])]
     public function correoTest(
         Request $request,
-        EnviarCorreoDespachoService $correoService,
         ParametroRepository $parametroRepository,
     ): Response {
         $body       = \json_decode($request->getContent(), true) ?? [];

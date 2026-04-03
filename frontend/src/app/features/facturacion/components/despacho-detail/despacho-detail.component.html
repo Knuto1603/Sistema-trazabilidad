@@ -634,6 +634,17 @@
               <p class="text-xs text-slate-400 mt-0.5">Separados por punto y coma (;)</p>
             </div>
 
+            <!-- CC -->
+            @if (correoCc()) {
+              <div>
+                <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Con copia (CC)</label>
+                <div class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 font-mono text-slate-500 leading-relaxed break-all">
+                  {{ correoCc() }}
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">Configurado en Parámetros › CCMAIL. El remitente recibe BCC automáticamente.</p>
+              </div>
+            }
+
             <!-- Asunto -->
             <div>
               <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Asunto *</label>

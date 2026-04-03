@@ -53,8 +53,8 @@ export class DespachoService {
     return this.http.get<ApiResponse<{ numeroCliente: number }>>(`${this.base}/proximo-numero-cliente`, { params });
   }
 
-  previewCorreo(id: string): Observable<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string }>> {
-    return this.http.get<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string }>>(`${this.base}/${id}/preview-correo`);
+  previewCorreo(id: string): Observable<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string; cc: string }>> {
+    return this.http.get<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string; cc: string }>>(`${this.base}/${id}/preview-correo`);
   }
 
   enviarCorreo(id: string, dto: { asunto: string; cuerpo: string; destinatarios: string; archivosIds: string[] }): Observable<ApiResponse<null>> {

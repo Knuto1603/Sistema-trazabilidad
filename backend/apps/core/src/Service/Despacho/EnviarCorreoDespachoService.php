@@ -37,10 +37,13 @@ final readonly class EnviarCorreoDespachoService
     {
         $despacho = $this->despachoRepository->ofId($despachoUuid, true);
 
+        $ccRaw = $this->parametroRepository->findByAlias(self::ALIAS_CC_MAIL)?->getName() ?? '';
+
         return [
             'asunto'        => $this->buildAsunto($despacho),
             'cuerpo'        => $this->buildCuerpo($despacho),
             'destinatarios' => $despacho->getCliente()?->getEmailDestinatarios() ?? '',
+            'cc'            => $ccRaw,
         ];
     }
 
@@ -84,6 +87,9 @@ final readonly class EnviarCorreoDespachoService
         foreach ($this->parseDestinatarios($ccRaw) as $cc) {
             $email->addCc($cc);
         }
+
+        // BCC al remitente para que quede copia en su buzón
+        $email->addBcc(new Address($remitenteEmail, $remitenteNombre));
 
         // Adjuntar archivos seleccionados
         if (!empty($archivosIds)) {

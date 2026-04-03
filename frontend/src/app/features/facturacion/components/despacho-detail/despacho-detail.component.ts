@@ -79,6 +79,7 @@ export class DespachoDetailComponent implements OnInit {
   correoAsunto = signal('');
   correoCuerpo = signal('');
   correoDestinatarios = signal('');
+  correoCc = signal('');
   correoArchivosSeleccionados = signal<Set<string>>(new Set());
 
   // Subida múltiple + auto-procesado de XMLs
@@ -783,6 +784,7 @@ export class DespachoDetailComponent implements OnInit {
           this.correoAsunto.set(res.item.asunto);
           this.correoCuerpo.set(res.item.cuerpo);
           this.correoDestinatarios.set(res.item.destinatarios);
+          this.correoCc.set(res.item.cc ?? '');
         }
         this.loadingPreviewCorreo.set(false);
       },

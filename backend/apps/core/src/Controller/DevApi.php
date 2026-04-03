@@ -27,6 +27,8 @@ class DevApi extends AbstractSerializerApi
         private readonly string $projectDir,
         #[Autowire('%kernel.environment%')]
         private readonly string $env,
+        #[Autowire('%env(MAILER_DSN)%')]
+        private readonly string $mailerDsn,
         private readonly MailerInterface $mailer,
     ) {
     }
@@ -51,8 +53,7 @@ class DevApi extends AbstractSerializerApi
 
         $now = new \DateTime('now', new \DateTimeZone('America/Lima'));
 
-        $mailerDsn = getenv('MAILER_DSN') ?: ($_ENV['MAILER_DSN'] ?? 'not set');
-        $mailerConfigurado = !empty($mailerDsn) && $mailerDsn !== 'null://null' && $mailerDsn !== 'not set';
+        $mailerConfigurado = !empty($this->mailerDsn) && $this->mailerDsn !== 'null://null';
 
         return $this->ok([
             'item' => [
@@ -93,8 +94,7 @@ class DevApi extends AbstractSerializerApi
         }
 
         // Mailer
-        $mailerDsn = getenv('MAILER_DSN') ?: ($_ENV['MAILER_DSN'] ?? '');
-        $mailerOk = !empty($mailerDsn) && $mailerDsn !== 'null://null';
+        $mailerOk = !empty($this->mailerDsn) && $this->mailerDsn !== 'null://null';
 
         // Uploads dir
         $uploadsDir = $this->projectDir . '/public/uploads';

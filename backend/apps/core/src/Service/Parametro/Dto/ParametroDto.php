@@ -13,7 +13,7 @@ final class ParametroDto implements DtoRequestInterface
     use DtoTrait;
 
     public function __construct(
-        #[Assert\Length(min: 2, max: 100)]
+        #[Assert\Length(min: 2)]
         public ?string $name = null,
 
         #[Assert\Length(min: 0, max: 6)]

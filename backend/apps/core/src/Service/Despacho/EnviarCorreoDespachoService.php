@@ -97,9 +97,10 @@ final readonly class EnviarCorreoDespachoService
             foreach ($allArchivos as $archivo) {
                 if (\in_array($archivo->uuidToString(), $archivosIds, true)) {
                     $path = $this->projectDir . '/public/' . $archivo->getRuta();
-                    if (\file_exists($path)) {
-                        $email->attachFromPath($path, $archivo->getNombre());
+                    if (!\file_exists($path)) {
+                        throw new \RuntimeException('Archivo no encontrado en disco: ' . $archivo->getNombre() . ' (ruta: ' . $path . ')');
                     }
+                    $email->attachFromPath($path, $archivo->getNombre());
                 }
             }
         }

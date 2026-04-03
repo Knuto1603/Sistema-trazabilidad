@@ -776,7 +776,8 @@ export class DespachoDetailComponent implements OnInit {
 
   openCorreoModal(): void {
     this.showCorreoModal.set(true);
-    this.correoArchivosSeleccionados.set(new Set());
+    // Pre-seleccionar todos los archivos disponibles
+    this.correoArchivosSeleccionados.set(new Set(this.archivos().map(a => a.id)));
     this.loadingPreviewCorreo.set(true);
     this.despachoService.previewCorreo(this.despachoId()).subscribe({
       next: res => {

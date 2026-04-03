@@ -51,7 +51,7 @@ class DevApi extends AbstractSerializerApi
 
         $now = new \DateTime('now', new \DateTimeZone('America/Lima'));
 
-        $mailerDsn = $_ENV['MAILER_DSN'] ?? getenv('MAILER_DSN') ?: 'not set';
+        $mailerDsn = getenv('MAILER_DSN') ?: ($_ENV['MAILER_DSN'] ?? 'not set');
         $mailerConfigurado = !empty($mailerDsn) && $mailerDsn !== 'null://null' && $mailerDsn !== 'not set';
 
         return $this->ok([
@@ -93,7 +93,7 @@ class DevApi extends AbstractSerializerApi
         }
 
         // Mailer
-        $mailerDsn = $_ENV['MAILER_DSN'] ?? getenv('MAILER_DSN') ?: '';
+        $mailerDsn = getenv('MAILER_DSN') ?: ($_ENV['MAILER_DSN'] ?? '');
         $mailerOk = !empty($mailerDsn) && $mailerDsn !== 'null://null';
 
         // Uploads dir

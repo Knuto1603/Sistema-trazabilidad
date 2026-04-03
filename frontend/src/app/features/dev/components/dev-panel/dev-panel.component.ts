@@ -30,6 +30,7 @@ export class DevPanelComponent implements OnInit {
   correoDestinatario = signal('');
   correoAsunto = signal('TEST - Sistema Trazabilidad');
   correoCuerpo = signal('Correo de prueba enviado desde el Panel Developer.\n\nSi recibiste este mensaje, el sistema de correo está funcionando correctamente.');
+  correoArchivos = signal<File[]>([]);
   enviandoCorreo = signal(false);
 
   // Migraciones
@@ -89,9 +90,11 @@ export class DevPanelComponent implements OnInit {
       destinatario: dest,
       asunto: this.correoAsunto().trim() || undefined,
       cuerpo: this.correoCuerpo().trim() || undefined,
+      archivos: this.correoArchivos(),
     }).subscribe({
       next: res => {
         this.notif.success(res.message ?? 'Correo enviado correctamente');
+        this.correoArchivos.set([]);
         this.enviandoCorreo.set(false);
       },
       error: err => {
@@ -112,6 +115,15 @@ export class DevPanelComponent implements OnInit {
   refreshMigraciones() {
     this.migraciones.set(null);
     this.loadMigraciones();
+  }
+
+  onArchivosSeleccionados(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.correoArchivos.set(input.files ? Array.from(input.files) : []);
+  }
+
+  removeArchivo(index: number): void {
+    this.correoArchivos.update(files => files.filter((_, i) => i !== index));
   }
 
   diskUsedPercent(info: DevInfo): number {

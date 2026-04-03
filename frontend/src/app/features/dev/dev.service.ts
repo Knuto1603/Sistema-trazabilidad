@@ -43,6 +43,7 @@ export interface CorreoTestDto {
   destinatario: string;
   asunto?: string;
   cuerpo?: string;
+  archivos?: File[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -67,6 +68,11 @@ export class DevService {
   }
 
   testCorreo(dto: CorreoTestDto): Observable<ApiResponse<null>> {
-    return this.http.post<ApiResponse<null>>(`${this.base}/correo/test`, dto);
+    const form = new FormData();
+    form.append('destinatario', dto.destinatario);
+    if (dto.asunto) form.append('asunto', dto.asunto);
+    if (dto.cuerpo) form.append('cuerpo', dto.cuerpo);
+    (dto.archivos ?? []).forEach(f => form.append('archivos[]', f, f.name));
+    return this.http.post<ApiResponse<null>>(`${this.base}/correo/test`, form);
   }
 }

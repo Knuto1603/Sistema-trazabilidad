@@ -140,17 +140,14 @@ class DevApi extends AbstractSerializerApi
         Request $request,
         ParametroRepository $parametroRepository,
     ): Response {
-        $body       = \json_decode($request->getContent(), true) ?? [];
-        $destinatario = \trim($body['destinatario'] ?? '');
-        $asunto       = \trim($body['asunto'] ?? 'TEST - Sistema Trazabilidad');
-        $cuerpo       = \trim($body['cuerpo'] ?? "Correo de prueba enviado desde el Panel Developer.\n\nSi recibiste este mensaje, el sistema de correo está funcionando correctamente.");
+        $destinatario = \trim($request->request->get('destinatario', ''));
+        $asunto       = \trim($request->request->get('asunto', 'TEST - Sistema Trazabilidad'));
+        $cuerpo       = \trim($request->request->get('cuerpo', "Correo de prueba enviado desde el Panel Developer.\n\nSi recibiste este mensaje, el sistema de correo está funcionando correctamente."));
 
         if (!$destinatario || !\filter_var($destinatario, FILTER_VALIDATE_EMAIL)) {
             return $this->fail('Ingresa un email de destinatario válido.');
         }
 
-        // Reutiliza el servicio de correo: crea un despacho ficticio no, mejor envío directo
-        // Envío directo usando los parámetros de remitente configurados
         $remitenteNombre = $parametroRepository->findByAlias('REMNOM')?->getName() ?? 'Sistema Trazabilidad';
         $remitenteEmail  = $parametroRepository->findByAlias('REMAIL')?->getName() ?? '';
 
@@ -165,9 +162,30 @@ class DevApi extends AbstractSerializerApi
                 ->subject($asunto)
                 ->text($cuerpo);
 
+            /** @var \Symfony\Component\HttpFoundation\File\UploadedFile[] $archivos */
+            $archivos = $request->files->get('archivos', []);
+            if (!\is_array($archivos)) {
+                $archivos = [$archivos];
+            }
+            foreach ($archivos as $archivo) {
+                if ($archivo && $archivo->isValid()) {
+                    $email->attachFromPath(
+                        $archivo->getPathname(),
+                        $archivo->getClientOriginalName(),
+                        $archivo->getClientMimeType()
+                    );
+                }
+            }
+
             $this->mailer->send($email);
 
-            return $this->ok(['message' => "Correo enviado a {$destinatario}", 'item' => null]);
+            $adjuntados = \count(\array_filter($archivos, fn($f) => $f && $f->isValid()));
+            $msg = "Correo enviado a {$destinatario}";
+            if ($adjuntados > 0) {
+                $msg .= " con {$adjuntados} adjunto(s)";
+            }
+
+            return $this->ok(['message' => $msg, 'item' => null]);
         } catch (\Throwable $e) {
             return $this->fail('Error al enviar: ' . $e->getMessage());
         }

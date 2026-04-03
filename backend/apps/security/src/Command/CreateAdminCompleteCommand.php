@@ -15,7 +15,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 #[AsCommand(
     name: 'app:create-admin-complete',
-    description: 'Crea los roles ROLE_ADMIN y KNUTO_ROLE, y el superadmin Knuto',
+    description: 'Crea los roles ROLE_ADMIN y ROLE_KNUTO, y el superadmin Knuto',
     aliases: ['user:initialize', 'security:user:initialize']
 )]
 class CreateAdminCompleteCommand extends Command
@@ -60,17 +60,17 @@ class CreateAdminCompleteCommand extends Command
                 $io->info('- UserRole ROLE_ADMIN ya existe');
             }
 
-            // Paso 2: Crear KNUTO_ROLE si no existe
-            $knutoRole = $userRoleRepository->findOneBy(['name' => 'KNUTO_ROLE']);
+            // Paso 2: Crear ROLE_KNUTO si no existe
+            $knutoRole = $userRoleRepository->findOneBy(['name' => 'ROLE_KNUTO']);
             if (!$knutoRole) {
                 $knutoRole = new UserRole();
-                $knutoRole->setName('KNUTO_ROLE');
+                $knutoRole->setName('ROLE_KNUTO');
                 $knutoRole->setAlias('Knuto');
                 $this->entityManager->persist($knutoRole);
                 $this->entityManager->flush();
-                $io->success('✓ UserRole KNUTO_ROLE creado');
+                $io->success('✓ UserRole ROLE_KNUTO creado');
             } else {
-                $io->info('- UserRole KNUTO_ROLE ya existe');
+                $io->info('- UserRole ROLE_KNUTO ya existe');
             }
 
             // Paso 3: Crear o actualizar el superadmin
@@ -104,9 +104,9 @@ class CreateAdminCompleteCommand extends Command
                     $superAdmin->addRol($adminRole);
                     $io->success('✓ Rol ROLE_ADMIN asignado');
                 }
-                if (!in_array('KNUTO_ROLE', $existingRoleNames)) {
+                if (!in_array('ROLE_KNUTO', $existingRoleNames)) {
                     $superAdmin->addRol($knutoRole);
-                    $io->success('✓ Rol KNUTO_ROLE asignado');
+                    $io->success('✓ Rol ROLE_KNUTO asignado');
                 }
 
                 $this->entityManager->flush();
@@ -116,7 +116,7 @@ class CreateAdminCompleteCommand extends Command
             $io->text([
                 'Username : knuto',
                 'Full Name: Knuto',
-                'Roles    : ROLE_ADMIN, KNUTO_ROLE',
+                'Roles    : ROLE_ADMIN, ROLE_KNUTO',
             ]);
 
             $io->success('Proceso completado exitosamente');

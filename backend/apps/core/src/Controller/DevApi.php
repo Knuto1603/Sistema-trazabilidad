@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/dev')]
-#[IsGranted('KNUTO_ROLE')]
+#[IsGranted('ROLE_KNUTO')]
 class DevApi extends AbstractSerializerApi
 {
     public function __construct(

@@ -6,7 +6,7 @@ export const knutoGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  if (authService.hasRole('KNUTO_ROLE')) {
+  if (authService.hasRole('ROLE_KNUTO')) {
     return true;
   }
 

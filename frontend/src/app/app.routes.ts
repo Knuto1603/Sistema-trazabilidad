@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './layouts/layout/layout.component';
 import { authGuard } from '@core/guards/auth.guard';
+import { knutoGuard } from '@core/guards/knuto.guard';
 import { EmptyLayoutComponent } from './layouts/empty-layout/empty-layout.component';
 
 export const routes: Routes = [
@@ -42,6 +43,11 @@ export const routes: Routes = [
       {
         path: 'facturacion',
         loadChildren: () => import('@features/facturacion/facturacion.routes').then(m => m.facturacionRoutes)
+      },
+      {
+        path: 'dev',
+        canActivate: [knutoGuard],
+        loadChildren: () => import('@features/dev/dev.routes').then(m => m.devRoutes)
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: '**', redirectTo: 'dashboard' }

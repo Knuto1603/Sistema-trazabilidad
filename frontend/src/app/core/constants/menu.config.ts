@@ -39,5 +39,11 @@ export const SIDEBAR_MENU: MenuBlock[] = [
       { label: 'Usuarios', icon: 'people', path: '/app/users', roles: ['ROLE_ADMIN'] },
       { label: 'Configuración', icon: 'settings', path: '/app/settings', roles: ['ROLE_ADMIN'] },
     ]
+  },
+  {
+    blockTitle: 'Developer',
+    items: [
+      { label: 'Panel Developer', icon: 'dev', path: '/app/dev', roles: ['KNUTO_ROLE'] },
+    ]
   }
 ];

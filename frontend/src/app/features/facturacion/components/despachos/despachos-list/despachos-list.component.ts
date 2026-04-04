@@ -39,7 +39,14 @@ export class DespachosListComponent implements OnInit {
   currentPage = signal(0);
   sefiltro = signal<string>('');
 
-  clientes = signal<Cliente[]>([]);
+  // Combobox de cliente
+  clienteSearch = signal('');
+  clienteDropdownOpen = signal(false);
+  clienteSearchResults = signal<Cliente[]>([]);
+  clienteSelected = signal<Cliente | null>(null);
+  clienteSearchLoading = signal(false);
+  private clienteSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
   frutas = signal<{ id: string; nombre: string }[]>([]);
   operaciones = signal<Operacion[]>([]);
   proximoNumeroPlanta = signal<number | null>(null);
@@ -78,15 +85,8 @@ export class DespachosListComponent implements OnInit {
   readonly SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'];
 
   ngOnInit(): void {
-    this.loadClientes();
     this.loadFrutas();
     this.load();
-  }
-
-  loadClientes(): void {
-    this.clienteService.getAll({ page: 0, itemsPerPage: 200 }).subscribe(res => {
-      if (res.status) this.clientes.set(res.items);
-    });
   }
 
   loadFrutas(): void {
@@ -123,6 +123,60 @@ export class DespachosListComponent implements OnInit {
 
   onPageChange(page: number): void { this.currentPage.set(page); this.load(); }
 
+  // --- Combobox cliente ---
+
+  openClienteDropdown(): void {
+    if (this.clienteSelected()) return;
+    this.clienteDropdownOpen.set(true);
+    if (this.clienteSearchResults().length === 0) {
+      this.searchClientes('');
+    }
+  }
+
+  closeClienteDropdown(): void {
+    this.clienteDropdownOpen.set(false);
+  }
+
+  onClienteSearchInput(value: string): void {
+    this.clienteSearch.set(value);
+    this.clienteDropdownOpen.set(true);
+    if (this.clienteSearchTimer) clearTimeout(this.clienteSearchTimer);
+    this.clienteSearchTimer = setTimeout(() => this.searchClientes(value), 300);
+  }
+
+  searchClientes(q: string): void {
+    this.clienteSearchLoading.set(true);
+    this.clienteService.getAll({ page: 0, itemsPerPage: 5, search: q }).subscribe({
+      next: res => {
+        if (res.status) this.clienteSearchResults.set(res.items);
+        this.clienteSearchLoading.set(false);
+      },
+      error: () => this.clienteSearchLoading.set(false)
+    });
+  }
+
+  selectCliente(c: Cliente): void {
+    this.clienteSelected.set(c);
+    this.form.patchValue({ clienteId: c.id });
+    this.clienteDropdownOpen.set(false);
+    this.clienteSearch.set('');
+    if (!this.editingId()) {
+      const operacionId = this.form.get('operacionId')?.value || undefined;
+      this.cargarProximosNumeros(c.id, operacionId);
+    }
+  }
+
+  clearClienteSelection(): void {
+    this.clienteSelected.set(null);
+    this.form.patchValue({ clienteId: '', numeroPlanta: null, numeroCliente: null });
+    this.proximoNumeroPlanta.set(null);
+    this.proximoNumeroCliente.set(null);
+    this.clienteSearchResults.set([]);
+    this.clienteSearch.set('');
+  }
+
+  // --- Modal ---
+
   openCreateModal(): void {
     this.editingId.set(null);
     this.form.reset();
@@ -131,8 +185,13 @@ export class DespachosListComponent implements OnInit {
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
     this.showNewClientePanel.set(false);
+    this.clienteSelected.set(null);
+    this.clienteSearch.set('');
+    this.clienteSearchResults.set([]);
+    this.clienteDropdownOpen.set(false);
     const sede = this.campaignService.activeCampaign()?.sede ?? undefined;
     this.loadOperacionesBySede(sede);
+    this.searchClientes('');
     this.showModal.set(true);
   }
 
@@ -148,6 +207,15 @@ export class DespachosListComponent implements OnInit {
       numeroPlanta: item.numeroPlanta ?? null,
       numeroCliente: item.numeroCliente ?? null,
     });
+    this.clienteSelected.set({
+      id: item.clienteId,
+      ruc: item.clienteRuc ?? '',
+      razonSocial: item.clienteRazonSocial ?? '',
+      isActive: true,
+    });
+    this.clienteSearch.set('');
+    this.clienteSearchResults.set([]);
+    this.clienteDropdownOpen.set(false);
     this.proximoNumeroPlanta.set(null);
     this.proximoNumeroCliente.set(null);
     this.showNewClientePanel.set(false);
@@ -165,18 +233,16 @@ export class DespachosListComponent implements OnInit {
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
     this.showNewClientePanel.set(false);
+    this.clienteSelected.set(null);
+    this.clienteSearch.set('');
+    this.clienteSearchResults.set([]);
+    this.clienteDropdownOpen.set(false);
   }
 
   private loadOperacionesBySede(sede?: string): void {
     this.operacionService.getAll(sede).subscribe(res => {
       if (res.status) this.operaciones.set(res.items);
     });
-  }
-
-  onClienteChange(clienteId: string): void {
-    if (!clienteId || this.editingId()) return;
-    const operacionId = this.form.get('operacionId')?.value || undefined;
-    this.cargarProximosNumeros(clienteId, operacionId);
   }
 
   onOperacionChange(operacionId: string): void {
@@ -262,8 +328,7 @@ export class DespachosListComponent implements OnInit {
       next: res => {
         if (res.status && res.item) {
           this.notification.success('Cliente creado correctamente');
-          this.loadClientes();
-          this.form.patchValue({ clienteId: res.item.id });
+          this.selectCliente(res.item);
           this.newClienteRuc.set('');
           this.newClienteRazonSocial.set('');
           this.showNewClientePanel.set(false);

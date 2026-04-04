@@ -122,15 +122,61 @@
                 }
               </button>
             </div>
-            <select formControlName="clienteId"
-              (change)="onClienteChange($any($event.target).value)"
-              class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              [class.border-red-400]="fieldInvalid('clienteId')" [class.border-slate-200]="!fieldInvalid('clienteId')">
-              <option value="">Seleccionar cliente...</option>
-              @for (c of clientes(); track c.id) {
-                <option [value]="c.id">{{ c.ruc }} - {{ c.razonSocial }}</option>
+            <!-- Combobox búsqueda de cliente -->
+            <div class="relative">
+              @if (clienteSelected(); as sel) {
+                <div class="w-full px-3 py-2 text-sm border rounded-xl flex items-center justify-between gap-2 bg-white border-slate-200">
+                  <div class="min-w-0">
+                    <p class="font-semibold text-slate-800 truncate text-sm">{{ sel.razonSocial }}</p>
+                    <p class="text-xs text-slate-400 font-mono">{{ sel.ruc }}</p>
+                  </div>
+                  <button type="button" (click)="clearClienteSelection()" title="Cambiar cliente"
+                    class="flex-shrink-0 text-slate-400 hover:text-red-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              } @else {
+                <div class="relative">
+                  <input type="text" placeholder="Buscar por RUC o razón social..."
+                    [value]="clienteSearch()"
+                    (input)="onClienteSearchInput($any($event.target).value)"
+                    (focus)="openClienteDropdown()"
+                    autocomplete="off"
+                    class="w-full px-3 py-2 pr-8 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    [class.border-red-400]="fieldInvalid('clienteId')"
+                    [class.border-slate-200]="!fieldInvalid('clienteId')">
+                  @if (clienteSearchLoading()) {
+                    <div class="absolute right-2.5 top-2.5">
+                      <svg class="w-4 h-4 animate-spin text-slate-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    </div>
+                  }
+                </div>
+
+                @if (clienteDropdownOpen()) {
+                  <div class="fixed inset-0 z-10" (click)="closeClienteDropdown()"></div>
+                  <div class="absolute z-20 top-full mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-52 overflow-y-auto">
+                    @if (clienteSearchLoading() && clienteSearchResults().length === 0) {
+                      <p class="px-3 py-3 text-sm text-slate-400 text-center">Buscando...</p>
+                    } @else if (clienteSearchResults().length === 0) {
+                      <p class="px-3 py-3 text-sm text-slate-400 text-center">Sin resultados</p>
+                    } @else {
+                      @for (c of clienteSearchResults(); track c.id) {
+                        <button type="button" (click)="selectCliente(c)"
+                          class="w-full px-3 py-2.5 text-left hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0">
+                          <p class="text-sm font-semibold text-slate-800">{{ c.razonSocial }}</p>
+                          <p class="text-xs text-slate-400 font-mono">{{ c.ruc }}</p>
+                        </button>
+                      }
+                      @if (!clienteSearch()) {
+                        <p class="px-3 py-2 text-xs text-slate-400 text-center border-t border-slate-100 bg-slate-50">
+                          Mostrando los primeros 5 — escribe para buscar más
+                        </p>
+                      }
+                    }
+                  </div>
+                }
               }
-            </select>
+            </div>
             @if (fieldInvalid('clienteId')) { <p class="text-xs text-red-500 mt-1">Campo requerido</p> }
 
             @if (showNewClientePanel()) {

@@ -4,6 +4,7 @@ namespace App\apps\core\Service\Despacho;
 
 use App\apps\core\Repository\ArchivoDespachoRepository;
 use App\apps\core\Repository\DespachoRepository;
+use App\apps\core\Repository\FacturaRepository;
 use App\apps\core\Repository\ParametroRepository;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
@@ -23,6 +24,7 @@ final readonly class EnviarCorreoDespachoService
     public function __construct(
         private DespachoRepository $despachoRepository,
         private ArchivoDespachoRepository $archivoDespachoRepository,
+        private FacturaRepository $facturaRepository,
         private ParametroRepository $parametroRepository,
         private MailerInterface $mailer,
         #[Autowire('%kernel.project_dir%')]
@@ -100,7 +102,8 @@ final readonly class EnviarCorreoDespachoService
                     if (!\file_exists($path)) {
                         throw new \RuntimeException('Archivo no encontrado en disco: ' . $archivo->getNombre() . ' (ruta: ' . $path . ')');
                     }
-                    $email->attachFromPath($path, $archivo->getNombre());
+                    $nombreOriginal = preg_replace('/^[^_]+_/', '', $archivo->getNombre()) ?? $archivo->getNombre();
+                    $email->attachFromPath($path, $nombreOriginal);
                 }
             }
         }
@@ -126,7 +129,15 @@ final readonly class EnviarCorreoDespachoService
     {
         $saludo  = $this->saludoPorHora();
         $numero  = $despacho->getNumeroCliente();
-        $fecha   = $despacho->createdAt()?->format('d/m/Y') ?? date('d/m/Y');
+
+        $facturas = $this->facturaRepository->findByDespachoUuid($despacho->uuidToString());
+        $facturaActiva = null;
+        foreach ($facturas as $f) {
+            if ($f->isActive() && !$f->isAnulada()) { $facturaActiva = $f; break; }
+        }
+        $fecha = $facturaActiva?->getFechaEmision()?->format('d/m/Y')
+            ?? $despacho->createdAt()?->format('d/m/Y')
+            ?? date('d/m/Y');
         $nombre  = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_NOMBRE)?->getName() ?? '';
         $cargo   = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_CARGO)?->getName() ?? '';
         $empresa = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_EMPRESA)?->getName() ?? '';

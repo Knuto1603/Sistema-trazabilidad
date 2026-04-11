@@ -69,12 +69,41 @@ export interface Despacho {
 export interface Factura {
   id: string; tipoDocumento: string; serie: string; correlativo: string;
   numeroDocumento: string; numeroGuia?: string; fechaEmision: string;
+  fechaVencimiento?: string;
   moneda: string; detalle?: string; kgCaja?: number; unidadMedida?: string;
   cajas?: number; cantidad?: number; valorUnitario?: number;
   importe?: number; igv?: number; total?: number; tipoCambio?: number;
   tipoServicio?: string; tipoOperacion?: string; isAnulada: boolean;
   contenedor?: string; destino?: string;
   despachoId: string; despachoNumero?: number; clienteRazonSocial?: string; isActive: boolean;
+}
+
+export interface Voucher {
+  id: string; numero: string; numeroOperacion?: string;
+  montoTotal: number; fecha: string;
+  clienteId?: string; clienteRazonSocial?: string;
+  montoRestante: number; montoUsado: number; isActive: boolean;
+}
+
+export interface PagoFactura {
+  id: string; montoAplicado: number; justificanteEliminacion?: string;
+  isActive: boolean; createdAt?: string;
+  voucherId?: string; voucherNumero?: string; voucherNumeroOperacion?: string;
+  voucherMontoTotal?: number; voucherMontoRestante?: number; voucherMontoUsado?: number;
+  voucherFecha?: string; voucherClienteId?: string;
+}
+
+export type EstadoCuenta = 'PENDIENTE' | 'PAGADO' | 'VENCIDA';
+
+export interface CuentaCobrar {
+  id: string; tipoDocumento: string; numeroDocumento: string;
+  fechaEmision: string; fechaVencimiento?: string;
+  total?: number; moneda: string; contenedor?: string;
+  despachoId: string; despachoNumero?: number; sede?: string;
+  clienteId?: string; clienteRazonSocial?: string; clienteRuc?: string;
+  operacionId?: string; operacionNombre?: string;
+  montoPagado: number; montoPendiente: number; estado: EstadoCuenta;
+  pagos: PagoFactura[];
 }
 
 export interface ArchivoDespacho {

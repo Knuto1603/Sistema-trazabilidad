@@ -4,6 +4,8 @@ namespace App\apps\core\Entity;
 
 use App\apps\core\Repository\FacturaRepository;
 use App\shared\Entity\EntityTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -36,6 +38,9 @@ class Factura
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
     private ?\DateTimeInterface $fechaEmision = null;
+
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $fechaVencimiento = null;
 
     #[ORM\Column(length: 3, options: ['default' => 'USD'])]
     private string $moneda = 'USD';
@@ -89,6 +94,14 @@ class Factura
     #[ORM\JoinColumn(nullable: false)]
     private ?Despacho $despacho = null;
 
+    #[ORM\OneToMany(targetEntity: PagoFactura::class, mappedBy: 'factura')]
+    private Collection $pagos;
+
+    public function __construct()
+    {
+        $this->pagos = new ArrayCollection();
+    }
+
     public function getId(): ?int { return $this->id; }
 
     public function getTipoDocumento(): ?string { return $this->tipoDocumento; }
@@ -108,6 +121,9 @@ class Factura
 
     public function getFechaEmision(): ?\DateTimeInterface { return $this->fechaEmision; }
     public function setFechaEmision(\DateTimeInterface $v): static { $this->fechaEmision = $v; return $this; }
+
+    public function getFechaVencimiento(): ?\DateTimeInterface { return $this->fechaVencimiento; }
+    public function setFechaVencimiento(?\DateTimeInterface $v): static { $this->fechaVencimiento = $v; return $this; }
 
     public function getMoneda(): string { return $this->moneda; }
     public function setMoneda(string $v): static { $this->moneda = $v; return $this; }
@@ -159,6 +175,8 @@ class Factura
 
     public function getDespacho(): ?Despacho { return $this->despacho; }
     public function setDespacho(?Despacho $despacho): static { $this->despacho = $despacho; return $this; }
+
+    public function getPagos(): Collection { return $this->pagos; }
 
     public function setIsActive(bool $isActive): static { $this->isActive = $isActive; return $this; }
 }

@@ -27,6 +27,8 @@ final class FacturaDto implements DtoRequestInterface
         #[Assert\NotBlank]
         public ?string $fechaEmision = null,
 
+        public ?string $fechaVencimiento = null,
+
         public string $moneda = 'USD',
         public ?string $detalle = null,
         public ?float $kgCaja = null,

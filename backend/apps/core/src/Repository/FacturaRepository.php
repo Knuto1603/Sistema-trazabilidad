@@ -29,6 +29,18 @@ class FacturaRepository extends DoctrineEntityRepository
             ->orderBy('factura.fechaEmision', 'DESC');
     }
 
+    public function createQueryBuilderWithPagos(): QueryBuilder
+    {
+        return $this->createQueryBuilder('f')
+            ->select(['f', 'd', 'c', 'o', 'pagos', 'v'])
+            ->leftJoin('f.despacho', 'd')
+            ->leftJoin('d.cliente', 'c')
+            ->leftJoin('d.operacion', 'o')
+            ->leftJoin('f.pagos', 'pagos')
+            ->leftJoin('pagos.voucher', 'v')
+            ->orderBy('f.fechaEmision', 'DESC');
+    }
+
     public function paginateAndFilter(FilterService $filterService): PaginatorInterface
     {
         $queryBuilder = $this->allQuery();

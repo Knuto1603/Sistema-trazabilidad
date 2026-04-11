@@ -37,6 +37,7 @@ final readonly class FacturaFactory
         $factura->setNumeroDocumento(trim($dto->serie ?? '') . '-' . trim($dto->correlativo ?? ''));
         $factura->setNumeroGuia($dto->numeroGuia);
         $factura->setFechaEmision(new \DateTime($dto->fechaEmision));
+        $factura->setFechaVencimiento($dto->fechaVencimiento ? new \DateTime($dto->fechaVencimiento) : null);
         $factura->setMoneda($dto->moneda ?? 'USD');
         $factura->setDetalle($dto->detalle);
         $factura->setKgCaja($dto->kgCaja);

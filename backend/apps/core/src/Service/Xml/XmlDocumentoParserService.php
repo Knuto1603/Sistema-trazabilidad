@@ -44,6 +44,7 @@ class XmlDocumentoParserService
         $correlativo = $parts[1] ?? '';
 
         $fechaEmision = $this->xpathValue($xml, '//cbc:IssueDate');
+        $fechaVencimiento = $this->xpathValue($xml, '//cbc:DueDate');
         $moneda = $this->xpathValue($xml, '//cbc:DocumentCurrencyCode');
 
         $rucCliente = null;
@@ -192,13 +193,14 @@ class XmlDocumentoParserService
         $first = $items[0];
 
         return [
-            'tipoDocumento'  => $tipoDocumento ?? '01',
-            'serie'          => $serie,
-            'correlativo'    => $correlativo,
-            'numeroDocumento'=> $id,
-            'numeroGuia'     => $numeroGuia,
-            'fechaEmision'   => $fechaEmision,
-            'moneda'         => $moneda ?? 'USD',
+            'tipoDocumento'   => $tipoDocumento ?? '01',
+            'serie'           => $serie,
+            'correlativo'     => $correlativo,
+            'numeroDocumento' => $id,
+            'numeroGuia'      => $numeroGuia,
+            'fechaEmision'    => $fechaEmision,
+            'fechaVencimiento'=> $fechaVencimiento,
+            'moneda'          => $moneda ?? 'USD',
             'rucCliente'     => $rucCliente,
             'nombreCliente'  => $nombreCliente,
             'items'          => $items,

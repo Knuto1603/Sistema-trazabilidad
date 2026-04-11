@@ -22,6 +22,7 @@ final class FacturaDtoTransformer extends DtoTransformer
         $dto->numeroDocumento = $object->getNumeroDocumento();
         $dto->numeroGuia = $object->getNumeroGuia();
         $dto->fechaEmision = $object->getFechaEmision()?->format('Y-m-d');
+        $dto->fechaVencimiento = $object->getFechaVencimiento()?->format('Y-m-d');
         $dto->moneda = $object->getMoneda();
         $dto->detalle = $object->getDetalle();
         $dto->kgCaja = $object->getKgCaja();

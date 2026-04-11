@@ -34,6 +34,12 @@ export const SIDEBAR_MENU: MenuBlock[] = [
     ]
   },
   {
+    blockTitle: 'Cuentas por Cobrar',
+    items: [
+      { label: 'Cuentas por Cobrar', icon: 'accounts', path: '/app/cuentas-cobrar', roles: ['ROLE_KNUTO', 'ROLE_ADMIN'] },
+    ]
+  },
+  {
     blockTitle: 'Administración',
     items: [
       { label: 'Usuarios', icon: 'people', path: '/app/users', roles: ['ROLE_ADMIN'] },

@@ -210,7 +210,8 @@
             <label class="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Fruta *</label>
             <select formControlName="frutaId"
               class="w-full px-3 py-2 text-sm border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              [class.border-red-400]="fieldInvalid('frutaId')" [class.border-slate-200]="!fieldInvalid('frutaId')">
+              [class.border-red-400]="fieldInvalid('frutaId')" [class.border-slate-200]="!fieldInvalid('frutaId')"
+              (change)="onFrutaChange()">
               <option value="">Seleccionar fruta...</option>
               @for (f of frutas(); track f.id) {
                 <option [value]="f.id">{{ f.nombre }}</option>

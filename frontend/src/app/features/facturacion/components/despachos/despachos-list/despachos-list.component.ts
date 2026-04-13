@@ -251,7 +251,8 @@ export class DespachosListComponent implements OnInit {
       if (op) this.form.patchValue({ sede: op.sede });
       if (!this.editingId()) {
         const clienteId = this.form.get('clienteId')?.value || undefined;
-        this.cargarProximosNumeros(clienteId, operacionId);
+        const frutaId = this.form.get('frutaId')?.value || undefined;
+        this.cargarProximosNumeros(clienteId, operacionId, frutaId);
       }
     } else {
       this.proximoNumeroPlanta.set(null);
@@ -260,9 +261,18 @@ export class DespachosListComponent implements OnInit {
     }
   }
 
-  private cargarProximosNumeros(clienteId?: string, operacionId?: string): void {
+  onFrutaChange(): void {
+    const operacionId = this.form.get('operacionId')?.value || undefined;
+    if (operacionId && !this.editingId()) {
+      const clienteId = this.form.get('clienteId')?.value || undefined;
+      const frutaId = this.form.get('frutaId')?.value || undefined;
+      this.cargarProximosNumeros(clienteId, operacionId, frutaId);
+    }
+  }
+
+  private cargarProximosNumeros(clienteId?: string, operacionId?: string, frutaId?: string): void {
     this.loadingNumero.set(true);
-    this.despachoService.proximoNumero(operacionId).subscribe({
+    this.despachoService.proximoNumero(operacionId, frutaId).subscribe({
       next: res => {
         if (res.status && res.item) {
           const n = res.item.numeroPlanta;
@@ -276,7 +286,7 @@ export class DespachosListComponent implements OnInit {
 
     if (clienteId) {
       this.loadingNumeroCliente.set(true);
-      this.despachoService.proximoNumeroCliente(clienteId, operacionId).subscribe({
+      this.despachoService.proximoNumeroCliente(clienteId, operacionId, frutaId).subscribe({
         next: res => {
           if (res.status && res.item) {
             const n = res.item.numeroCliente;

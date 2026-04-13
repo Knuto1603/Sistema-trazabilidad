@@ -60,32 +60,40 @@ class DespachoRepository extends DoctrineEntityRepository
         return (int) $result;
     }
 
-    public function findMaxNumeroPlantaByOperacion(int $operacionDbId): int
+    public function findMaxNumeroPlantaByOperacion(int $operacionDbId, ?int $frutaDbId = null): int
     {
-        $result = $this->createQueryBuilder('d')
+        $qb = $this->createQueryBuilder('d')
             ->select('MAX(d.numeroPlanta)')
             ->join('d.operacion', 'o')
             ->where('o.id = :operacionId')
-            ->setParameter('operacionId', $operacionDbId)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('operacionId', $operacionDbId);
 
-        return (int) $result;
+        if ($frutaDbId !== null) {
+            $qb->join('d.fruta', 'fr')
+               ->andWhere('fr.id = :frutaId')
+               ->setParameter('frutaId', $frutaDbId);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
-    public function findMaxNumeroClienteByOperacion(int $clienteDbId, int $operacionDbId): int
+    public function findMaxNumeroClienteByOperacion(int $clienteDbId, int $operacionDbId, ?int $frutaDbId = null): int
     {
-        $result = $this->createQueryBuilder('d')
+        $qb = $this->createQueryBuilder('d')
             ->select('MAX(d.numeroCliente)')
             ->join('d.cliente', 'c')
             ->join('d.operacion', 'o')
             ->where('c.id = :clienteId')
             ->andWhere('o.id = :operacionId')
             ->setParameter('clienteId', $clienteDbId)
-            ->setParameter('operacionId', $operacionDbId)
-            ->getQuery()
-            ->getSingleScalarResult();
+            ->setParameter('operacionId', $operacionDbId);
 
-        return (int) $result;
+        if ($frutaDbId !== null) {
+            $qb->join('d.fruta', 'fr')
+               ->andWhere('fr.id = :frutaId')
+               ->setParameter('frutaId', $frutaDbId);
+        }
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
     }
 }

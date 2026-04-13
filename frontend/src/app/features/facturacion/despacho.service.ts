@@ -41,15 +41,17 @@ export class DespachoService {
     return this.http.delete<ApiResponse<null>>(`${this.base}/${id}`);
   }
 
-  proximoNumero(operacionId?: string): Observable<ApiResponse<{ numeroPlanta: number }>> {
+  proximoNumero(operacionId?: string, frutaId?: string): Observable<ApiResponse<{ numeroPlanta: number }>> {
     const params: any = {};
     if (operacionId) params['operacionId'] = operacionId;
+    if (frutaId) params['frutaId'] = frutaId;
     return this.http.get<ApiResponse<{ numeroPlanta: number }>>(`${this.base}/proximo-numero`, { params });
   }
 
-  proximoNumeroCliente(clienteId: string, operacionId?: string): Observable<ApiResponse<{ numeroCliente: number }>> {
+  proximoNumeroCliente(clienteId: string, operacionId?: string, frutaId?: string): Observable<ApiResponse<{ numeroCliente: number }>> {
     const params: any = { clienteId };
     if (operacionId) params['operacionId'] = operacionId;
+    if (frutaId) params['frutaId'] = frutaId;
     return this.http.get<ApiResponse<{ numeroCliente: number }>>(`${this.base}/proximo-numero-cliente`, { params });
   }
 

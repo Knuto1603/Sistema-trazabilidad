@@ -4,6 +4,7 @@ namespace App\apps\core\Controller;
 
 use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\DespachoRepository;
+use App\apps\core\Repository\FrutaRepository;
 use App\apps\core\Repository\OperacionRepository;
 use App\apps\core\Service\Despacho\CreateDespachoService;
 use App\apps\core\Service\Despacho\Dto\EnviarCorreoDto;
@@ -32,13 +33,20 @@ class DespachoApi extends AbstractSerializerApi
         Request $request,
         DespachoRepository $despachoRepository,
         OperacionRepository $operacionRepository,
+        FrutaRepository $frutaRepository,
     ): Response {
         $operacionUid = $request->query->get('operacionId');
+        $frutaUid = $request->query->get('frutaId');
 
         if ($operacionUid) {
             try {
                 $operacion = $operacionRepository->ofId($operacionUid, true);
-                $numeroPlanta = $despachoRepository->findMaxNumeroPlantaByOperacion($operacion->getId()) + 1;
+                $frutaDbId = null;
+                if ($frutaUid) {
+                    $fruta = $frutaRepository->ofId($frutaUid, true);
+                    $frutaDbId = $fruta->getId();
+                }
+                $numeroPlanta = $despachoRepository->findMaxNumeroPlantaByOperacion($operacion->getId(), $frutaDbId) + 1;
             } catch (\Throwable) {
                 $numeroPlanta = 1;
             }
@@ -55,9 +63,11 @@ class DespachoApi extends AbstractSerializerApi
         DespachoRepository $despachoRepository,
         ClienteRepository $clienteRepository,
         OperacionRepository $operacionRepository,
+        FrutaRepository $frutaRepository,
     ): Response {
         $clienteUid = $request->query->get('clienteId');
         $operacionUid = $request->query->get('operacionId');
+        $frutaUid = $request->query->get('frutaId');
 
         if (!$clienteUid) {
             return $this->ok(['item' => ['numeroCliente' => 1]]);
@@ -65,12 +75,18 @@ class DespachoApi extends AbstractSerializerApi
 
         try {
             $cliente = $clienteRepository->ofId($clienteUid, true);
+            $frutaDbId = null;
+            if ($frutaUid) {
+                $fruta = $frutaRepository->ofId($frutaUid, true);
+                $frutaDbId = $fruta->getId();
+            }
 
             if ($operacionUid) {
                 $operacion = $operacionRepository->ofId($operacionUid, true);
                 $numeroCliente = $despachoRepository->findMaxNumeroClienteByOperacion(
                     $cliente->getId(),
-                    $operacion->getId()
+                    $operacion->getId(),
+                    $frutaDbId
                 ) + 1;
             } else {
                 $numeroCliente = $despachoRepository->findMaxNumeroCliente($cliente->getId()) + 1;

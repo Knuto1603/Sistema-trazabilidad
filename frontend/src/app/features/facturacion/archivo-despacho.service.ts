@@ -33,4 +33,8 @@ export class ArchivoDespachoService {
   delete(id: string): Observable<ApiResponse<null>> {
     return this.http.delete<ApiResponse<null>>(`${this.base}/${id}`);
   }
+
+  deleteAllByDespacho(despachoId: string): Observable<ApiResponse<null>> {
+    return this.http.delete<ApiResponse<null>>(`${this.base}/by-despacho/${despachoId}/delete-all`);
+  }
 }

@@ -70,6 +70,8 @@ export class DespachoDetailComponent implements OnInit {
   anulatingFacturaId = signal<string | null>(null);
   showDeleteArchivoConfirm = signal(false);
   deletingArchivoId = signal<string | null>(null);
+  showDeleteAllArchivosConfirm = signal(false);
+  deletingAllArchivos = signal(false);
   showUploadArchivoModal = signal(false);
 
   // Modal de envío de correo
@@ -692,6 +694,31 @@ export class DespachoDetailComponent implements OnInit {
       }
       this.showDeleteArchivoConfirm.set(false);
       this.deletingArchivoId.set(null);
+    });
+  }
+
+  isKnuto(): boolean {
+    return this.authService.hasRole('ROLE_KNUTO');
+  }
+
+  executeDeleteAllArchivos(): void {
+    const despachoId = this.despachoId();
+    if (!despachoId) return;
+    this.deletingAllArchivos.set(true);
+    this.archivoService.deleteAllByDespacho(despachoId).subscribe({
+      next: res => {
+        if (res.status) {
+          this.notification.success(res.message ?? 'Todos los archivos eliminados');
+          this.archivos.set([]);
+        }
+        this.showDeleteAllArchivosConfirm.set(false);
+        this.deletingAllArchivos.set(false);
+      },
+      error: () => {
+        this.notification.error('Error al eliminar los archivos');
+        this.showDeleteAllArchivosConfirm.set(false);
+        this.deletingAllArchivos.set(false);
+      }
     });
   }
 

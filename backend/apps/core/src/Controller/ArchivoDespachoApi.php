@@ -2,6 +2,7 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Service\ArchivoDespacho\DeleteAllArchivosByDespachoService;
 use App\apps\core\Service\ArchivoDespacho\DeleteArchivoDespachoService;
 use App\apps\core\Service\ArchivoDespacho\Dto\ArchivoDespachoDtoTransformer;
 use App\apps\core\Service\ArchivoDespacho\GetArchivosByDespachoService;
@@ -51,6 +52,20 @@ class ArchivoDespachoApi extends AbstractSerializerApi
         $items = $service->execute($id);
 
         return $this->ok(['items' => $items]);
+    }
+
+    #[Route('/by-despacho/{id}/delete-all', name: 'archivo_despacho_delete_all', requirements: ['id' => UidType::REGEX], methods: ['DELETE'])]
+    #[IsGranted('ROLE_KNUTO')]
+    public function deleteAll(
+        string $id,
+        DeleteAllArchivosByDespachoService $service,
+    ): Response {
+        $count = $service->execute($id);
+
+        return $this->ok([
+            'message' => "{$count} archivo(s) eliminados del despacho",
+            'item' => null,
+        ]);
     }
 
     #[Route('/{id}', name: 'archivo_despacho_delete', requirements: ['id' => UidType::REGEX], methods: ['DELETE'])]

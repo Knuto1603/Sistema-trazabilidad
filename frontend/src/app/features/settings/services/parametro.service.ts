@@ -47,4 +47,8 @@ export class ParametroService {
   delete(id: string) {
     return this.http.delete<ApiResponse<null>>(`${this.url}/${id}`);
   }
+
+  getByParentAlias(alias: string) {
+    return this.http.get<{ status: boolean; items: string[] }>(`${this.url}/by-parent-alias/${alias}`);
+  }
 }

@@ -8,6 +8,7 @@ import { ArchivoDespachoService } from '../../archivo-despacho.service';
 import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
+import { ParametroService } from '@features/settings/services/parametro.service';
 import { Despacho, Factura, ArchivoDespacho } from '@core/models/core.model';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -49,6 +50,7 @@ export class DespachoDetailComponent implements OnInit {
   private tipoCambioService = inject(TipoCambioService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
+  private parametroService = inject(ParametroService);
   private fb = inject(FormBuilder);
 
   despachoId = signal<string>('');
@@ -101,7 +103,7 @@ export class DespachoDetailComponent implements OnInit {
   ];
 
   readonly TIPOS_SERVICIO = ['MAQUILA', 'SOBRECOSTO', 'VENTA_CAJAS'];
-  readonly TIPOS_OPERACION = ['MARITIMO', 'TERRESTRE'];
+  tiposOperacion = signal<string[]>(['MARITIMO', 'TERRESTRE']);
   readonly MONEDAS = ['USD', 'PEN'];
   readonly UNIDADES_MEDIDA = ['TNE', 'KGM', 'KG', 'ZZ', 'UND', 'NIU'];
   readonly TIPOS_ARCHIVO = ['FACTURA_XML', 'GUIA_XML', 'NOTA_CREDITO_XML', 'NOTA_DEBITO_XML', 'FACTURA_PDF', 'GUIA_PDF', 'PACKING_LIST', 'CDR', 'OTRO'];
@@ -169,12 +171,25 @@ export class DespachoDetailComponent implements OnInit {
     this.archivoService.getByDespacho(id).subscribe(res => {
       if (res.status) this.archivos.set(res.items);
     });
+
+    this.parametroService.getByParentAlias('TIPO_OPERACION').subscribe(res => {
+      if (res.status && res.items.length > 0) this.tiposOperacion.set(res.items);
+    });
   }
 
   openNuevaFactura(): void {
-    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE' });
+    const tipoOperacion = this.detectTipoOperacionFromDespacho();
+    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', tipoOperacion });
     this.editingFacturaId.set(null);
     this.showFacturaModal.set(true);
+  }
+
+  private detectTipoOperacionFromDespacho(): string {
+    const nombre = (this.despacho()?.operacionNombre ?? '').toUpperCase();
+    for (const tipo of this.tiposOperacion()) {
+      if (nombre.includes(tipo.toUpperCase())) return tipo;
+    }
+    return '';
   }
 
   openEditFactura(factura: Factura): void {

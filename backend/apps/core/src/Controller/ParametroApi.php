@@ -2,6 +2,7 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Repository\ParametroRepository;
 use App\apps\core\Service\Parametro\ChangeStateParametroService;
 use App\apps\core\Service\Parametro\CreateParametroService;
 use App\apps\core\Service\Parametro\DeleteParametroService;
@@ -151,5 +152,17 @@ final class ParametroApi extends AbstractSerializerApi
         GetSharedParametroService $parametroService,
     ): Response {
         return $this->ok(['items' => $parametroService->execute()]);
+    }
+
+    #[Route('/by-parent-alias/{alias}', name: 'parametro_by_parent_alias', methods: ['GET'])]
+    public function byParentAlias(
+        string $alias,
+        ParametroRepository $repository,
+    ): Response {
+        $items = $repository->findByParentAlias(strtoupper($alias));
+        $names = array_values(
+            array_map(fn($p) => $p->getName(), array_filter($items, fn($p) => $p->isActive()))
+        );
+        return $this->ok(['items' => $names]);
     }
 }

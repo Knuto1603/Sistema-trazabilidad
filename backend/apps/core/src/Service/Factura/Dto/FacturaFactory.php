@@ -40,9 +40,9 @@ final readonly class FacturaFactory
         $factura->setFechaVencimiento($dto->fechaVencimiento ? new \DateTime($dto->fechaVencimiento) : null);
         $factura->setMoneda($dto->moneda ?? 'USD');
         $factura->setDetalle($dto->detalle);
-        $factura->setKgCaja($dto->kgCaja);
-        $factura->setUnidadMedida($dto->unidadMedida);
-        $factura->setCajas($dto->cajas);
+        if ($dto->kgCaja !== null) $factura->setKgCaja($dto->kgCaja);
+        if ($dto->unidadMedida !== null) $factura->setUnidadMedida($dto->unidadMedida);
+        if ($dto->cajas !== null) $factura->setCajas($dto->cajas);
         $factura->setCantidad($dto->cantidad);
         $factura->setValorUnitario($dto->valorUnitario);
         $factura->setImporte($dto->importe);

@@ -12,6 +12,7 @@ use App\apps\core\Service\Parametro\Filter\ParametroFilterDto;
 use App\apps\core\Service\Parametro\GetParametroService;
 use App\apps\core\Service\Parametro\GetParametrosFilterAdvancedService;
 use App\apps\core\Service\Parametro\GetParametrosService;
+use App\apps\core\Service\Parametro\GetByParentAliasParametroService;
 use App\apps\core\Service\Parametro\GetParentsParametroService;
 use App\apps\core\Service\Parametro\GetSharedParametroService;
 use App\apps\core\Service\Parametro\UpdateParametroService;
@@ -151,6 +152,14 @@ final class ParametroApi extends AbstractSerializerApi
         GetSharedParametroService $parametroService,
     ): Response {
         return $this->ok(['items' => $parametroService->execute()]);
+    }
+
+    #[Route('/by-parent-alias/{alias}', name: 'parametro_by_parent_alias', methods: ['GET'])]
+    public function byParentAlias(
+        string $alias,
+        GetByParentAliasParametroService $parametroService,
+    ): Response {
+        return $this->ok(['items' => $parametroService->execute($alias)]);
     }
 
 }

@@ -332,7 +332,7 @@
                           [disabled]="f.status === 'done' || f.status === 'saving' || processingAll()"
                           class="w-full mt-0.5 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
                           <option value="">-</option>
-                          @for (ts of TIPOS_SERVICIO; track ts) { <option [value]="ts">{{ ts }}</option> }
+                          @for (ts of tiposServicio(); track ts) { <option [value]="ts">{{ ts }}</option> }
                         </select>
                       </div>
                       <div>
@@ -458,13 +458,13 @@
             <div>
               <label class="block text-xs font-semibold text-slate-500 mb-1">Moneda</label>
               <select formControlName="moneda" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                @for (m of MONEDAS; track m) { <option [value]="m">{{ m }}</option> }
+                @for (m of monedas(); track m) { <option [value]="m">{{ m }}</option> }
               </select>
             </div>
             <div>
               <label class="block text-xs font-semibold text-slate-500 mb-1">Unidad Medida</label>
               <select formControlName="unidadMedida" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                @for (u of UNIDADES_MEDIDA; track u) { <option [value]="u">{{ u }}</option> }
+                @for (u of unidadesMedida(); track u) { <option [value]="u">{{ u }}</option> }
               </select>
             </div>
             <div>
@@ -532,7 +532,7 @@
               <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo Servicio</label>
               <select formControlName="tipoServicio" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">-</option>
-                @for (ts of TIPOS_SERVICIO; track ts) { <option [value]="ts">{{ ts }}</option> }
+                @for (ts of tiposServicio(); track ts) { <option [value]="ts">{{ ts }}</option> }
               </select>
             </div>
             <div>

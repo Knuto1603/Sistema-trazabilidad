@@ -9,6 +9,7 @@ import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
 import { OperacionService } from '@features/settings/services/operacion.service';
+import { ParametroService } from '@features/settings/services/parametro.service';
 import { Despacho, Factura, ArchivoDespacho } from '@core/models/core.model';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -51,6 +52,7 @@ export class DespachoDetailComponent implements OnInit {
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
   private operacionService = inject(OperacionService);
+  private parametroService = inject(ParametroService);
   private fb = inject(FormBuilder);
 
   despachoId = signal<string>('');
@@ -102,10 +104,10 @@ export class DespachoDetailComponent implements OnInit {
     { value: '08', label: 'Nota de Débito (08)' },
   ];
 
-  readonly TIPOS_SERVICIO = ['MAQUILA', 'SOBRECOSTO', 'VENTA_CAJAS'];
+  tiposServicio = signal<string[]>([]);
   tiposOperacion = signal<string[]>([]);
-  readonly MONEDAS = ['USD', 'PEN'];
-  readonly UNIDADES_MEDIDA = ['TNE', 'KGM', 'KG', 'ZZ', 'UND', 'NIU'];
+  monedas = signal<string[]>([]);
+  unidadesMedida = signal<string[]>([]);
   readonly TIPOS_ARCHIVO = ['FACTURA_XML', 'GUIA_XML', 'NOTA_CREDITO_XML', 'NOTA_DEBITO_XML', 'FACTURA_PDF', 'GUIA_PDF', 'PACKING_LIST', 'CDR', 'OTRO'];
 
   facturaForm = this.fb.group({
@@ -177,6 +179,18 @@ export class DespachoDetailComponent implements OnInit {
         const nombres = [...new Set(res.items.filter(o => o.isActive).map(o => o.nombre))];
         this.tiposOperacion.set(nombres);
       }
+    });
+
+    this.parametroService.getByParentAlias('TIPOSERVICIO').subscribe(res => {
+      if (res.status) this.tiposServicio.set(res.items.map(p => p.name));
+    });
+
+    this.parametroService.getByParentAlias('MONEDA').subscribe(res => {
+      if (res.status) this.monedas.set(res.items.map(p => p.name));
+    });
+
+    this.parametroService.getByParentAlias('UNIDMEDIDA').subscribe(res => {
+      if (res.status) this.unidadesMedida.set(res.items.map(p => p.name));
     });
   }
 

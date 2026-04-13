@@ -152,6 +152,14 @@ class DespachoApi extends AbstractSerializerApi
         ]);
     }
 
+    #[Route('/{id}/adjacent', name: 'despacho_adjacent', requirements: ['id' => UidType::REGEX], methods: ['GET'])]
+    public function adjacent(
+        string $id,
+        DespachoRepository $despachoRepository,
+    ): Response {
+        return $this->ok(['item' => $despachoRepository->findAdjacentByUuid($id)]);
+    }
+
     #[Route('/{id}/preview-correo', name: 'despacho_preview_correo', requirements: ['id' => UidType::REGEX], methods: ['GET'])]
     public function previewCorreo(
         string $id,

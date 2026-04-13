@@ -77,6 +77,50 @@ class DespachoRepository extends DoctrineEntityRepository
         return (int) $qb->getQuery()->getSingleScalarResult();
     }
 
+    public function findAdjacentByUuid(string $uuid): array
+    {
+        $current = $this->allQuery()
+            ->andWhere('despacho.uuid = :uuid')
+            ->setParameter('uuid', $uuid, \App\shared\Doctrine\UidType::NAME)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if (!$current) {
+            return ['prev' => null, 'next' => null];
+        }
+
+        $currentId = $current->getId();
+
+        $prev = $this->createQueryBuilder('d')
+            ->where('d.id < :id')
+            ->setParameter('id', $currentId)
+            ->orderBy('d.id', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        $next = $this->createQueryBuilder('d')
+            ->where('d.id > :id')
+            ->setParameter('id', $currentId)
+            ->orderBy('d.id', 'ASC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return [
+            'prev' => $prev ? [
+                'id'            => \App\shared\Doctrine\UidType::toString($prev->uuid()),
+                'numeroPlanta'  => $prev->getNumeroPlanta(),
+                'numeroCliente' => $prev->getNumeroCliente(),
+            ] : null,
+            'next' => $next ? [
+                'id'            => \App\shared\Doctrine\UidType::toString($next->uuid()),
+                'numeroPlanta'  => $next->getNumeroPlanta(),
+                'numeroCliente' => $next->getNumeroCliente(),
+            ] : null,
+        ];
+    }
+
     public function findMaxNumeroClienteByOperacion(int $clienteDbId, int $operacionDbId, ?int $frutaDbId = null): int
     {
         $qb = $this->createQueryBuilder('d')

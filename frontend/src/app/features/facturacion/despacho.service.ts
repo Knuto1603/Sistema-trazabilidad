@@ -55,6 +55,10 @@ export class DespachoService {
     return this.http.get<ApiResponse<{ numeroCliente: number }>>(`${this.base}/proximo-numero-cliente`, { params });
   }
 
+  getAdjacent(id: string): Observable<ApiResponse<{ prev: { id: string; numeroPlanta?: number; numeroCliente: number } | null; next: { id: string; numeroPlanta?: number; numeroCliente: number } | null }>> {
+    return this.http.get<any>(`${this.base}/${id}/adjacent`);
+  }
+
   previewCorreo(id: string): Observable<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string; cc: string }>> {
     return this.http.get<ApiResponse<{ asunto: string; cuerpo: string; destinatarios: string; cc: string }>>(`${this.base}/${id}/preview-correo`);
   }

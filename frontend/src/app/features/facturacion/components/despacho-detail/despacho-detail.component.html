@@ -1,9 +1,26 @@
 <div class="max-w-7xl mx-auto space-y-6">
   @if (despacho()) {
     <app-page-header
-      [title]="'Despacho N° ' + (despacho()?.numeroPlanta ?? despacho()?.numeroCliente)"
+      [title]="'Despacho Planta N° ' + (despacho()?.numeroPlanta ?? '-') + '  ·  Cliente N° ' + (despacho()?.numeroCliente ?? '-')"
       subtitle="Detalle del despacho y sus documentos">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Navegación anterior/siguiente -->
+        <button (click)="navigateToDespacho(prevDespacho()!.id)" [disabled]="!prevDespacho()"
+          title="Despacho anterior"
+          class="px-3 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          @if (prevDespacho()) {
+            <span class="text-xs text-slate-400">P{{ prevDespacho()?.numeroPlanta ?? '-' }}</span>
+          }
+        </button>
+        <button (click)="navigateToDespacho(nextDespacho()!.id)" [disabled]="!nextDespacho()"
+          title="Despacho siguiente"
+          class="px-3 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-1.5">
+          @if (nextDespacho()) {
+            <span class="text-xs text-slate-400">P{{ nextDespacho()?.numeroPlanta ?? '-' }}</span>
+          }
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
         <button (click)="openCorreoModal()" class="px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 rounded-xl transition-colors flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           Enviar correo
@@ -705,6 +722,34 @@
               }
             </button>
           </div>
+        }
+      </div>
+    </div>
+
+    <!-- Navegación inferior prev/next -->
+    <div class="flex items-center justify-between py-2">
+      <div>
+        @if (prevDespacho()) {
+          <button (click)="navigateToDespacho(prevDespacho()!.id)"
+            class="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <div class="text-left">
+              <div class="text-xs text-slate-400">Anterior</div>
+              <div>Planta N° {{ prevDespacho()?.numeroPlanta ?? '-' }} · Cliente N° {{ prevDespacho()?.numeroCliente }}</div>
+            </div>
+          </button>
+        }
+      </div>
+      <div>
+        @if (nextDespacho()) {
+          <button (click)="navigateToDespacho(nextDespacho()!.id)"
+            class="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors">
+            <div class="text-right">
+              <div class="text-xs text-slate-400">Siguiente</div>
+              <div>Planta N° {{ nextDespacho()?.numeroPlanta ?? '-' }} · Cliente N° {{ nextDespacho()?.numeroCliente }}</div>
+            </div>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
         }
       </div>
     </div>

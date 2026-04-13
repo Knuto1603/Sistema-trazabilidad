@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DecimalPipe, Location } from '@angular/common';
 import { DespachoService } from '../../despacho.service';
@@ -44,6 +44,7 @@ interface PendingGuiaItem {
 })
 export class DespachoDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private location = inject(Location);
   private despachoService = inject(DespachoService);
   private facturaService = inject(FacturaService);
@@ -57,6 +58,8 @@ export class DespachoDetailComponent implements OnInit {
 
   despachoId = signal<string>('');
   despacho = signal<Despacho | null>(null);
+  prevDespacho = signal<{ id: string; numeroPlanta?: number; numeroCliente: number } | null>(null);
+  nextDespacho = signal<{ id: string; numeroPlanta?: number; numeroCliente: number } | null>(null);
   facturas = signal<Factura[]>([]);
   archivos = signal<ArchivoDespacho[]>([]);
   loading = signal(false);
@@ -141,9 +144,12 @@ export class DespachoDetailComponent implements OnInit {
   selectedArchivo: File | null = null;
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id') ?? '';
-    this.despachoId.set(id);
-    this.loadAll();
+    // Suscribirse a params para que al navegar entre despachos se recargue todo
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id') ?? '';
+      this.despachoId.set(id);
+      this.loadAll();
+    });
 
     // Auto-rellenar tipo de cambio (venta) cuando cambia la fecha de emisión
     this.facturaForm.get('fechaEmision')!.valueChanges.subscribe(fecha => {
@@ -151,6 +157,10 @@ export class DespachoDetailComponent implements OnInit {
         this.fetchTipoCambio(fecha, false);
       }
     });
+  }
+
+  navigateToDespacho(id: string): void {
+    this.router.navigate(['/app/facturacion/despachos', id]);
   }
 
   goBack(): void {
@@ -163,6 +173,13 @@ export class DespachoDetailComponent implements OnInit {
 
     this.despachoService.getById(id).subscribe(res => {
       if (res.status && res.item) this.despacho.set(res.item);
+    });
+
+    this.despachoService.getAdjacent(id).subscribe(res => {
+      if (res.status && res.item) {
+        this.prevDespacho.set(res.item.prev);
+        this.nextDespacho.set(res.item.next);
+      }
     });
 
     this.facturaService.getByDespacho(id).subscribe(res => {

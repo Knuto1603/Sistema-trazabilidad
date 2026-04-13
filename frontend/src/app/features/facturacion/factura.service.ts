@@ -11,6 +11,7 @@ export interface FacturaCreateDto {
   correlativo: string;
   numeroGuia?: string;
   fechaEmision: string;
+  fechaVencimiento?: string;
   moneda: string;
   detalle?: string;
   kgCaja?: number;

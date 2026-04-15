@@ -22,3 +22,8 @@ Thumbs.db
 *.xlsx
 *.docx
 nul
+
+# Cotizaciones y documentos comerciales (privados)
+docs/cotizacion*.docx
+docs/generar-cotizaciones.ps1
+docs/generar_cotizaciones.py

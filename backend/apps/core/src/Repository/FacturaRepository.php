@@ -62,7 +62,7 @@ class FacturaRepository extends DoctrineEntityRepository
             ->getResult();
     }
 
-    public function findAllForReporte(?string $search = null): array
+    public function findAllForReporte(?string $search = null, ?string $fechaDesde = null, ?string $fechaHasta = null): array
     {
         $qb = $this->createQueryBuilder('f')
             ->select(['f', 'd', 'c', 'fr'])
@@ -76,6 +76,16 @@ class FacturaRepository extends DoctrineEntityRepository
         if ($search) {
             $qb->andWhere('c.razonSocial LIKE :s OR f.numeroDocumento LIKE :s OR f.contenedor LIKE :s')
                ->setParameter('s', '%' . $search . '%');
+        }
+
+        if ($fechaDesde) {
+            $qb->andWhere('f.fechaEmision >= :fechaDesde')
+               ->setParameter('fechaDesde', new \DateTime($fechaDesde));
+        }
+
+        if ($fechaHasta) {
+            $qb->andWhere('f.fechaEmision <= :fechaHasta')
+               ->setParameter('fechaHasta', new \DateTime($fechaHasta));
         }
 
         return $qb->getQuery()->getResult();

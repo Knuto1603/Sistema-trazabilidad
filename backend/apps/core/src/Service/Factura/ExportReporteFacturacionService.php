@@ -18,9 +18,9 @@ final readonly class ExportReporteFacturacionService
     ) {
     }
 
-    public function execute(?string $search = null): Response
+    public function execute(?string $search = null, ?string $fechaDesde = null, ?string $fechaHasta = null): Response
     {
-        $facturas = $this->facturaRepository->findAllForReporte($search);
+        $facturas = $this->facturaRepository->findAllForReporte($search, $fechaDesde, $fechaHasta);
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -28,7 +28,12 @@ final readonly class ExportReporteFacturacionService
 
         // === TÍTULO ===
         $sheet->mergeCells('A1:V1');
-        $sheet->setCellValue('A1', 'REPORTE DE FACTURACION GENERAL-INTERFRUITS');
+        $titulo = 'REPORTE DE FACTURACION GENERAL-INTERFRUITS';
+        if ($fechaDesde || $fechaHasta) {
+            $rango = trim(($fechaDesde ?? '') . ' - ' . ($fechaHasta ?? ''), ' -');
+            $titulo .= ' (' . $rango . ')';
+        }
+        $sheet->setCellValue('A1', $titulo);
         $sheet->getStyle('A1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 13],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],

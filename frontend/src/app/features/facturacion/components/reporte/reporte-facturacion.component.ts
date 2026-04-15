@@ -35,6 +35,8 @@ export class ReporteFacturacionComponent implements OnInit {
   searchText = signal('');
   filterServicio = signal('');
   filterAnuladas = signal<'todas' | 'activas' | 'anuladas'>('activas');
+  filterFechaDesde = signal('');
+  filterFechaHasta = signal('');
 
   sortField = signal<SortField>('numeroDocumento');
   sortDir = signal<'asc' | 'desc'>('asc');
@@ -101,6 +103,8 @@ export class ReporteFacturacionComponent implements OnInit {
     const search = this.searchText().toLowerCase().trim();
     const servicio = this.filterServicio();
     const anuladas = this.filterAnuladas();
+    const fechaDesde = this.filterFechaDesde();
+    const fechaHasta = this.filterFechaHasta();
 
     if (search) {
       list = list.filter(f =>
@@ -120,6 +124,14 @@ export class ReporteFacturacionComponent implements OnInit {
       list = list.filter(f => !f.isAnulada);
     } else if (anuladas === 'anuladas') {
       list = list.filter(f => f.isAnulada);
+    }
+
+    if (fechaDesde) {
+      list = list.filter(f => f.fechaEmision >= fechaDesde);
+    }
+
+    if (fechaHasta) {
+      list = list.filter(f => f.fechaEmision <= fechaHasta);
     }
 
     const field = this.sortField();
@@ -279,7 +291,9 @@ export class ReporteFacturacionComponent implements OnInit {
   exportarExcel(): void {
     this.exporting.set(true);
     const search = this.searchText() || undefined;
-    this.facturaService.exportReporte(search).subscribe({
+    const fechaDesde = this.filterFechaDesde() || undefined;
+    const fechaHasta = this.filterFechaHasta() || undefined;
+    this.facturaService.exportReporte(search, fechaDesde, fechaHasta).subscribe({
       next: blob => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

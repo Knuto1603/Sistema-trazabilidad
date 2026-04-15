@@ -12,10 +12,10 @@
 
   <!-- Filtros -->
   <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
       <input type="text" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)"
         placeholder="Buscar por N° factura, cliente, guía, contenedor, destino..."
-        class="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-72">
+        class="flex-1 min-w-48 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
 
       <select [ngModel]="filterServicio()" (ngModelChange)="filterServicio.set($event)"
         class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -29,6 +29,17 @@
         <option value="todas">Todas</option>
         <option value="anuladas">Solo anuladas</option>
       </select>
+
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-400 shrink-0">Fecha:</span>
+        <input type="date" [ngModel]="filterFechaDesde()" (ngModelChange)="filterFechaDesde.set($event)"
+          title="Fecha desde"
+          class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <span class="text-xs text-slate-400">—</span>
+        <input type="date" [ngModel]="filterFechaHasta()" (ngModelChange)="filterFechaHasta.set($event)"
+          title="Fecha hasta"
+          class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
 
       <span class="text-xs text-slate-400 shrink-0">{{ facturasFiltradas().length }} registros</span>
     </div>

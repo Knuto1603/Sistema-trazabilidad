@@ -69,9 +69,11 @@ export class FacturaService {
     return this.http.post<ApiResponse<any>>(`${this.base}/parse-xml`, formData);
   }
 
-  exportReporte(search?: string): Observable<Blob> {
+  exportReporte(search?: string, fechaDesde?: string, fechaHasta?: string): Observable<Blob> {
     let params: any = {};
     if (search) params['search'] = search;
+    if (fechaDesde) params['fechaDesde'] = fechaDesde;
+    if (fechaHasta) params['fechaHasta'] = fechaHasta;
     return this.http.get(`${this.base}/export-reporte`, { params, responseType: 'blob' });
   }
 }

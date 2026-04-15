@@ -65,7 +65,9 @@ class FacturaApi extends AbstractSerializerApi
         ExportReporteFacturacionService $service,
     ): Response {
         $search = $request->query->get('search');
-        return $service->execute($search ?: null);
+        $fechaDesde = $request->query->get('fechaDesde');
+        $fechaHasta = $request->query->get('fechaHasta');
+        return $service->execute($search ?: null, $fechaDesde ?: null, $fechaHasta ?: null);
     }
 
     #[Route('/parse-xml', name: 'factura_parse_xml', methods: ['POST'])]

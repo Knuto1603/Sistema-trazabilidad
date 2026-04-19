@@ -98,7 +98,7 @@ export type EstadoCuenta = 'PENDIENTE' | 'PAGADO' | 'VENCIDA';
 export interface CuentaCobrar {
   id: string; tipoDocumento: string; numeroDocumento: string;
   fechaEmision: string; fechaVencimiento?: string;
-  total?: number; moneda: string; contenedor?: string;
+  total?: number; moneda: string; contenedor?: string; numeroGuia?: string;
   despachoId: string; despachoNumero?: number; sede?: string;
   clienteId?: string; clienteRazonSocial?: string; clienteRuc?: string;
   operacionId?: string; operacionNombre?: string;

@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { environment } from '@env/environment';
 import { CuentasCobrarService, CuentasCobrarParams } from '../../cuentas-cobrar.service';
+import { CuentasCobrarExportService } from '../../cuentas-cobrar-export.service';
 import { CuentaCobrar, EstadoCuenta, Operacion } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
@@ -19,7 +20,19 @@ const SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'] as const;
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, PaginationComponent, PagoModalComponent],
   template: `
-    <app-page-header title="Cuentas por Cobrar" />
+    <app-page-header title="Cuentas por Cobrar">
+      <button
+        (click)="exportarExcel()"
+        [disabled]="items().length === 0 || exportando()"
+        class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        {{ exportando() ? 'Exportando...' : 'Exportar Excel' }}
+      </button>
+    </app-page-header>
 
     <!-- Filtros -->
     <div class="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-col sm:flex-row flex-wrap gap-3">
@@ -157,6 +170,7 @@ const SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'] as const;
 })
 export class CuentasCobrarListComponent implements OnInit {
   private service = inject(CuentasCobrarService);
+  private exportService = inject(CuentasCobrarExportService);
   private http = inject(HttpClient);
   private notif = inject(NotificationService);
 
@@ -172,6 +186,7 @@ export class CuentasCobrarListComponent implements OnInit {
 
   // Estado
   loading = signal(false);
+  exportando = signal(false);
   items = signal<CuentaCobrar[]>([]);
   pagination = signal<any>({ page: 0, itemsPerPage: 20, count: 0, totalItems: 0 });
   operaciones = signal<Operacion[]>([]);
@@ -243,6 +258,28 @@ export class CuentasCobrarListComponent implements OnInit {
     this.selectedItem.set(null);
     this.loadData();
     this.notif.success('Pago registrado correctamente');
+  }
+
+  exportarExcel(): void {
+    if (this.exportando()) return;
+    this.exportando.set(true);
+
+    const params: CuentasCobrarParams = { page: 0, itemsPerPage: 9999 };
+    if (this.filterSede) params['sede'] = this.filterSede;
+    if (this.filterOperacionId) params['operacionId'] = this.filterOperacionId;
+    if (this.filterEstado) params['estado'] = this.filterEstado;
+    if (this.filterSearch) params['search'] = this.filterSearch;
+
+    this.service.getAll(params).subscribe({
+      next: res => {
+        this.exportService.exportToExcel(res.items ?? []);
+        this.exportando.set(false);
+      },
+      error: () => {
+        this.notif.error('Error al exportar');
+        this.exportando.set(false);
+      },
+    });
   }
 
   estadoBadgeClass(estado: EstadoCuenta): string {

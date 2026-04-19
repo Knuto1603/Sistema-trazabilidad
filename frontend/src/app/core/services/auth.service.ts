@@ -18,12 +18,13 @@ export class AuthService {
 
   isAuthenticated = computed(() => !!this.#currentUser());
 
-  login(credentials: any) {
+  login(credentials: any, rememberMe = true) {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login_check`, credentials).pipe(
       tap(res => {
         if (res.status) {
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('user', JSON.stringify(res.user));
+          const storage = rememberMe ? localStorage : sessionStorage;
+          storage.setItem('token', res.token);
+          storage.setItem('user', JSON.stringify(res.user));
           this.#currentUser.set(res.user);
         }
       })
@@ -33,6 +34,8 @@ export class AuthService {
   logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     this.#currentUser.set(null);
   }
 
@@ -41,8 +44,8 @@ export class AuthService {
   }
 
   private checkSession() {
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
+    const savedUser = localStorage.getItem('user') ?? sessionStorage.getItem('user');
 
     if (token && savedUser) {
       this.#currentUser.set(JSON.parse(savedUser));

@@ -17,13 +17,13 @@ export class LoginComponent implements OnInit {
   private router = inject(Router);
 
   isCheckingSession = signal(true);
- 
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
-  showPassword = signal(false); 
+  showPassword = signal(false);
+  rememberMe = signal(true);
 
   loginForm: FormGroup = this.fb.group({
-    username: ['', [Validators.required]], 
+    username: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(4)]]
   });
 
@@ -54,7 +54,7 @@ export class LoginComponent implements OnInit {
 
     const { username, password } = this.loginForm.value;
 
-    this.authService.login({ username: username, password }).subscribe({
+    this.authService.login({ username: username, password }, this.rememberMe()).subscribe({
       next: () => {
         this.router.navigate(['/app/dashboard']);
       },

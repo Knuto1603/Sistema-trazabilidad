@@ -15,6 +15,12 @@
       Actualizar
     </button>
   }
+  @if (activeTab() === 'jwt') {
+    <button (click)="loadJwtConfig()"
+      class="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+      Actualizar
+    </button>
+  }
 </app-page-header>
 
 <!-- Tabs -->
@@ -23,7 +29,8 @@
     @for (tab of [
       {id: 'estado', label: 'Estado del servidor'},
       {id: 'correo', label: 'Prueba de correo'},
-      {id: 'migraciones', label: 'Migraciones'}
+      {id: 'migraciones', label: 'Migraciones'},
+      {id: 'jwt', label: 'JWT / Sesión'}
     ]; track tab.id) {
       <button (click)="setTab(tab.id)"
         [class.border-b-2]="activeTab() === tab.id"
@@ -210,6 +217,95 @@
         </div>
       </div>
     </div>
+  }
+
+  <!-- TAB JWT -->
+  @if (activeTab() === 'jwt') {
+    @if (loadingJwt()) {
+      <div class="text-center py-12 text-slate-400 text-sm">Cargando configuración JWT…</div>
+    } @else {
+      <div class="max-w-lg space-y-5">
+
+        <!-- TTL actual -->
+        @if (jwtConfig(); as cfg) {
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+            <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <p class="text-sm font-semibold text-blue-800">TTL actual del token JWT</p>
+              <p class="text-xs text-blue-600 mt-0.5">
+                <span class="font-mono font-bold">{{ cfg.ttl }}s</span>
+                &nbsp;—&nbsp;{{ formatTtl(cfg.ttl) }}
+              </p>
+            </div>
+          </div>
+        }
+
+        <!-- Selector de preset -->
+        <div class="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-700">Cambiar duración de sesión</h2>
+            <p class="text-xs text-slate-500 mt-1">El nuevo valor aplica al <strong>próximo inicio de sesión</strong>. Las sesiones activas no se ven afectadas.</p>
+          </div>
+
+          <!-- Presets -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-2">Presets rápidos</label>
+            <div class="flex flex-wrap gap-2">
+              @for (preset of [
+                {label: '1h', val: 3600},
+                {label: '2h', val: 7200},
+                {label: '4h', val: 14400},
+                {label: '8h', val: 28800},
+                {label: '10h', val: 36000},
+                {label: '12h', val: 43200},
+                {label: '24h', val: 86400},
+                {label: '48h', val: 172800},
+                {label: '7d', val: 604800}
+              ]; track preset.val) {
+                <button type="button" (click)="jwtTtlInput.set(preset.val)"
+                  [class.bg-indigo-600]="jwtTtlInput() === preset.val"
+                  [class.text-white]="jwtTtlInput() === preset.val"
+                  [class.border-indigo-600]="jwtTtlInput() === preset.val"
+                  [class.bg-white]="jwtTtlInput() !== preset.val"
+                  [class.text-slate-600]="jwtTtlInput() !== preset.val"
+                  [class.border-slate-200]="jwtTtlInput() !== preset.val"
+                  class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors">
+                  {{ preset.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <!-- Input manual -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1.5">Valor personalizado (segundos)</label>
+            <div class="flex items-center gap-2">
+              <input type="number" min="300" max="604800" step="60"
+                [ngModel]="jwtTtlInput()"
+                (ngModelChange)="jwtTtlInput.set($event)"
+                class="w-36 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono" />
+              <span class="text-sm text-slate-500">= {{ formatTtl(jwtTtlInput()) }}</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Mínimo: 300s (5m) — Máximo: 604800s (7d)</p>
+          </div>
+
+          <button (click)="saveJwtConfig()" [disabled]="savingJwt()"
+            class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+            {{ savingJwt() ? 'Guardando…' : 'Guardar TTL' }}
+          </button>
+        </div>
+
+        <div class="text-xs text-slate-400 space-y-1 bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p class="font-semibold text-amber-700">Notas importantes</p>
+          <ul class="list-disc pl-4 space-y-1 text-amber-600">
+            <li>El cambio aplica a tokens emitidos <strong>después</strong> de guardarlo.</li>
+            <li>Para aplicarlo a tu sesión actual, cierra sesión y vuelve a iniciar.</li>
+            <li>Con <strong>Recordarme</strong> marcado en el login, la sesión persiste al cerrar el navegador.</li>
+          </ul>
+        </div>
+
+      </div>
+    }
   }
 
   <!-- TAB MIGRACIONES -->

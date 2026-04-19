@@ -4,6 +4,10 @@ import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import { ApiResponse } from '@core/models/api.model';
 
+export interface JwtConfig {
+  ttl: number;
+}
+
 export interface DevInfo {
   php: string;
   symfony_env: string;
@@ -50,6 +54,7 @@ export interface CorreoTestDto {
 export class DevService {
   private http = inject(HttpClient);
   private base = `${environment.coreUrl}/dev`;
+  private securityBase = `${environment.securityUrl}/security/dev`;
 
   getInfo(): Observable<ApiResponse<DevInfo>> {
     return this.http.get<ApiResponse<DevInfo>>(`${this.base}/info`);
@@ -74,5 +79,13 @@ export class DevService {
     if (dto.cuerpo) form.append('cuerpo', dto.cuerpo);
     (dto.archivos ?? []).forEach(f => form.append('archivos[]', f, f.name));
     return this.http.post<ApiResponse<null>>(`${this.base}/correo/test`, form);
+  }
+
+  getJwtConfig(): Observable<ApiResponse<JwtConfig>> {
+    return this.http.get<ApiResponse<JwtConfig>>(`${this.securityBase}/jwt-config`);
+  }
+
+  updateJwtConfig(ttl: number): Observable<ApiResponse<JwtConfig>> {
+    return this.http.put<ApiResponse<JwtConfig>>(`${this.securityBase}/jwt-config`, { ttl });
   }
 }

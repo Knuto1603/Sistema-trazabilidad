@@ -1,11 +1,11 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DevService, DevInfo, DevHealth, DevMigraciones } from '../../dev.service';
+import { DevService, DevInfo, DevHealth, DevMigraciones, JwtConfig } from '../../dev.service';
 import { NotificationService } from '@core/services/notification.service';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 
-type Tab = 'estado' | 'correo' | 'migraciones';
+type Tab = 'estado' | 'correo' | 'migraciones' | 'jwt';
 
 @Component({
   selector: 'app-dev-panel',
@@ -37,6 +37,12 @@ export class DevPanelComponent implements OnInit {
   migraciones = signal<DevMigraciones | null>(null);
   loadingMig = signal(false);
 
+  // JWT Config
+  jwtConfig = signal<JwtConfig | null>(null);
+  loadingJwt = signal(false);
+  savingJwt = signal(false);
+  jwtTtlInput = signal(36000);
+
   ngOnInit() {
     this.loadEstado();
   }
@@ -45,6 +51,7 @@ export class DevPanelComponent implements OnInit {
     this.activeTab.set(tab as Tab);
     if (tab === 'estado' && !this.info()) this.loadEstado();
     if (tab === 'migraciones' && !this.migraciones()) this.loadMigraciones();
+    if (tab === 'jwt' && !this.jwtConfig()) this.loadJwtConfig();
   }
 
   loadEstado() {
@@ -129,5 +136,45 @@ export class DevPanelComponent implements OnInit {
   diskUsedPercent(info: DevInfo): number {
     if (!info.disk_total_gb) return 0;
     return Math.round(((info.disk_total_gb - info.disk_free_gb) / info.disk_total_gb) * 100);
+  }
+
+  loadJwtConfig() {
+    this.loadingJwt.set(true);
+    this.devService.getJwtConfig().subscribe({
+      next: res => {
+        this.jwtConfig.set(res.item ?? null);
+        this.jwtTtlInput.set(res.item?.ttl ?? 36000);
+        this.loadingJwt.set(false);
+      },
+      error: () => { this.notif.error('No se pudo obtener la config JWT'); this.loadingJwt.set(false); }
+    });
+  }
+
+  saveJwtConfig() {
+    const ttl = this.jwtTtlInput();
+    if (ttl < 300 || ttl > 604800) {
+      this.notif.warning('El TTL debe estar entre 5 minutos y 7 días.');
+      return;
+    }
+    this.savingJwt.set(true);
+    this.devService.updateJwtConfig(ttl).subscribe({
+      next: res => {
+        this.jwtConfig.set(res.item ?? null);
+        this.notif.success(res.message ?? 'TTL actualizado');
+        this.savingJwt.set(false);
+      },
+      error: err => {
+        this.notif.error(err?.error?.message ?? 'Error al actualizar TTL');
+        this.savingJwt.set(false);
+      }
+    });
+  }
+
+  formatTtl(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
   }
 }

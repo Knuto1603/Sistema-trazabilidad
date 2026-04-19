@@ -56,6 +56,7 @@ readonly class GetCuentasCobrarService
             $dto->total = $factura->getTotal() !== null ? (float) $factura->getTotal() : null;
             $dto->moneda = $factura->getMoneda();
             $dto->contenedor = $factura->getContenedor();
+            $dto->numeroGuia = $factura->getNumeroGuia();
 
             $despacho = $factura->getDespacho();
             if ($despacho) {

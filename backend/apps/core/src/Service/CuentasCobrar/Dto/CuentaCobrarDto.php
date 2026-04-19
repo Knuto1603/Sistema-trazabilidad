@@ -12,6 +12,7 @@ final class CuentaCobrarDto
     public ?float $total = null;
     public string $moneda = 'USD';
     public ?string $contenedor = null;
+    public ?string $numeroGuia = null;
 
     // Despacho
     public ?string $despachoId = null;

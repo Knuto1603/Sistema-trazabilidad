@@ -22,7 +22,6 @@ services:
 
     # -- JWT --
     App\apps\security\EventListener\JWT\CreatedListener:
-        arguments: [ '@security.helper' ]
         tags:
             - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_created }
 

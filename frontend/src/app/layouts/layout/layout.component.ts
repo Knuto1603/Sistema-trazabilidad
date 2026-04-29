@@ -5,11 +5,12 @@ import { AuthService } from '@core/services/auth.service';
 import { CampaignService } from '@core/services/campaign.service';
 import { SIDEBAR_MENU, MenuBlock } from '@core/constants/menu.config';
 import { NotificationComponent } from '@shared/components/notification/notification.component';
+import { IconComponent } from '@shared/components/icon/icon.component';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, NotificationComponent],
+  imports: [CommonModule, RouterModule, NotificationComponent, IconComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css'
 })

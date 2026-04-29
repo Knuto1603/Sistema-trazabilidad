@@ -68,8 +68,14 @@ final readonly class EnviarCorreoDespachoService
             throw new \RuntimeException('No hay destinatarios válidos para enviar el correo.');
         }
 
-        $remitenteNombre = $this->parametroRepository->findByAlias(self::ALIAS_REM_NOMBRE)?->getName() ?? 'Facturación';
-        $remitenteEmail  = $this->parametroRepository->findByAlias(self::ALIAS_REM_EMAIL)?->getName() ?? '';
+        $params = $this->parametroRepository->findValuesByAliases([
+            self::ALIAS_REM_NOMBRE,
+            self::ALIAS_REM_EMAIL,
+            self::ALIAS_CC_MAIL,
+        ]);
+
+        $remitenteNombre = $params[self::ALIAS_REM_NOMBRE] ?? 'Facturación';
+        $remitenteEmail  = $params[self::ALIAS_REM_EMAIL] ?? '';
 
         if (!$remitenteEmail) {
             throw new \RuntimeException('No hay email remitente configurado. Cree el parámetro con alias REMAIL en Configuración > Parámetros.');
@@ -84,31 +90,38 @@ final readonly class EnviarCorreoDespachoService
             $email->addTo($to);
         }
 
-        // CC fijo a correos internos de la empresa
-        $ccRaw = $this->parametroRepository->findByAlias(self::ALIAS_CC_MAIL)?->getName() ?? '';
-        foreach ($this->parseDestinatarios($ccRaw) as $cc) {
+        foreach ($this->parseDestinatarios($params[self::ALIAS_CC_MAIL] ?? '') as $cc) {
             $email->addCc($cc);
         }
 
-        // BCC al remitente para que quede copia en su buzón
         $email->addBcc(new Address($remitenteEmail, $remitenteNombre));
 
-        // Adjuntar archivos seleccionados
         if (!empty($archivosIds)) {
-            $allArchivos = $this->archivoDespachoRepository->findByDespachoUuid($despachoUuid);
-            foreach ($allArchivos as $archivo) {
-                if (\in_array($archivo->uuidToString(), $archivosIds, true)) {
-                    $path = $this->projectDir . '/public/' . $archivo->getRuta();
-                    if (!\file_exists($path)) {
-                        throw new \RuntimeException('Archivo no encontrado en disco: ' . $archivo->getNombre() . ' (ruta: ' . $path . ')');
-                    }
-                    $nombreOriginal = preg_replace('/^[^_]+_/', '', $archivo->getNombre()) ?? $archivo->getNombre();
-                    $email->attachFromPath($path, $nombreOriginal);
-                }
-            }
+            $this->adjuntarArchivosSeleccionados($email, $despachoUuid, $archivosIds);
         }
 
         $this->mailer->send($email);
+    }
+
+    private function adjuntarArchivosSeleccionados(Email $email, string $despachoUuid, array $archivosIds): void
+    {
+        $todosLosArchivos = $this->archivoDespachoRepository->findByDespachoUuid($despachoUuid);
+
+        foreach ($todosLosArchivos as $archivo) {
+            if (!\in_array($archivo->uuidToString(), $archivosIds, true)) {
+                continue;
+            }
+
+            $path = $this->projectDir . '/public/' . $archivo->getRuta();
+            if (!\file_exists($path)) {
+                throw new \RuntimeException(
+                    sprintf('Archivo no encontrado en disco: %s (ruta: %s)', $archivo->getNombre(), $path)
+                );
+            }
+
+            $nombreOriginal = preg_replace('/^[^_]+_/', '', $archivo->getNombre()) ?? $archivo->getNombre();
+            $email->attachFromPath($path, $nombreOriginal);
+        }
     }
 
     private function buildAsunto(\App\apps\core\Entity\Despacho $despacho): string
@@ -138,9 +151,15 @@ final readonly class EnviarCorreoDespachoService
         $fecha = $facturaActiva?->getFechaEmision()?->format('d/m/Y')
             ?? $despacho->createdAt()?->format('d/m/Y')
             ?? date('d/m/Y');
-        $nombre  = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_NOMBRE)?->getName() ?? '';
-        $cargo   = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_CARGO)?->getName() ?? '';
-        $empresa = $this->parametroRepository->findByAlias(self::ALIAS_FIRMA_EMPRESA)?->getName() ?? '';
+        $firmaParams = $this->parametroRepository->findValuesByAliases([
+            self::ALIAS_FIRMA_NOMBRE,
+            self::ALIAS_FIRMA_CARGO,
+            self::ALIAS_FIRMA_EMPRESA,
+        ]);
+
+        $nombre  = $firmaParams[self::ALIAS_FIRMA_NOMBRE]  ?? '';
+        $cargo   = $firmaParams[self::ALIAS_FIRMA_CARGO]   ?? '';
+        $empresa = $firmaParams[self::ALIAS_FIRMA_EMPRESA] ?? '';
 
         $firma = implode("\n", array_filter([$nombre, $cargo, $empresa]));
 

@@ -95,6 +95,31 @@ class ParametroRepository extends DoctrineEntityRepository
             ->getOneOrNullResult();
     }
 
+    /**
+     * Obtiene múltiples parámetros por alias en una sola query.
+     *
+     * @param  string[] $aliases
+     * @return array<string, string>  mapa alias => name (solo los encontrados)
+     */
+    public function findValuesByAliases(array $aliases): array
+    {
+        $uppercased = array_map('strtoupper', $aliases);
+
+        $rows = $this->createQueryBuilder('p')
+            ->select('p.alias', 'p.name')
+            ->where('p.alias IN (:aliases)')
+            ->setParameter('aliases', $uppercased)
+            ->getQuery()
+            ->getArrayResult();
+
+        $map = [];
+        foreach ($rows as $row) {
+            $map[$row['alias']] = $row['name'];
+        }
+
+        return $map;
+    }
+
     public function allShared(): array
     {
         return $this->createQueryBuilder('parametro')

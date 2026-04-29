@@ -32,6 +32,23 @@ class ArchivoDespachoApi extends AbstractSerializerApi
             return $this->fail('Faltan parámetros requeridos: despachoId, tipoArchivo, archivo');
         }
 
+        $allowedMimes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/xml',
+            'text/xml',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ];
+
+        if (!in_array($file->getMimeType(), $allowedMimes, true)) {
+            return $this->fail(
+                sprintf('Tipo de archivo no permitido: %s. Se aceptan PDF, imágenes y XML.', $file->getMimeType())
+            );
+        }
+
         try {
             $archivo = $service->execute($despachoId, $tipoArchivo, $file, $facturaId ?: null);
 

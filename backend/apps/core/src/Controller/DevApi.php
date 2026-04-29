@@ -10,6 +10,7 @@ use App\apps\core\Repository\ParametroRepository;
 use App\shared\Api\AbstractSerializerApi;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Process\Process;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Mailer\MailerInterface;
@@ -123,16 +124,14 @@ class DevApi extends AbstractSerializerApi
             return $this->fail('No se encontró el archivo console en: ' . $console);
         }
 
-        $phpBin = PHP_BINARY;
-        $output = [];
-        $code   = 0;
-        \exec("{$phpBin} {$console} cache:clear --no-interaction 2>&1", $output, $code);
+        $process = new Process([PHP_BINARY, $console, 'cache:clear', '--no-interaction']);
+        $process->run();
 
-        if ($code !== 0) {
-            return $this->fail('Error al limpiar cache: ' . \implode("\n", $output));
+        if (!$process->isSuccessful()) {
+            return $this->fail('Error al limpiar cache: ' . $process->getErrorOutput());
         }
 
-        return $this->ok(['message' => 'Cache limpiado correctamente', 'item' => ['output' => \implode("\n", $output)]]);
+        return $this->ok(['message' => 'Cache limpiado correctamente', 'item' => ['output' => $process->getOutput()]]);
     }
 
     #[Route('/correo/test', name: 'dev_correo_test', methods: ['POST'])]

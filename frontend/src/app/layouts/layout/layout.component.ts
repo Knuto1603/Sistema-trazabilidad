@@ -1,20 +1,22 @@
-import { Component, signal, inject, computed, HostListener } from '@angular/core';
+import { Component, signal, inject, computed, HostListener, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '@core/services/auth.service';
 import { CampaignService } from '@core/services/campaign.service';
 import { SIDEBAR_MENU, MenuBlock } from '@core/constants/menu.config';
 import { NotificationComponent } from '@shared/components/notification/notification.component';
 import { IconComponent } from '@shared/components/icon/icon.component';
+import { LoadingScreenComponent } from '@shared/loading-screen/loading-screen.component';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, NotificationComponent, IconComponent],
+  imports: [CommonModule, RouterModule, NotificationComponent, IconComponent, LoadingScreenComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css'
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private router = inject(Router);
   campaignService = inject(CampaignService);
@@ -23,6 +25,9 @@ export class LayoutComponent {
   isMobileOpen = signal(false);
   isProfileOpen = signal(false);
   isCampaignOpen = signal(false);
+  isNavigating = signal(false);
+
+  private routerSub!: Subscription;
 
   user = computed(() => this.authService.currentUser());
 
@@ -34,6 +39,20 @@ export class LayoutComponent {
       )
     })).filter(block => block.items.length > 0);
   });
+
+  ngOnInit() {
+    this.routerSub = this.router.events.subscribe(event => {
+      if (event instanceof NavigationStart) {
+        this.isNavigating.set(true);
+      } else if (event instanceof NavigationEnd || event instanceof NavigationCancel || event instanceof NavigationError) {
+        this.isNavigating.set(false);
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.routerSub?.unsubscribe();
+  }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {

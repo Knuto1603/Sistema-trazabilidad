@@ -1,5 +1,13 @@
 <app-notification></app-notification>
 
+@if (isNavigating()) {
+  <div class="nav-progress-bar"></div>
+}
+
+@if (!campaignService.isLoaded()) {
+  <app-loading-screen message="Cargando campaña activa..." />
+} @else {
+
 <div class="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-900">
 
   <!-- BARRA LATERAL (SIDEBAR) -->
@@ -187,3 +195,5 @@
     }
   </div>
 </div>
+
+} <!-- end @if isLoaded -->

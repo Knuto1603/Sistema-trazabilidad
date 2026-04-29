@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '@env/environment.development';
 import { Campaign } from '../models/core.model';
 
+const CACHE_KEY = 'campaignsList';
+
 @Injectable({ providedIn: 'root' })
 export class CampaignService {
   private http = inject(HttpClient);
@@ -10,12 +12,15 @@ export class CampaignService {
 
   #campaigns = signal<Campaign[]>([]);
   #activeCampaign = signal<Campaign | null>(null);
+  #isLoaded = signal(false);
 
   campaigns = this.#campaigns.asReadonly();
   activeCampaign = this.#activeCampaign.asReadonly();
   activeCampaignId = computed(() => this.#activeCampaign()?.id ?? null);
+  isLoaded = this.#isLoaded.asReadonly();
 
   constructor() {
+    this.restoreFromCache();
     this.loadCampaigns();
   }
 
@@ -23,15 +28,32 @@ export class CampaignService {
     this.http.get<{ status: boolean; items: Campaign[] }>(`${this.url}/shared`)
       .subscribe(res => {
         if (res.status) {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(res.items));
           this.#campaigns.set(res.items);
           this.restoreOrSelectFirst(res.items);
         }
+        this.#isLoaded.set(true);
       });
   }
 
   setActiveCampaign(campaign: Campaign) {
     this.#activeCampaign.set(campaign);
     localStorage.setItem('activeCampaignId', campaign.id);
+  }
+
+  private restoreFromCache() {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return;
+    try {
+      const cached: Campaign[] = JSON.parse(raw);
+      if (cached.length) {
+        this.#campaigns.set(cached);
+        this.restoreOrSelectFirst(cached);
+        this.#isLoaded.set(true);
+      }
+    } catch {
+      localStorage.removeItem(CACHE_KEY);
+    }
   }
 
   private restoreOrSelectFirst(campaigns: Campaign[]) {

@@ -8,6 +8,7 @@ use App\shared\Doctrine\UidType;
 use App\shared\Repository\PaginatorInterface;
 use App\shared\Service\FilterService;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\ORM\Tools\Pagination\Paginator as DoctrinePaginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -89,6 +90,90 @@ class FacturaRepository extends DoctrineEntityRepository
         }
 
         return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * Paginación en BD para Cuentas por Cobrar.
+     * El filtro por estado usa subconsulta correlated en WHERE para evitar traer todo a PHP.
+     *
+     * @return array{items: Factura[], totalItems: int}
+     */
+    public function findPaginatedForCuentasCobrar(
+        ?string $sede = null,
+        ?string $operacionUuid = null,
+        ?string $clienteUuid = null,
+        ?string $search = null,
+        ?string $estado = null,
+        int $page = 0,
+        int $itemsPerPage = 20,
+    ): array {
+        $qb = $this->createQueryBuilder('f')
+            ->select(['f', 'd', 'c', 'o', 'pagos', 'v'])
+            ->leftJoin('f.despacho', 'd')
+            ->leftJoin('d.cliente', 'c')
+            ->leftJoin('d.operacion', 'o')
+            ->leftJoin('f.pagos', 'pagos')
+            ->leftJoin('pagos.voucher', 'v')
+            ->where('f.isActive = true')
+            ->andWhere('f.isAnulada = false')
+            ->orderBy('f.fechaEmision', 'DESC');
+
+        if ($sede !== null) {
+            $qb->andWhere('d.sede = :sede')->setParameter('sede', $sede);
+        }
+
+        if ($operacionUuid !== null) {
+            $qb->andWhere('o.uuid = :operacionUuid')
+               ->setParameter('operacionUuid', $operacionUuid, UidType::NAME);
+        }
+
+        if ($clienteUuid !== null) {
+            $qb->andWhere('c.uuid = :clienteUuid')
+               ->setParameter('clienteUuid', $clienteUuid, UidType::NAME);
+        }
+
+        if ($search !== null) {
+            $qb->andWhere('f.numeroDocumento LIKE :s OR c.razonSocial LIKE :s OR f.contenedor LIKE :s')
+               ->setParameter('s', '%' . $search . '%');
+        }
+
+        if ($estado !== null) {
+            $this->applyEstadoFilter($qb, $estado);
+        }
+
+        $query = $qb->getQuery()
+            ->setFirstResult($page * $itemsPerPage)
+            ->setMaxResults($itemsPerPage);
+
+        $paginator = new DoctrinePaginator($query, fetchJoinCollection: true);
+
+        return [
+            'items'      => iterator_to_array($paginator->getIterator()),
+            'totalItems' => count($paginator),
+        ];
+    }
+
+    private function applyEstadoFilter(QueryBuilder $qb, string $estado): void
+    {
+        $montoPagadoSub = '(SELECT COALESCE(SUM(pSub.montoAplicado), 0)'
+            . ' FROM App\apps\core\Entity\PagoFactura pSub'
+            . ' WHERE pSub.factura = f AND pSub.isActive = true)';
+
+        $hoy = new \DateTimeImmutable('today');
+
+        match ($estado) {
+            'PAGADO' => $qb->andWhere("f.total IS NOT NULL AND $montoPagadoSub >= f.total - 0.001"),
+            'VENCIDA' => $qb
+                ->andWhere("(f.total IS NULL OR $montoPagadoSub < f.total - 0.001)")
+                ->andWhere('f.fechaVencimiento IS NOT NULL')
+                ->andWhere('f.fechaVencimiento < :hoy')
+                ->setParameter('hoy', $hoy),
+            'PENDIENTE' => $qb
+                ->andWhere("(f.total IS NULL OR $montoPagadoSub < f.total - 0.001)")
+                ->andWhere('f.fechaVencimiento IS NULL OR f.fechaVencimiento >= :hoy')
+                ->setParameter('hoy', $hoy),
+            default => null,
+        };
     }
 
     public function deleteByDespacho(object $despacho): void

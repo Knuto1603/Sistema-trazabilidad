@@ -34,9 +34,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   menuItems = computed(() => {
     return SIDEBAR_MENU.map(block => ({
       ...block,
-      items: block.items.filter(item =>
-        item.roles.some(role => this.authService.hasRole(role))
-      )
+      items: block.items.filter(item => this.authService.hasModule(item.moduleKey))
     })).filter(block => block.items.length > 0);
   });
 

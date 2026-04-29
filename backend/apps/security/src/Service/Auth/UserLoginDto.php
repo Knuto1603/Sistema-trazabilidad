@@ -15,6 +15,8 @@ final class UserLoginDto implements DtoRequestInterface
         /** @var array|null */
         public ?array $roles = null,
         public ?string $avatar = null,
+        /** @var array|null Módulos accesibles (unión de todos los roles activos) */
+        public ?array $modules = null,
     ) {
     }
 }

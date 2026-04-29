@@ -43,6 +43,7 @@ export interface AppUser {
 // Rol de usuario
 export interface UserRole {
   id: string; name: string; alias: string;
+  modules: string[];
   userIds?: string[]; userCount?: number; isActive: boolean;
 }
 

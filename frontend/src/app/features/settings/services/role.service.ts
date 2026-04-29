@@ -7,6 +7,7 @@ import { UserRole } from '@core/models/core.model';
 export interface RoleCreateDto {
   name: string;
   alias: string;
+  modules?: string[];
 }
 
 @Injectable({ providedIn: 'root' })

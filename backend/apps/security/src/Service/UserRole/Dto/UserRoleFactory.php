@@ -35,7 +35,10 @@ final class UserRoleFactory
             default => $role->enable(),
         };
 
-        // Actualizar usuarios asignados si se proporcionaron IDs
+        if (null !== $dto->modules) {
+            $role->setModules($dto->modules);
+        }
+
         if (null !== $dto->userIds) {
             $this->updateUsers($role, $dto->userIds);
         }

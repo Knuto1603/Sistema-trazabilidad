@@ -27,6 +27,9 @@ class UserRole
     #[ORM\Column(length: 100)]
     private ?string $alias = null;
 
+    #[ORM\Column(type: 'json')]
+    private array $modules = [];
+
     /**
      * @var Collection<int, User>
      */
@@ -91,6 +94,17 @@ class UserRole
             $user->removeRol($this);
         }
 
+        return $this;
+    }
+
+    public function getModules(): array
+    {
+        return $this->modules;
+    }
+
+    public function setModules(array $modules): static
+    {
+        $this->modules = array_values(array_unique($modules));
         return $this;
     }
 }

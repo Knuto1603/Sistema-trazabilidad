@@ -19,15 +19,13 @@ final class UserRoleDto implements DtoRequestInterface
         #[Assert\Length(min: 3, max: 100)]
         public ?string $alias = null,
 
-        /**
-         * @var array|null Lista de UUIDs de usuarios asignados a este rol
-         */
+        /** @var array|null Lista de UUIDs de usuarios asignados a este rol */
         public ?array $userIds = null,
 
-        /**
-         * Contador de usuarios que tienen este rol
-         */
         public ?int $userCount = null,
+
+        /** @var array|null Claves de módulos accesibles para este rol */
+        public ?array $modules = null,
 
     ) {
     }

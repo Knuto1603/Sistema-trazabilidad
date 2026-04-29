@@ -56,4 +56,9 @@ export class AuthService {
     const userRoles = this.#currentUser()?.roles || [];
     return userRoles.includes(roleName);
   }
+
+  hasModule(moduleKey: string): boolean {
+    const modules = this.#currentUser()?.modules || [];
+    return modules.includes(moduleKey);
+  }
 }

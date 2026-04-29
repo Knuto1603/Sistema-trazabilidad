@@ -3,6 +3,7 @@ export interface User {
   username: string;
   fullname: string;
   roles: string[];
+  modules: string[];
   avatar: string | null;
 }
 

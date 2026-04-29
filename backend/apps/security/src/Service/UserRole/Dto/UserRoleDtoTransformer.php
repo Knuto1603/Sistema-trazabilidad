@@ -29,6 +29,8 @@ final class UserRoleDtoTransformer extends DtoTransformer
             );
         }
 
+        $dto->modules = $object->getModules();
+
         $dto->ofEntity($object);
 
         return $dto;

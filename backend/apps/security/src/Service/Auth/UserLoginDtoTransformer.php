@@ -15,11 +15,19 @@ final class UserLoginDtoTransformer extends DtoTransformer
             return null;
         }
 
+        $modules = [];
+        foreach ($object->getRol() as $role) {
+            if ($role->isActive()) {
+                $modules = array_merge($modules, $role->getModules());
+            }
+        }
+
         return new UserLoginDto(
             id: UidType::toString($object->uuid()),
             username: $object->getUsername(),
             fullname: $object->getFullName(),
             roles: $object->getRoles(),
+            modules: array_values(array_unique($modules)),
         );
     }
 }

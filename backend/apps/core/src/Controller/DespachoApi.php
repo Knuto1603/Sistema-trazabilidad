@@ -2,10 +2,7 @@
 
 namespace App\apps\core\Controller;
 
-use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\DespachoRepository;
-use App\apps\core\Repository\FrutaRepository;
-use App\apps\core\Repository\OperacionRepository;
 use App\apps\core\Service\Despacho\CreateDespachoService;
 use App\apps\core\Service\Despacho\Dto\EnviarCorreoDto;
 use App\apps\core\Service\Despacho\EnviarCorreoDespachoService;
@@ -15,6 +12,7 @@ use App\apps\core\Service\Despacho\Dto\DespachoDtoTransformer;
 use App\apps\core\Service\Despacho\Filter\DespachoFilterDto;
 use App\apps\core\Service\Despacho\GetDespachoService;
 use App\apps\core\Service\Despacho\GetDespachosService;
+use App\apps\core\Service\Despacho\GetProximoNumeroDespachoService;
 use App\apps\core\Service\Despacho\UpdateDespachoService;
 use App\shared\Api\AbstractSerializerApi;
 use App\shared\Doctrine\UidType;
@@ -31,28 +29,12 @@ class DespachoApi extends AbstractSerializerApi
     #[Route('/proximo-numero', name: 'despacho_proximo_numero', methods: ['GET'])]
     public function proximoNumero(
         Request $request,
-        DespachoRepository $despachoRepository,
-        OperacionRepository $operacionRepository,
-        FrutaRepository $frutaRepository,
+        GetProximoNumeroDespachoService $service,
     ): Response {
-        $operacionUid = $request->query->get('operacionId');
-        $frutaUid = $request->query->get('frutaId');
-
-        if ($operacionUid) {
-            try {
-                $operacion = $operacionRepository->ofId($operacionUid, true);
-                $frutaDbId = null;
-                if ($frutaUid) {
-                    $fruta = $frutaRepository->ofId($frutaUid, true);
-                    $frutaDbId = $fruta->getId();
-                }
-                $numeroPlanta = $despachoRepository->findMaxNumeroPlantaByOperacion($operacion->getId(), $frutaDbId) + 1;
-            } catch (\Throwable) {
-                $numeroPlanta = 1;
-            }
-        } else {
-            $numeroPlanta = $despachoRepository->findMaxNumeroPlanta() + 1;
-        }
+        $numeroPlanta = $service->nextNumeroPlanta(
+            operacionUuid: $request->query->get('operacionId'),
+            frutaUuid: $request->query->get('frutaId'),
+        );
 
         return $this->ok(['item' => ['numeroPlanta' => $numeroPlanta]]);
     }
@@ -60,40 +42,13 @@ class DespachoApi extends AbstractSerializerApi
     #[Route('/proximo-numero-cliente', name: 'despacho_proximo_numero_cliente', methods: ['GET'])]
     public function proximoNumeroCliente(
         Request $request,
-        DespachoRepository $despachoRepository,
-        ClienteRepository $clienteRepository,
-        OperacionRepository $operacionRepository,
-        FrutaRepository $frutaRepository,
+        GetProximoNumeroDespachoService $service,
     ): Response {
-        $clienteUid = $request->query->get('clienteId');
-        $operacionUid = $request->query->get('operacionId');
-        $frutaUid = $request->query->get('frutaId');
-
-        if (!$clienteUid) {
-            return $this->ok(['item' => ['numeroCliente' => 1]]);
-        }
-
-        try {
-            $cliente = $clienteRepository->ofId($clienteUid, true);
-            $frutaDbId = null;
-            if ($frutaUid) {
-                $fruta = $frutaRepository->ofId($frutaUid, true);
-                $frutaDbId = $fruta->getId();
-            }
-
-            if ($operacionUid) {
-                $operacion = $operacionRepository->ofId($operacionUid, true);
-                $numeroCliente = $despachoRepository->findMaxNumeroClienteByOperacion(
-                    $cliente->getId(),
-                    $operacion->getId(),
-                    $frutaDbId
-                ) + 1;
-            } else {
-                $numeroCliente = $despachoRepository->findMaxNumeroCliente($cliente->getId()) + 1;
-            }
-        } catch (\Throwable) {
-            $numeroCliente = 1;
-        }
+        $numeroCliente = $service->nextNumeroCliente(
+            clienteUuid: $request->query->get('clienteId'),
+            operacionUuid: $request->query->get('operacionId'),
+            frutaUuid: $request->query->get('frutaId'),
+        );
 
         return $this->ok(['item' => ['numeroCliente' => $numeroCliente]]);
     }

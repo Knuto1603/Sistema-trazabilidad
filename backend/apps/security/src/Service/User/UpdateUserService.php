@@ -44,7 +44,7 @@ final readonly class UpdateUserService
         }
 
         if ($this->userRepository->usernameExists($userDto->username)) {
-            throw new epositoryException(\sprintf('Username %s already exists', $userDto->username));
+            throw new RepositoryException(\sprintf('Username %s already exists', $userDto->username));
         }
     }
 }

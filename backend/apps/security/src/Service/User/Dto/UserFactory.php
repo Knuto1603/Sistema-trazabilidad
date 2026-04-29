@@ -36,23 +36,16 @@ final readonly class UserFactory
 
     private function assignDefaultRole(User $user): void
     {
-        // Buscar el rol ROLE_USER
         $userRole = $this->userRoleRepository->findOneBy(['name' => 'ROLE_USER']);
 
-        // Si no existe, crearlo
         if (null === $userRole) {
             $userRole = new UserRole();
             $userRole->setName('ROLE_USER');
             $userRole->setAlias('User');
             $userRole->enable();
-
-            // Guardar el rol en la base de datos
-            $entityManager = $this->userRoleRepository->getEntityManager();
-            $entityManager->persist($userRole);
-            $entityManager->flush();
+            $this->userRoleRepository->save($userRole);
         }
 
-        // Asignar el rol al usuario
         $user->addRol($userRole);
     }
 

@@ -33,7 +33,13 @@ final class JwtConfigService
     public function setTtl(int $ttl): int
     {
         $ttl = max(self::MIN_TTL, min(self::MAX_TTL, $ttl));
-        file_put_contents($this->configFile, json_encode(['ttl' => $ttl], JSON_PRETTY_PRINT));
+
+        $written = file_put_contents($this->configFile, json_encode(['ttl' => $ttl], JSON_PRETTY_PRINT));
+        if ($written === false) {
+            throw new \RuntimeException(
+                sprintf('No se pudo guardar la configuración JWT en "%s". Verifique permisos del directorio var/.', $this->configFile)
+            );
+        }
 
         return $ttl;
     }

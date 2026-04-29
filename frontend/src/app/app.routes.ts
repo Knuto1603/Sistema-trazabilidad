@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { LayoutComponent } from './layouts/layout/layout.component';
 import { authGuard } from '@core/guards/auth.guard';
 import { knutoGuard } from '@core/guards/knuto.guard';
+import { moduleGuard } from '@core/guards/module.guard';
 import { EmptyLayoutComponent } from './layouts/empty-layout/empty-layout.component';
 
 export const routes: Routes = [
@@ -26,26 +27,32 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
+        canActivate: [moduleGuard('configuracion')],
         loadChildren: () => import('@features/settings/settings.routes').then(m => m.settingsRoutes)
       },
       {
         path: 'users',
+        canActivate: [moduleGuard('usuarios')],
         loadChildren: () => import('@features/users/users.routes').then(m => m.usersRoutes)
       },
       {
         path: 'productores',
+        canActivate: [moduleGuard('productores')],
         loadChildren: () => import('@features/productores/productores.routes').then(m => m.productoresRoutes)
       },
       {
         path: 'senasa',
+        canActivate: [moduleGuard('senasa')],
         loadChildren: () => import('@features/senasa/senasa.routes').then(m => m.senasaRoutes)
       },
       {
         path: 'facturacion',
+        canActivate: [moduleGuard('despachos')],
         loadChildren: () => import('@features/facturacion/facturacion.routes').then(m => m.facturacionRoutes)
       },
       {
         path: 'cuentas-cobrar',
+        canActivate: [moduleGuard('cuentas_cobrar')],
         loadChildren: () => import('@features/cuentas-cobrar/cuentas-cobrar.routes').then(m => m.cuentasCobrarRoutes)
       },
       {

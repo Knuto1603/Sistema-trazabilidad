@@ -15,7 +15,7 @@ final readonly class ChangeStateProductorService
     public function execute(string $id, bool $isActive): Productor
     {
         $productor = $this->productorRepository->ofId($id, true);
-        $productor->setIsActive($isActive);
+        $isActive ? $productor->enable() : $productor->disable();
         $this->productorRepository->save($productor);
 
         return $productor;

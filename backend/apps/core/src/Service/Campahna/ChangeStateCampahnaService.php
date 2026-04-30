@@ -15,7 +15,7 @@ final readonly class ChangeStateCampahnaService
     public function execute(string $id, bool $isActive): Campahna
     {
         $campahna = $this->campahnaRepository->ofId($id, true);
-        $campahna->setIsActive($isActive);
+        $isActive ? $campahna->enable() : $campahna->disable();
         $this->campahnaRepository->save($campahna);
 
         return $campahna;

@@ -6,29 +6,29 @@
 
   <div class="border-b border-slate-200 mb-6">
     <nav class="flex gap-1 -mb-px overflow-x-auto">
-      <a routerLink="campanhas"
-         routerLinkActive="border-blue-600 text-blue-600 font-bold"
-         class="px-4 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 whitespace-nowrap transition-colors">
+      <a routerLink="campanhas" routerLinkActive #rlaCamp="routerLinkActive"
+         [class]="'px-4 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ' +
+           (rlaCamp.isActive ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700')">
         Campañas
       </a>
-      <a routerLink="frutas"
-         routerLinkActive="border-blue-600 text-blue-600 font-bold"
-         class="px-4 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 whitespace-nowrap transition-colors">
+      <a routerLink="frutas" routerLinkActive #rlaFrut="routerLinkActive"
+         [class]="'px-4 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ' +
+           (rlaFrut.isActive ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700')">
         Frutas
       </a>
-      <a routerLink="parametros"
-         routerLinkActive="border-blue-600 text-blue-600 font-bold"
-         class="px-4 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 whitespace-nowrap transition-colors">
+      <a routerLink="parametros" routerLinkActive #rlaParam="routerLinkActive"
+         [class]="'px-4 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ' +
+           (rlaParam.isActive ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700')">
         Parámetros
       </a>
-      <a routerLink="roles"
-         routerLinkActive="border-blue-600 text-blue-600 font-bold"
-         class="px-4 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 whitespace-nowrap transition-colors">
+      <a routerLink="roles" routerLinkActive #rlaRoles="routerLinkActive"
+         [class]="'px-4 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ' +
+           (rlaRoles.isActive ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700')">
         Roles
       </a>
-      <a routerLink="operaciones"
-         routerLinkActive="border-blue-600 text-blue-600 font-bold"
-         class="px-4 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:text-slate-700 whitespace-nowrap transition-colors">
+      <a routerLink="operaciones" routerLinkActive #rlaOper="routerLinkActive"
+         [class]="'px-4 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ' +
+           (rlaOper.isActive ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700')">
         Operaciones
       </a>
     </nav>

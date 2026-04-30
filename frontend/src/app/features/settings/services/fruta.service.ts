@@ -23,7 +23,7 @@ export class FrutaService {
   }
 
   getShared() {
-    return this.http.get<{ status: boolean; items: { id: string; name: string }[] }>(`${this.url}/shared`);
+    return this.http.get<{ status: boolean; items: { id: string; nombre: string }[] }>(`${this.url}/shared`);
   }
 
   create(data: FrutaCreateDto) {

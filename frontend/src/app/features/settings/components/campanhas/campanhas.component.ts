@@ -36,7 +36,7 @@ export class CampanhasComponent implements OnInit {
   showConfirm = signal(false);
   deletingId = signal<string | null>(null);
 
-  frutas = signal<{ id: string; name: string }[]>([]);
+  frutas = signal<{ id: string; nombre: string }[]>([]);
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
 

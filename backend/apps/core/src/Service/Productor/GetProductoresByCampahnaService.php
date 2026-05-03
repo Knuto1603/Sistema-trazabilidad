@@ -5,6 +5,7 @@ namespace App\apps\core\Service\Productor;
 use App\apps\core\Repository\ProductorCampahnaRepository;
 use App\apps\core\Service\Productor\Dto\ProductorDtoTransformer;
 use App\apps\core\Service\Productor\Filter\ProductorFilterDto;
+use App\shared\Doctrine\UidType;
 use App\shared\Service\Dto\FilterDto;
 use App\shared\Service\Dto\SortingDto;
 use App\shared\Service\Filter\ConditionFilter;
@@ -46,7 +47,8 @@ final readonly class GetProductoresByCampahnaService
         // Filtro por campaña a través de ProductorCampahna
         $this->filterService->addFilter(new ConditionFilter(
             'campahna.uuid = :campahnaId',
-            ['campahnaId' => $campahnaId]
+            ['campahnaId' => UidType::fromString($campahnaId)],
+            ['campahnaId' => UidType::NAME]
         ));
 
         // Solo productores activos en la campaña

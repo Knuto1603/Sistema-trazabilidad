@@ -37,7 +37,8 @@ final readonly class GetFacturasService
             if ($filterDto->despachoId) {
                 $this->filterService->addFilter(new ConditionFilter(
                     'despacho.uuid = :despachoId',
-                    ['despachoId' => UidType::fromString($filterDto->despachoId)]
+                    ['despachoId' => UidType::fromString($filterDto->despachoId)],
+                    ['despachoId' => UidType::NAME]
                 ));
             }
 

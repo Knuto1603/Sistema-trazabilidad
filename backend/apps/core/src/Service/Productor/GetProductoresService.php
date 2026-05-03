@@ -65,7 +65,8 @@ final readonly class GetProductoresService
             if ($filterDto->campahnaId) {
                 $this->filterService->addFilter(new ConditionFilter(
                     'campahna.uuid = :campahnaId',
-                    ['campahnaId' => UidType::fromString($filterDto->campahnaId)]
+                    ['campahnaId' => UidType::fromString($filterDto->campahnaId)],
+                    ['campahnaId' => UidType::NAME]
                 ));
             }
 
@@ -73,7 +74,8 @@ final readonly class GetProductoresService
             if ($filterDto->frutaId) {
                 $this->filterService->addFilter(new ConditionFilter(
                     'fruta.uuid = :frutaId',
-                    ['frutaId' => UidType::fromString($filterDto->frutaId)]
+                    ['frutaId' => UidType::fromString($filterDto->frutaId)],
+                    ['frutaId' => UidType::NAME]
                 ));
             }
 
@@ -81,7 +83,8 @@ final readonly class GetProductoresService
             if ($filterDto->periodoId) {
                 $this->filterService->addFilter(new ConditionFilter(
                     'periodo.uuid = :periodoId',
-                    ['periodoId' => UidType::fromString($filterDto->periodoId)]
+                    ['periodoId' => UidType::fromString($filterDto->periodoId)],
+                    ['periodoId' => UidType::NAME]
                 ));
             }
 

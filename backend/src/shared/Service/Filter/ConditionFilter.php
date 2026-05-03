@@ -9,6 +9,7 @@ final readonly class ConditionFilter implements FilterStrategy
     public function __construct(
         private string $condition,
         private array $parameters = [],
+        private array $types = [],
     ) {
     }
 
@@ -16,7 +17,7 @@ final readonly class ConditionFilter implements FilterStrategy
     {
         $queryBuilder->andWhere($this->condition);
         foreach ($this->parameters as $key => $value) {
-            $queryBuilder->setParameter($key, $value);
+            $queryBuilder->setParameter($key, $value, $this->types[$key] ?? null);
         }
     }
 }

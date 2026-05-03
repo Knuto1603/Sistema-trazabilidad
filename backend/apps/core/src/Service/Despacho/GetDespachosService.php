@@ -37,14 +37,16 @@ final readonly class GetDespachosService
             if ($filterDto->clienteId) {
                 $this->filterService->addFilter(new ConditionFilter(
                     'cliente.uuid = :clienteId',
-                    ['clienteId' => UidType::fromString($filterDto->clienteId)]
+                    ['clienteId' => UidType::fromString($filterDto->clienteId)],
+                    ['clienteId' => UidType::NAME]
                 ));
             }
 
             if ($filterDto->frutaId) {
                 $this->filterService->addFilter(new ConditionFilter(
                     'fruta.uuid = :frutaId',
-                    ['frutaId' => UidType::fromString($filterDto->frutaId)]
+                    ['frutaId' => UidType::fromString($filterDto->frutaId)],
+                    ['frutaId' => UidType::NAME]
                 ));
             }
 

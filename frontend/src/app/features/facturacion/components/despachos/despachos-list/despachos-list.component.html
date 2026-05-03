@@ -7,8 +7,16 @@
   </app-page-header>
 
   <div class="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-    <input type="text" placeholder="Buscar por cliente, contenedor..." (input)="onSearch($event)"
+    <input type="text" placeholder="Buscar por cliente, contenedor..." [value]="search()" (input)="onSearch($event)"
       class="w-full sm:w-64 px-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+    <select [value]="frutafiltro()" (change)="onFrutaFilter($any($event.target).value)"
+      class="w-full sm:w-44 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+      [class.border-blue-500]="frutafiltro()" [class.text-blue-700]="frutafiltro()" [class.font-semibold]="frutafiltro()">
+      <option value="">Todas las frutas</option>
+      @for (f of frutas(); track f.id) {
+        <option [value]="f.id">{{ f.nombre }}</option>
+      }
+    </select>
     <div class="flex items-center gap-2">
       @for (sede of SEDES; track sede) {
         <button (click)="onSedeFilter(sefiltro() === sede ? '' : sede)"
@@ -92,7 +100,7 @@
       </table>
     </div>
     <div class="px-4 pb-4">
-      <app-pagination [pagination]="pagination()" (pageChange)="onPageChange($event)"></app-pagination>
+      <app-pagination [pagination]="pagination()" [pageSizes]="PAGE_SIZES" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)"></app-pagination>
     </div>
   </div>
 

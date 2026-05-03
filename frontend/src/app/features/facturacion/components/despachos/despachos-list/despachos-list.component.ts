@@ -1,6 +1,6 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { DespachoService, DespachoCreateDto } from '../../../despacho.service';
 import { ClienteService, ClienteCreateDto } from '../../../cliente.service';
 import { FrutaService } from '@features/settings/services/fruta.service';
@@ -29,6 +29,7 @@ export class DespachosListComponent implements OnInit {
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
 
   items = signal<Despacho[]>([]);
@@ -37,7 +38,11 @@ export class DespachosListComponent implements OnInit {
   saving = signal(false);
   search = signal('');
   currentPage = signal(0);
+  itemsPerPage = signal(10);
   sefiltro = signal<string>('');
+  frutafiltro = signal<string>('');
+
+  readonly PAGE_SIZES = [10, 25, 50];
 
   // Combobox de cliente
   clienteSearch = signal('');
@@ -85,6 +90,13 @@ export class DespachosListComponent implements OnInit {
   readonly SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'];
 
   ngOnInit(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    this.search.set(qp.get('q') ?? '');
+    this.sefiltro.set(qp.get('sede') ?? '');
+    this.frutafiltro.set(qp.get('fruta') ?? '');
+    this.currentPage.set(Number(qp.get('page') ?? 0));
+    const size = Number(qp.get('size') ?? 10);
+    this.itemsPerPage.set(this.PAGE_SIZES.includes(size) ? size : 10);
     this.loadFrutas();
     this.load();
   }
@@ -95,10 +107,21 @@ export class DespachosListComponent implements OnInit {
     });
   }
 
+  private syncQueryParams(): void {
+    const params: Record<string, string> = {};
+    if (this.search()) params['q'] = this.search();
+    if (this.sefiltro()) params['sede'] = this.sefiltro();
+    if (this.frutafiltro()) params['fruta'] = this.frutafiltro();
+    if (this.currentPage()) params['page'] = String(this.currentPage());
+    if (this.itemsPerPage() !== 10) params['size'] = String(this.itemsPerPage());
+    this.router.navigate([], { relativeTo: this.route, queryParams: params, replaceUrl: true });
+  }
+
   load(): void {
     this.loading.set(true);
-    const params: any = { page: this.currentPage(), itemsPerPage: 10, search: this.search() };
+    const params: any = { page: this.currentPage(), itemsPerPage: this.itemsPerPage(), search: this.search() };
     if (this.sefiltro()) params['sede'] = this.sefiltro();
+    if (this.frutafiltro()) params['frutaId'] = this.frutafiltro();
 
     this.despachoService.getAll(params).subscribe({
       next: res => {
@@ -112,16 +135,26 @@ export class DespachosListComponent implements OnInit {
   onSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.load(); }, 400);
+    this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.syncQueryParams(); this.load(); }, 400);
   }
 
   onSedeFilter(sede: string): void {
     this.sefiltro.set(sede);
     this.currentPage.set(0);
+    this.syncQueryParams();
     this.load();
   }
 
-  onPageChange(page: number): void { this.currentPage.set(page); this.load(); }
+  onFrutaFilter(frutaId: string): void {
+    this.frutafiltro.set(frutaId);
+    this.currentPage.set(0);
+    this.syncQueryParams();
+    this.load();
+  }
+
+  onPageChange(page: number): void { this.currentPage.set(page); this.syncQueryParams(); this.load(); }
+
+  onPageSizeChange(size: number): void { this.itemsPerPage.set(size); this.currentPage.set(0); this.syncQueryParams(); this.load(); }
 
   // --- Combobox cliente ---
 

@@ -35,7 +35,11 @@ export class FacturaService {
   private http = inject(HttpClient);
   private base = `${environment.coreUrl}/facturas`;
 
-  getAll(params: FilterParams & { despachoId?: string; tipoDocumento?: string }): Observable<ApiListResponse<Factura>> {
+  getAll(params: FilterParams & {
+    despachoId?: string; tipoDocumento?: string;
+    isAnulada?: boolean; tipoServicio?: string;
+    fechaDesde?: string; fechaHasta?: string;
+  }): Observable<ApiListResponse<Factura>> {
     return this.http.get<ApiListResponse<Factura>>(`${this.base}/`, { params: params as any });
   }
 

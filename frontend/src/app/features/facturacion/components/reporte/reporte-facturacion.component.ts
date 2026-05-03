@@ -6,14 +6,17 @@ import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
 import { Factura } from '@core/models/core.model';
+import { Pagination } from '@core/models/api.model';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { PaginationComponent } from '@shared/components/pagination/pagination.component';
 
 type SortField = 'numeroDocumento' | 'fechaEmision' | 'clienteRazonSocial' | 'importe' | 'total';
+type EstadoFilter = 'todas' | 'activas' | 'anuladas';
 
 @Component({
   selector: 'app-reporte-facturacion',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, DecimalPipe, PageHeaderComponent],
+  imports: [FormsModule, ReactiveFormsModule, DecimalPipe, PageHeaderComponent, PaginationComponent],
   templateUrl: './reporte-facturacion.component.html',
 })
 export class ReporteFacturacionComponent implements OnInit {
@@ -24,6 +27,7 @@ export class ReporteFacturacionComponent implements OnInit {
   private fb = inject(FormBuilder);
 
   facturas = signal<Factura[]>([]);
+  pagination = signal<Pagination>({ page: 0, itemsPerPage: 25, count: 0, totalItems: 0, startIndex: 0, endIndex: 0 });
   loading = signal(false);
   exporting = signal(false);
   savingFactura = signal(false);
@@ -34,14 +38,29 @@ export class ReporteFacturacionComponent implements OnInit {
 
   searchText = signal('');
   filterServicio = signal('');
-  filterAnuladas = signal<'todas' | 'activas' | 'anuladas'>('activas');
+  filterAnuladas = signal<EstadoFilter>('activas');
   filterFechaDesde = signal('');
   filterFechaHasta = signal('');
 
-  sortField = signal<SortField>('numeroDocumento');
-  sortDir = signal<'asc' | 'desc'>('asc');
+  currentPage = signal(0);
+  itemsPerPage = signal(25);
+  readonly PAGE_SIZES = [10, 25, 50, 100];
+
+  sortField = signal<SortField>('fechaEmision');
+  sortDir = signal<'asc' | 'desc'>('desc');
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
+
+  totalImporte = computed(() =>
+    this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.importe ?? 0), 0)
+  );
+  totalIgv = computed(() =>
+    this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.igv ?? 0), 0)
+  );
+  totalGeneral = computed(() =>
+    this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.total ?? 0), 0)
+  );
+  countActivas = computed(() => this.facturas().filter(f => !f.isAnulada).length);
 
   readonly TIPOS_DOCUMENTO = [
     { value: '01', label: 'Factura (01)' },
@@ -77,9 +96,10 @@ export class ReporteFacturacionComponent implements OnInit {
     destino: [''],
   });
 
-  ngOnInit(): void {
-    this.loadAll();
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
+  ngOnInit(): void {
+    this.load();
     this.facturaForm.get('fechaEmision')!.valueChanges.subscribe(fecha => {
       if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
         this.fetchTipoCambio(fecha, false);
@@ -87,82 +107,48 @@ export class ReporteFacturacionComponent implements OnInit {
     });
   }
 
-  loadAll(): void {
+  load(): void {
     this.loading.set(true);
-    this.facturaService.getAll({ page: 0, itemsPerPage: 1000 }).subscribe({
+    const params: any = {
+      page: this.currentPage(),
+      itemsPerPage: this.itemsPerPage(),
+      sort: this.sortField(),
+      direction: this.sortDir(),
+    };
+    if (this.searchText()) params['search'] = this.searchText();
+    const estado = this.filterAnuladas();
+    if (estado === 'activas') params['isAnulada'] = false;
+    else if (estado === 'anuladas') params['isAnulada'] = true;
+    if (this.filterServicio()) params['tipoServicio'] = this.filterServicio();
+    if (this.filterFechaDesde()) params['fechaDesde'] = this.filterFechaDesde();
+    if (this.filterFechaHasta()) params['fechaHasta'] = this.filterFechaHasta();
+
+    this.facturaService.getAll(params).subscribe({
       next: res => {
-        if (res.status) this.facturas.set(res.items ?? []);
+        if (res.status) {
+          this.facturas.set(res.items ?? []);
+          this.pagination.set(res.pagination);
+        }
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
     });
   }
 
-  facturasFiltradas = computed(() => {
-    let list = [...this.facturas()];
-    const search = this.searchText().toLowerCase().trim();
-    const servicio = this.filterServicio();
-    const anuladas = this.filterAnuladas();
-    const fechaDesde = this.filterFechaDesde();
-    const fechaHasta = this.filterFechaHasta();
+  onSearch(event: Event): void {
+    this.searchText.set((event.target as HTMLInputElement).value);
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.load(); }, 400);
+  }
 
-    if (search) {
-      list = list.filter(f =>
-        f.numeroDocumento?.toLowerCase().includes(search) ||
-        f.clienteRazonSocial?.toLowerCase().includes(search) ||
-        f.numeroGuia?.toLowerCase().includes(search) ||
-        f.contenedor?.toLowerCase().includes(search) ||
-        f.destino?.toLowerCase().includes(search)
-      );
-    }
+  onFilterChange(): void {
+    this.currentPage.set(0);
+    this.load();
+  }
 
-    if (servicio) {
-      list = list.filter(f => f.tipoServicio === servicio);
-    }
+  onPageChange(page: number): void { this.currentPage.set(page); this.load(); }
 
-    if (anuladas === 'activas') {
-      list = list.filter(f => !f.isAnulada);
-    } else if (anuladas === 'anuladas') {
-      list = list.filter(f => f.isAnulada);
-    }
-
-    if (fechaDesde) {
-      list = list.filter(f => f.fechaEmision >= fechaDesde);
-    }
-
-    if (fechaHasta) {
-      list = list.filter(f => f.fechaEmision <= fechaHasta);
-    }
-
-    const field = this.sortField();
-    const dir = this.sortDir() === 'asc' ? 1 : -1;
-
-    list.sort((a, b) => {
-      const va = (a as any)[field] ?? '';
-      const vb = (b as any)[field] ?? '';
-      if (va < vb) return -dir;
-      if (va > vb) return dir;
-      return 0;
-    });
-
-    return list;
-  });
-
-  totalImporte = computed(() =>
-    this.facturasFiltradas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.importe ?? 0), 0)
-  );
-
-  totalIgv = computed(() =>
-    this.facturasFiltradas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.igv ?? 0), 0)
-  );
-
-  totalGeneral = computed(() =>
-    this.facturasFiltradas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.total ?? 0), 0)
-  );
-
-  countActivas = computed(() =>
-    this.facturasFiltradas().filter(f => !f.isAnulada).length
-  );
+  onPageSizeChange(size: number): void { this.itemsPerPage.set(size); this.currentPage.set(0); this.load(); }
 
   sortBy(field: SortField): void {
     if (this.sortField() === field) {
@@ -171,6 +157,8 @@ export class ReporteFacturacionComponent implements OnInit {
       this.sortField.set(field);
       this.sortDir.set('asc');
     }
+    this.currentPage.set(0);
+    this.load();
   }
 
   getSortIcon(field: SortField): string {
@@ -218,8 +206,6 @@ export class ReporteFacturacionComponent implements OnInit {
 
     this.savingFactura.set(true);
     const raw = this.facturaForm.value;
-
-    // Obtener el despachoId de la factura original
     const facturaOriginal = this.facturas().find(f => f.id === id)!;
 
     const dto: FacturaCreateDto = {
@@ -251,7 +237,7 @@ export class ReporteFacturacionComponent implements OnInit {
         if (res.status) {
           this.notification.success('Factura actualizada');
           this.closeEditModal();
-          this.loadAll();
+          this.load();
         }
         this.savingFactura.set(false);
       },
@@ -309,4 +295,6 @@ export class ReporteFacturacionComponent implements OnInit {
       },
     });
   }
+
+  skeletonRows = [1, 2, 3, 4, 5, 6, 7, 8];
 }

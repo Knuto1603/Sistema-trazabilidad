@@ -48,13 +48,44 @@ final readonly class GetFacturasService
                     ['tipoDocumento' => $filterDto->tipoDocumento]
                 ));
             }
+
+            if ($filterDto->isAnulada !== null) {
+                $this->filterService->addFilter(new ConditionFilter(
+                    'factura.isAnulada = :isAnulada',
+                    ['isAnulada' => $filterDto->isAnulada]
+                ));
+            }
+
+            if ($filterDto->tipoServicio) {
+                $this->filterService->addFilter(new ConditionFilter(
+                    'factura.tipoServicio = :tipoServicio',
+                    ['tipoServicio' => $filterDto->tipoServicio]
+                ));
+            }
+
+            if ($filterDto->fechaDesde) {
+                $this->filterService->addFilter(new ConditionFilter(
+                    'factura.fechaEmision >= :fechaDesde',
+                    ['fechaDesde' => $filterDto->fechaDesde]
+                ));
+            }
+
+            if ($filterDto->fechaHasta) {
+                $this->filterService->addFilter(new ConditionFilter(
+                    'factura.fechaEmision <= :fechaHasta',
+                    ['fechaHasta' => $filterDto->fechaHasta]
+                ));
+            }
         }
 
         $sorting = SortingDto::create($filterDto->sort, $filterDto->direction);
         $this->filterService->addSorting(new SortByRequestField($sorting, [
-            'fechaEmision' => 'factura.fechaEmision',
-            'numeroDocumento' => 'factura.numeroDocumento',
-            'createdAt' => 'factura.createdAt',
+            'fechaEmision'         => 'factura.fechaEmision',
+            'numeroDocumento'      => 'factura.numeroDocumento',
+            'clienteRazonSocial'   => 'cliente.razonSocial',
+            'importe'              => 'factura.importe',
+            'total'                => 'factura.total',
+            'createdAt'            => 'factura.createdAt',
         ]));
 
         $paginator = $this->repository->paginateAndFilter($this->filterService);

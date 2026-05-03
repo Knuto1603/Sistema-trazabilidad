@@ -1,5 +1,5 @@
 <div class="max-w-full mx-auto space-y-4">
-  <app-page-header title="Reporte de Facturación" subtitle="Todas las facturas ordenadas por N° de documento">
+  <app-page-header title="Reporte de Facturación" subtitle="Facturas filtradas con paginación servidor">
     <button (click)="exportarExcel()" [disabled]="loading() || exporting()"
       class="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl transition-colors flex items-center gap-2">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -13,18 +13,18 @@
   <!-- Filtros -->
   <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-wrap">
-      <input type="text" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)"
-        placeholder="Buscar por N° factura, cliente, guía, contenedor, destino..."
+      <input type="text" [value]="searchText()" (input)="onSearch($event)"
+        placeholder="Buscar por N° factura, cliente, guía, contenedor..."
         class="flex-1 min-w-48 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
 
-      <select [ngModel]="filterServicio()" (ngModelChange)="filterServicio.set($event)"
-        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <select [ngModel]="filterServicio()" (ngModelChange)="filterServicio.set($event); onFilterChange()"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
         <option value="">Todos los servicios</option>
         @for (s of SERVICIOS; track s) { <option [value]="s">{{ s }}</option> }
       </select>
 
-      <select [ngModel]="filterAnuladas()" (ngModelChange)="filterAnuladas.set($event)"
-        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <select [ngModel]="filterAnuladas()" (ngModelChange)="filterAnuladas.set($event); onFilterChange()"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
         <option value="activas">Solo activas</option>
         <option value="todas">Todas</option>
         <option value="anuladas">Solo anuladas</option>
@@ -32,32 +32,32 @@
 
       <div class="flex items-center gap-2">
         <span class="text-xs text-slate-400 shrink-0">Fecha:</span>
-        <input type="date" [ngModel]="filterFechaDesde()" (ngModelChange)="filterFechaDesde.set($event)"
+        <input type="date" [ngModel]="filterFechaDesde()" (ngModelChange)="filterFechaDesde.set($event); onFilterChange()"
           title="Fecha desde"
           class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
         <span class="text-xs text-slate-400">—</span>
-        <input type="date" [ngModel]="filterFechaHasta()" (ngModelChange)="filterFechaHasta.set($event)"
+        <input type="date" [ngModel]="filterFechaHasta()" (ngModelChange)="filterFechaHasta.set($event); onFilterChange()"
           title="Fecha hasta"
           class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
       </div>
-
-      <span class="text-xs text-slate-400 shrink-0">{{ facturasFiltradas().length }} registros</span>
     </div>
   </div>
 
-  <!-- Totales -->
+  <!-- Totales (página actual) -->
   <div class="grid grid-cols-3 gap-4">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Importe Total</p>
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Importe</p>
       <p class="text-lg font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</p>
+      <p class="text-xs text-slate-400 mt-0.5">{{ countActivas() }} activas en pág.</p>
     </div>
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">IGV Total</p>
+      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">IGV</p>
       <p class="text-lg font-bold text-slate-800">$ {{ totalIgv() | number:'1.2-2' }}</p>
     </div>
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
       <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Total General</p>
       <p class="text-xl font-bold text-emerald-700">$ {{ totalGeneral() | number:'1.2-2' }}</p>
+      <p class="text-xs text-slate-400 mt-0.5">{{ pagination().totalItems }} registros totales</p>
     </div>
   </div>
 
@@ -102,11 +102,30 @@
         </thead>
         <tbody class="divide-y divide-slate-50">
           @if (loading()) {
-            <tr><td colspan="16" class="px-4 py-10 text-center text-slate-400">Cargando...</td></tr>
-          } @else if (facturasFiltradas().length === 0) {
+            @for (i of skeletonRows; track i) {
+              <tr class="animate-pulse">
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-24"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-20"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-36"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-20"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-12 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-10 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-14 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-14 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-12 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16"></div></td>
+                <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16"></div></td>
+                <td class="px-3 py-2.5"><div class="h-6 bg-slate-200 rounded w-6 mx-auto"></div></td>
+              </tr>
+            }
+          } @else if (facturas().length === 0) {
             <tr><td colspan="16" class="px-4 py-10 text-center text-slate-400">No hay facturas con los filtros aplicados</td></tr>
           } @else {
-            @for (f of facturasFiltradas(); track f.id) {
+            @for (f of facturas(); track f.id) {
               <tr class="hover:bg-slate-50 transition-colors" [class.opacity-50]="f.isAnulada">
                 <td class="px-3 py-2 font-mono font-semibold">
                   <div class="flex items-center gap-1.5">
@@ -122,7 +141,7 @@
                 </td>
                 <td class="px-3 py-2 text-slate-600">{{ f.fechaEmision }}</td>
                 <td class="px-3 py-2">
-                  <div class="text-slate-700 font-semibold max-w-[180px] truncate" [title]="f.clienteRazonSocial">{{ f.clienteRazonSocial ?? '-' }}</div>
+                  <div class="text-slate-700 font-semibold max-w-[180px] truncate" [title]="f.clienteRazonSocial ?? ''">{{ f.clienteRazonSocial ?? '-' }}</div>
                 </td>
                 <td class="px-3 py-2 font-mono text-slate-500">{{ f.numeroGuia ?? '-' }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.kgCaja ?? '-' }}</td>
@@ -177,11 +196,11 @@
             }
           }
         </tbody>
-        @if (facturasFiltradas().length > 0) {
+        @if (!loading() && facturas().length > 0) {
           <tfoot>
             <tr class="bg-slate-50 border-t-2 border-slate-200">
               <td colspan="8" class="px-3 py-2.5 text-xs font-bold text-slate-600 uppercase">
-                Totales ({{ countActivas() }} facturas activas)
+                Totales pág. ({{ countActivas() }} activas)
               </td>
               <td class="px-3 py-2.5 text-right font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</td>
               <td class="px-3 py-2.5 text-right font-bold text-slate-700">$ {{ totalIgv() | number:'1.2-2' }}</td>
@@ -191,6 +210,14 @@
           </tfoot>
         }
       </table>
+    </div>
+    <div class="px-4 pb-4">
+      <app-pagination
+        [pagination]="pagination()"
+        [pageSizes]="PAGE_SIZES"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+      </app-pagination>
     </div>
   </div>
 </div>
@@ -211,7 +238,6 @@
 
       <form [formGroup]="facturaForm" (ngSubmit)="saveFactura()" class="p-5 space-y-4">
 
-        <!-- Tipo + Serie + Correlativo -->
         <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo doc.</label>
@@ -237,7 +263,6 @@
           </div>
         </div>
 
-        <!-- Fecha + Moneda + N° Guía -->
         <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Fecha emisión *</label>
@@ -259,7 +284,6 @@
           </div>
         </div>
 
-        <!-- KG/Caja + Unidad + Cajas + Cantidad -->
         <div class="grid grid-cols-4 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">KG/Caja</label>
@@ -285,7 +309,6 @@
           </div>
         </div>
 
-        <!-- V.U. + Importe + IGV + Total -->
         <div class="grid grid-cols-4 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Valor Unitario</label>
@@ -293,7 +316,7 @@
               class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
           <div>
-            <label class="block text-xs font-semibond text-slate-600 mb-1">Importe</label>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Importe</label>
             <input formControlName="importe" type="number" step="0.01" placeholder="0.00"
               class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
           </div>
@@ -309,7 +332,6 @@
           </div>
         </div>
 
-        <!-- T.C. + Servicio + Operación -->
         <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">
@@ -340,14 +362,12 @@
           </div>
         </div>
 
-        <!-- Detalle -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Detalle</label>
           <textarea formControlName="detalle" rows="2" placeholder="Descripción del servicio..."
             class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
         </div>
 
-        <!-- Contenedor + Destino -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1">Contenedor</label>
@@ -361,7 +381,6 @@
           </div>
         </div>
 
-        <!-- Botones -->
         <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
           <button type="button" (click)="closeEditModal()"
             class="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">

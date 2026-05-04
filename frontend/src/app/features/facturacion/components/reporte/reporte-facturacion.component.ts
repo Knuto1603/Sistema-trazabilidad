@@ -197,9 +197,13 @@ export class ReporteFacturacionComponent implements OnInit {
     this.facturaService.getTotales(this.buildFilterParams()).subscribe({
       next: res => {
         if (res.status) this.totales.set(res.item ?? null);
+        else this.notification.error('Error al calcular totales');
         this.loadingTotales.set(false);
       },
-      error: () => this.loadingTotales.set(false),
+      error: () => {
+        this.notification.error('Error al obtener totales globales');
+        this.loadingTotales.set(false);
+      },
     });
   }
 

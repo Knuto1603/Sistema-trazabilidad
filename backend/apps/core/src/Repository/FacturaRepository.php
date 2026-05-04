@@ -185,15 +185,15 @@ class FacturaRepository extends DoctrineEntityRepository
     ): array {
         $qb = $this->createQueryBuilder('factura')
             ->select([
-                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN factura.importe ELSE 0 END) AS totalImporteUsd',
-                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN factura.igv ELSE 0 END) AS totalIgvUsd',
-                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN factura.total ELSE 0 END) AS totalGeneralUsd',
+                'SUM(CASE WHEN factura.isAnulada = false AND COALESCE(factura.moneda, \'USD\') = \'USD\' THEN factura.importe ELSE 0 END) AS totalImporteUsd',
+                'SUM(CASE WHEN factura.isAnulada = false AND COALESCE(factura.moneda, \'USD\') = \'USD\' THEN factura.igv ELSE 0 END) AS totalIgvUsd',
+                'SUM(CASE WHEN factura.isAnulada = false AND COALESCE(factura.moneda, \'USD\') = \'USD\' THEN factura.total ELSE 0 END) AS totalGeneralUsd',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.importe ELSE 0 END) AS totalImportePen',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.igv ELSE 0 END) AS totalIgvPen',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.total ELSE 0 END) AS totalGeneralPen',
                 'SUM(CASE WHEN factura.isAnulada = false THEN 1 ELSE 0 END) AS countActivas',
                 'SUM(CASE WHEN factura.isAnulada = true THEN 1 ELSE 0 END) AS countAnuladas',
-                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN 1 ELSE 0 END) AS countActivasUsd',
+                'SUM(CASE WHEN factura.isAnulada = false AND COALESCE(factura.moneda, \'USD\') = \'USD\' THEN 1 ELSE 0 END) AS countActivasUsd',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN 1 ELSE 0 END) AS countActivasPen',
             ])
             ->leftJoin('factura.despacho', 'despacho')

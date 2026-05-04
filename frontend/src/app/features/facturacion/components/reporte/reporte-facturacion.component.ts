@@ -83,7 +83,7 @@ export class ReporteFacturacionComponent implements OnInit {
   pageTotal    = computed(() => this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.total ?? 0), 0));
   pageCount    = computed(() => this.facturas().filter(f => !f.isAnulada).length);
 
-  servicios = signal<{ alias: string; name: string }[]>([]);
+  servicios = signal<string[]>([]);
 
   readonly TIPOS_DOCUMENTO = [
     { value: '01', label: 'Factura (01)' },
@@ -149,7 +149,7 @@ export class ReporteFacturacionComponent implements OnInit {
     this.load();
     this.loadTotales();
     this.parametroService.getByParentAlias('TIPOSERVICIO').subscribe({
-      next: res => this.servicios.set(res.items ?? []),
+      next: res => this.servicios.set(res.items.map(p => p.name)),
     });
     this.facturaForm.get('fechaEmision')!.valueChanges.subscribe(fecha => {
       if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {

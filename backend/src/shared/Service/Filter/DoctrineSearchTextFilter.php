@@ -19,17 +19,17 @@ class DoctrineSearchTextFilter
             $separedWords = explode(' ', $searchText);
         }
 
-        $connectorQuery = $expression->orX();
         foreach ($separedWords as $word) {
             if ('' === $word) {
                 continue;
             }
 
+            $wordQuery = $expression->orX();
             foreach ($fields as $field) {
-                $connectorQuery->add($expression->like($field, $expression->literal('%'.$word.'%')));
+                $wordQuery->add($expression->like($field, $expression->literal('%'.$word.'%')));
             }
 
-            $queryBuilder = $queryBuilder->andWhere($connectorQuery);
+            $queryBuilder->andWhere($wordQuery);
         }
     }
 }

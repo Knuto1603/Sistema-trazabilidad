@@ -176,6 +176,69 @@ class FacturaRepository extends DoctrineEntityRepository
         };
     }
 
+    public function getTotales(
+        ?bool $isAnulada = null,
+        ?string $tipoServicio = null,
+        ?string $fechaDesde = null,
+        ?string $fechaHasta = null,
+        ?string $search = null,
+    ): array {
+        $qb = $this->createQueryBuilder('factura')
+            ->select([
+                'SUM(CASE WHEN factura.isAnulada = false THEN factura.importe ELSE 0 END) AS totalImporte',
+                'SUM(CASE WHEN factura.isAnulada = false THEN factura.igv ELSE 0 END) AS totalIgv',
+                'SUM(CASE WHEN factura.isAnulada = false THEN factura.total ELSE 0 END) AS totalGeneral',
+                'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.importe ELSE 0 END) AS totalImportePen',
+                'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.igv ELSE 0 END) AS totalIgvPen',
+                'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.total ELSE 0 END) AS totalGeneralPen',
+                'SUM(CASE WHEN factura.isAnulada = false THEN 1 ELSE 0 END) AS countActivas',
+                'SUM(CASE WHEN factura.isAnulada = true THEN 1 ELSE 0 END) AS countAnuladas',
+                'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN 1 ELSE 0 END) AS countActivasPen',
+            ])
+            ->leftJoin('factura.despacho', 'despacho')
+            ->leftJoin('despacho.cliente', 'cliente')
+            ->where('factura.isActive = true');
+
+        if ($isAnulada !== null) {
+            $qb->andWhere('factura.isAnulada = :isAnulada')
+               ->setParameter('isAnulada', $isAnulada);
+        }
+
+        if ($tipoServicio) {
+            $qb->andWhere('factura.tipoServicio = :tipoServicio')
+               ->setParameter('tipoServicio', $tipoServicio);
+        }
+
+        if ($fechaDesde) {
+            $qb->andWhere('factura.fechaEmision >= :fechaDesde')
+               ->setParameter('fechaDesde', $fechaDesde);
+        }
+
+        if ($fechaHasta) {
+            $qb->andWhere('factura.fechaEmision <= :fechaHasta')
+               ->setParameter('fechaHasta', $fechaHasta);
+        }
+
+        if ($search) {
+            $qb->andWhere('factura.numeroDocumento LIKE :s OR factura.serie LIKE :s OR factura.contenedor LIKE :s OR cliente.razonSocial LIKE :s')
+               ->setParameter('s', '%' . $search . '%');
+        }
+
+        $row = $qb->getQuery()->getSingleResult();
+
+        return [
+            'totalImporte'     => (float) ($row['totalImporte'] ?? 0),
+            'totalIgv'         => (float) ($row['totalIgv'] ?? 0),
+            'totalGeneral'     => (float) ($row['totalGeneral'] ?? 0),
+            'totalImportePen'  => (float) ($row['totalImportePen'] ?? 0),
+            'totalIgvPen'      => (float) ($row['totalIgvPen'] ?? 0),
+            'totalGeneralPen'  => (float) ($row['totalGeneralPen'] ?? 0),
+            'countActivas'     => (int)   ($row['countActivas'] ?? 0),
+            'countAnuladas'    => (int)   ($row['countAnuladas'] ?? 0),
+            'countActivasPen'  => (int)   ($row['countActivasPen'] ?? 0),
+        ];
+    }
+
     public function findByDespachoAndNumeroDocumento(object $despacho, string $numeroDocumento): ?Factura
     {
         return $this->createQueryBuilder('f')

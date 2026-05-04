@@ -43,21 +43,71 @@
     </div>
   </div>
 
-  <!-- Totales (página actual) -->
-  <div class="grid grid-cols-3 gap-4">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Importe</p>
-      <p class="text-lg font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</p>
-      <p class="text-xs text-slate-400 mt-0.5">{{ countActivas() }} activas en pág.</p>
+  <!-- Totales -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <!-- Importe -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center space-y-2">
+      <p class="text-xs text-slate-400 uppercase tracking-wide">Importe</p>
+      @if (loadingTotales()) {
+        <div class="h-6 w-24 mx-auto bg-slate-100 rounded animate-pulse"></div>
+      } @else {
+        <p class="text-lg font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</p>
+      }
+      <p class="text-xs text-slate-400">{{ countActivas() }} activas {{ filterFechaDesde() || filterFechaHasta() ? 'en rango' : 'en total' }}</p>
+      @if (hasPen()) {
+        <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+          <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
+          @if (loadingTotales()) {
+            <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
+          } @else {
+            <p class="text-sm font-bold text-amber-700">S/ {{ totalImportePen() | number:'1.2-2' }}</p>
+          }
+          <p class="text-xs text-amber-400">{{ countActivasPen() }} facturas PEN</p>
+        </div>
+      }
     </div>
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">IGV</p>
-      <p class="text-lg font-bold text-slate-800">$ {{ totalIgv() | number:'1.2-2' }}</p>
+
+    <!-- IGV -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center space-y-2">
+      <p class="text-xs text-slate-400 uppercase tracking-wide">IGV</p>
+      @if (loadingTotales()) {
+        <div class="h-6 w-24 mx-auto bg-slate-100 rounded animate-pulse"></div>
+      } @else {
+        <p class="text-lg font-bold text-slate-800">$ {{ totalIgv() | number:'1.2-2' }}</p>
+      }
+      <p class="text-xs text-slate-400">18% sobre base imponible</p>
+      @if (hasPen()) {
+        <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+          <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
+          @if (loadingTotales()) {
+            <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
+          } @else {
+            <p class="text-sm font-bold text-amber-700">S/ {{ totalIgvPen() | number:'1.2-2' }}</p>
+          }
+          <p class="text-xs text-amber-400">facturas PEN</p>
+        </div>
+      }
     </div>
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center">
-      <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">Total General</p>
-      <p class="text-xl font-bold text-emerald-700">$ {{ totalGeneral() | number:'1.2-2' }}</p>
-      <p class="text-xs text-slate-400 mt-0.5">{{ pagination().totalItems }} registros totales</p>
+
+    <!-- Total General -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 text-center space-y-2">
+      <p class="text-xs text-slate-400 uppercase tracking-wide">Total General</p>
+      @if (loadingTotales()) {
+        <div class="h-7 w-28 mx-auto bg-slate-100 rounded animate-pulse"></div>
+      } @else {
+        <p class="text-xl font-bold text-emerald-700">$ {{ totalGeneral() | number:'1.2-2' }}</p>
+      }
+      <p class="text-xs text-slate-400">{{ pagination().totalItems }} registros{{ filterFechaDesde() || filterFechaHasta() ? ' en rango' : '' }}</p>
+      @if (hasPen()) {
+        <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+          <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
+          @if (loadingTotales()) {
+            <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
+          } @else {
+            <p class="text-sm font-bold text-amber-700">S/ {{ totalGeneralPen() | number:'1.2-2' }}</p>
+          }
+        </div>
+      }
     </div>
   </div>
 
@@ -84,6 +134,7 @@
             <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">Cajas</th>
             <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">Cantidad</th>
             <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider">V.U.</th>
+            <th class="px-3 py-2.5 text-center font-bold text-slate-500 uppercase tracking-wider">Moneda</th>
             <th class="px-3 py-2.5 text-right font-bold text-slate-500 uppercase tracking-wider cursor-pointer hover:text-slate-700 select-none"
               (click)="sortBy('importe')">
               Importe {{ getSortIcon('importe') }}
@@ -112,6 +163,7 @@
                 <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-10 ml-auto"></div></td>
                 <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16 ml-auto"></div></td>
                 <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-14 ml-auto"></div></td>
+                <td class="px-3 py-2.5"><div class="h-4 bg-slate-200 rounded w-8 mx-auto"></div></td>
                 <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16 ml-auto"></div></td>
                 <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-14 ml-auto"></div></td>
                 <td class="px-3 py-2.5"><div class="h-3.5 bg-slate-200 rounded w-16 ml-auto"></div></td>
@@ -123,7 +175,7 @@
               </tr>
             }
           } @else if (facturas().length === 0) {
-            <tr><td colspan="16" class="px-4 py-10 text-center text-slate-400">No hay facturas con los filtros aplicados</td></tr>
+            <tr><td colspan="17" class="px-4 py-10 text-center text-slate-400">No hay facturas con los filtros aplicados</td></tr>
           } @else {
             @for (f of facturas(); track f.id) {
               <tr class="hover:bg-slate-50 transition-colors" [class.opacity-50]="f.isAnulada">
@@ -153,6 +205,12 @@
                   } @else { - }
                 </td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.valorUnitario?.toFixed(4) ?? '-' }}</td>
+                <td class="px-3 py-2 text-center">
+                  <span class="px-1.5 py-0.5 rounded text-xs font-bold"
+                    [class]="f.moneda === 'PEN' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'">
+                    {{ f.moneda ?? 'USD' }}
+                  </span>
+                </td>
                 <td class="px-3 py-2 text-right font-semibold text-slate-700">
                   {{ f.importe != null ? (f.importe | number:'1.2-2') : '-' }}
                 </td>
@@ -216,12 +274,13 @@
         @if (!loading() && facturas().length > 0) {
           <tfoot>
             <tr class="bg-slate-50 border-t-2 border-slate-200">
-              <td colspan="8" class="px-3 py-2.5 text-xs font-bold text-slate-600 uppercase">
-                Totales pág. ({{ countActivas() }} activas)
+              <td colspan="8" class="px-3 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                Esta página ({{ pageCount() }} activas)
               </td>
-              <td class="px-3 py-2.5 text-right font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</td>
-              <td class="px-3 py-2.5 text-right font-bold text-slate-700">$ {{ totalIgv() | number:'1.2-2' }}</td>
-              <td class="px-3 py-2.5 text-right font-bold text-emerald-700 text-sm">$ {{ totalGeneral() | number:'1.2-2' }}</td>
+              <td class="px-3 py-2.5 text-center"></td>
+              <td class="px-3 py-2.5 text-right font-bold text-slate-700">$ {{ pageImporte() | number:'1.2-2' }}</td>
+              <td class="px-3 py-2.5 text-right font-bold text-slate-600">$ {{ pageIgv() | number:'1.2-2' }}</td>
+              <td class="px-3 py-2.5 text-right font-bold text-emerald-700 text-sm">$ {{ pageTotal() | number:'1.2-2' }}</td>
               <td colspan="5"></td>
             </tr>
           </tfoot>

@@ -34,7 +34,13 @@ export class ReporteFacturacionComponent implements OnInit {
 
   facturas = signal<Factura[]>([]);
   pagination = signal<Pagination>({ page: 0, itemsPerPage: 25, count: 0, totalItems: 0, startIndex: 0, endIndex: 0 });
+  totales = signal<{
+    totalImporte: number; totalIgv: number; totalGeneral: number;
+    totalImportePen: number; totalIgvPen: number; totalGeneralPen: number;
+    countActivas: number; countAnuladas: number; countActivasPen: number;
+  } | null>(null);
   loading = signal(false);
+  loadingTotales = signal(false);
   exporting = signal(false);
   savingFactura = signal(false);
   fetchingTc = signal(false);
@@ -57,16 +63,22 @@ export class ReporteFacturacionComponent implements OnInit {
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
 
-  totalImporte = computed(() =>
-    this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.importe ?? 0), 0)
-  );
-  totalIgv = computed(() =>
-    this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.igv ?? 0), 0)
-  );
-  totalGeneral = computed(() =>
-    this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.total ?? 0), 0)
-  );
-  countActivas = computed(() => this.facturas().filter(f => !f.isAnulada).length);
+  // Totales globales (API) — usados en las tarjetas de métricas
+  totalImporte     = computed(() => this.totales()?.totalImporte ?? 0);
+  totalIgv         = computed(() => this.totales()?.totalIgv ?? 0);
+  totalGeneral     = computed(() => this.totales()?.totalGeneral ?? 0);
+  totalImportePen  = computed(() => this.totales()?.totalImportePen ?? 0);
+  totalIgvPen      = computed(() => this.totales()?.totalIgvPen ?? 0);
+  totalGeneralPen  = computed(() => this.totales()?.totalGeneralPen ?? 0);
+  countActivas     = computed(() => this.totales()?.countActivas ?? 0);
+  countActivasPen  = computed(() => this.totales()?.countActivasPen ?? 0);
+  hasPen           = computed(() => this.countActivasPen() > 0);
+
+  // Totales de página — usados en el tfoot (solo filas visibles activas)
+  pageImporte  = computed(() => this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.importe ?? 0), 0));
+  pageIgv      = computed(() => this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.igv ?? 0), 0));
+  pageTotal    = computed(() => this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.total ?? 0), 0));
+  pageCount    = computed(() => this.facturas().filter(f => !f.isAnulada).length);
 
   readonly TIPOS_DOCUMENTO = [
     { value: '01', label: 'Factura (01)' },
@@ -131,6 +143,7 @@ export class ReporteFacturacionComponent implements OnInit {
     this.sortField.set((qp.get('sort') as SortField) ?? 'fechaEmision');
     this.sortDir.set((qp.get('dir') as 'asc' | 'desc') ?? 'desc');
     this.load();
+    this.loadTotales();
     this.facturaForm.get('fechaEmision')!.valueChanges.subscribe(fecha => {
       if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
         this.fetchTipoCambio(fecha, false);
@@ -138,14 +151,8 @@ export class ReporteFacturacionComponent implements OnInit {
     });
   }
 
-  load(): void {
-    this.loading.set(true);
-    const params: any = {
-      page: this.currentPage(),
-      itemsPerPage: this.itemsPerPage(),
-      sort: this.sortField(),
-      direction: this.sortDir(),
-    };
+  private buildFilterParams(): any {
+    const params: any = {};
     if (this.searchText()) params['search'] = this.searchText();
     const estado = this.filterAnuladas();
     if (estado === 'activas') params['isAnulada'] = false;
@@ -153,6 +160,18 @@ export class ReporteFacturacionComponent implements OnInit {
     if (this.filterServicio()) params['tipoServicio'] = this.filterServicio();
     if (this.filterFechaDesde()) params['fechaDesde'] = this.filterFechaDesde();
     if (this.filterFechaHasta()) params['fechaHasta'] = this.filterFechaHasta();
+    return params;
+  }
+
+  load(): void {
+    this.loading.set(true);
+    const params: any = {
+      ...this.buildFilterParams(),
+      page: this.currentPage(),
+      itemsPerPage: this.itemsPerPage(),
+      sort: this.sortField(),
+      direction: this.sortDir(),
+    };
 
     this.facturaService.getAll(params).subscribe({
       next: res => {
@@ -166,16 +185,28 @@ export class ReporteFacturacionComponent implements OnInit {
     });
   }
 
+  loadTotales(): void {
+    this.loadingTotales.set(true);
+    this.facturaService.getTotales(this.buildFilterParams()).subscribe({
+      next: res => {
+        if (res.status) this.totales.set(res.item ?? null);
+        this.loadingTotales.set(false);
+      },
+      error: () => this.loadingTotales.set(false),
+    });
+  }
+
   onSearch(event: Event): void {
     this.searchText.set((event.target as HTMLInputElement).value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.syncQueryParams(); this.load(); }, 400);
+    this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.syncQueryParams(); this.load(); this.loadTotales(); }, 400);
   }
 
   onFilterChange(): void {
     this.currentPage.set(0);
     this.syncQueryParams();
     this.load();
+    this.loadTotales();
   }
 
   onPageChange(page: number): void { this.currentPage.set(page); this.syncQueryParams(); this.load(); }

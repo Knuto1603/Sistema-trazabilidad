@@ -70,6 +70,25 @@ class FacturaApi extends AbstractSerializerApi
         return $service->execute($search ?: null, $fechaDesde ?: null, $fechaHasta ?: null);
     }
 
+    #[Route('/totales', name: 'factura_totales', methods: ['GET'])]
+    public function totales(
+        Request $request,
+        \App\apps\core\Repository\FacturaRepository $repository,
+    ): Response {
+        $isAnuladaRaw = $request->query->get('isAnulada');
+        $isAnulada = $isAnuladaRaw !== null ? filter_var($isAnuladaRaw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null;
+
+        $totales = $repository->getTotales(
+            isAnulada:    $isAnulada,
+            tipoServicio: $request->query->get('tipoServicio') ?: null,
+            fechaDesde:   $request->query->get('fechaDesde') ?: null,
+            fechaHasta:   $request->query->get('fechaHasta') ?: null,
+            search:       $request->query->get('search') ?: null,
+        );
+
+        return $this->ok(['item' => $totales]);
+    }
+
     #[Route('/parse-xml', name: 'factura_parse_xml', methods: ['POST'])]
     public function parseXml(
         Request $request,

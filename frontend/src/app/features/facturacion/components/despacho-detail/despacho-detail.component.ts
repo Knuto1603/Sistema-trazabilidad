@@ -1,4 +1,5 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { environment } from '@env/environment';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DecimalPipe, Location } from '@angular/common';
@@ -13,6 +14,7 @@ import { ParametroService } from '@features/settings/services/parametro.service'
 import { Despacho, Factura, ArchivoDespacho } from '@core/models/core.model';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
+import { PdfViewerComponent } from '@shared/components/pdf-viewer/pdf-viewer.component';
 
 interface PendingFile {
   file: File;
@@ -39,7 +41,7 @@ interface PendingGuiaItem {
 @Component({
   selector: 'app-despacho-detail',
   standalone: true,
-  imports: [ReactiveFormsModule, DecimalPipe, ConfirmDialogComponent, PageHeaderComponent],
+  imports: [ReactiveFormsModule, DecimalPipe, ConfirmDialogComponent, PageHeaderComponent, PdfViewerComponent],
   templateUrl: './despacho-detail.component.html'
 })
 export class DespachoDetailComponent implements OnInit {
@@ -80,6 +82,7 @@ export class DespachoDetailComponent implements OnInit {
   showDeleteAllArchivosConfirm = signal(false);
   deletingAllArchivos = signal(false);
   showUploadArchivoModal = signal(false);
+  viewingArchivo = signal<ArchivoDespacho | null>(null);
 
   // Modal de envío de correo
   showCorreoModal = signal(false);
@@ -722,6 +725,19 @@ export class DespachoDetailComponent implements OnInit {
       this.pendingGuias.set([]);
       this.showUploadArchivoModal.set(false);
     }
+  }
+
+  verArchivo(archivo: ArchivoDespacho): void {
+    this.viewingArchivo.set(archivo);
+  }
+
+  getFileUrl(ruta: string): string {
+    const base = environment.coreUrl.replace('/api', '');
+    return `${base}/${ruta}`;
+  }
+
+  isPdfArchivo(archivo: ArchivoDespacho): boolean {
+    return archivo.tipoArchivo.endsWith('_PDF') || archivo.tipoArchivo === 'PACKING_LIST' || archivo.tipoArchivo === 'LIQUIDACION';
   }
 
   confirmDeleteArchivo(archivo: ArchivoDespacho): void {

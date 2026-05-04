@@ -109,6 +109,6 @@ export interface CuentaCobrar {
 
 export interface ArchivoDespacho {
   id: string; nombre: string;
-  tipoArchivo: 'FACTURA_XML' | 'GUIA_XML' | 'FACTURA_PDF' | 'GUIA_PDF' | 'PACKING_LIST' | 'CDR' | 'OTRO';
+  tipoArchivo: 'FACTURA_XML' | 'GUIA_XML' | 'FACTURA_PDF' | 'GUIA_PDF' | 'PACKING_LIST' | 'LIQUIDACION' | 'CDR' | 'OTRO';
   ruta: string; tamanho: number; despachoId: string; facturaId?: string; isActive: boolean;
 }

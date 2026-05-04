@@ -54,17 +54,15 @@
         <p class="text-lg font-bold text-slate-800">$ {{ totalImporte() | number:'1.2-2' }}</p>
       }
       <p class="text-xs text-slate-400">{{ countActivas() }} activas {{ filterFechaDesde() || filterFechaHasta() ? 'en rango' : 'en total' }}</p>
-      @if (hasPen()) {
-        <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-          <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
-          @if (loadingTotales()) {
-            <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
-          } @else {
-            <p class="text-sm font-bold text-amber-700">S/ {{ totalImportePen() | number:'1.2-2' }}</p>
-          }
-          <p class="text-xs text-amber-400">{{ countActivasPen() }} facturas PEN</p>
-        </div>
-      }
+      <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+        <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
+        @if (loadingTotales()) {
+          <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
+        } @else {
+          <p class="text-sm font-bold text-amber-700">S/ {{ totalImportePen() | number:'1.2-2' }}</p>
+        }
+        <p class="text-xs text-amber-400">{{ countActivasPen() }} facturas PEN</p>
+      </div>
     </div>
 
     <!-- IGV -->
@@ -76,17 +74,15 @@
         <p class="text-lg font-bold text-slate-800">$ {{ totalIgv() | number:'1.2-2' }}</p>
       }
       <p class="text-xs text-slate-400">18% sobre base imponible</p>
-      @if (hasPen()) {
-        <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-          <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
-          @if (loadingTotales()) {
-            <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
-          } @else {
-            <p class="text-sm font-bold text-amber-700">S/ {{ totalIgvPen() | number:'1.2-2' }}</p>
-          }
-          <p class="text-xs text-amber-400">facturas PEN</p>
-        </div>
-      }
+      <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+        <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
+        @if (loadingTotales()) {
+          <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
+        } @else {
+          <p class="text-sm font-bold text-amber-700">S/ {{ totalIgvPen() | number:'1.2-2' }}</p>
+        }
+        <p class="text-xs text-amber-400">facturas PEN</p>
+      </div>
     </div>
 
     <!-- Total General -->
@@ -98,16 +94,15 @@
         <p class="text-xl font-bold text-emerald-700">$ {{ totalGeneral() | number:'1.2-2' }}</p>
       }
       <p class="text-xs text-slate-400">{{ pagination().totalItems }} registros{{ filterFechaDesde() || filterFechaHasta() ? ' en rango' : '' }}</p>
-      @if (hasPen()) {
-        <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-          <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
-          @if (loadingTotales()) {
-            <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
-          } @else {
-            <p class="text-sm font-bold text-amber-700">S/ {{ totalGeneralPen() | number:'1.2-2' }}</p>
-          }
-        </div>
-      }
+      <div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+        <p class="text-xs text-amber-500 uppercase tracking-wide font-semibold mb-0.5">en soles</p>
+        @if (loadingTotales()) {
+          <div class="h-4 w-20 mx-auto bg-amber-100 rounded animate-pulse"></div>
+        } @else {
+          <p class="text-sm font-bold text-amber-700">S/ {{ totalGeneralPen() | number:'1.2-2' }}</p>
+        }
+        <p class="text-xs text-amber-400">{{ countActivasPen() }} facturas PEN</p>
+      </div>
     </div>
   </div>
 

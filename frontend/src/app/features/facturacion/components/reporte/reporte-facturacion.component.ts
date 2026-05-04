@@ -72,7 +72,6 @@ export class ReporteFacturacionComponent implements OnInit {
   totalGeneralPen  = computed(() => this.totales()?.totalGeneralPen ?? 0);
   countActivas     = computed(() => this.totales()?.countActivas ?? 0);
   countActivasPen  = computed(() => this.totales()?.countActivasPen ?? 0);
-  hasPen           = computed(() => this.countActivasPen() > 0);
 
   // Totales de página — usados en el tfoot (solo filas visibles activas)
   pageImporte  = computed(() => this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.importe ?? 0), 0));

@@ -2,6 +2,7 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Repository\ArchivoDespachoRepository;
 use App\apps\core\Service\ArchivoDespacho\DeleteAllArchivosByDespachoService;
 use App\apps\core\Service\ArchivoDespacho\DeleteArchivoDespachoService;
 use App\apps\core\Service\ArchivoDespacho\Dto\ArchivoDespachoDtoTransformer;
@@ -68,6 +69,20 @@ class ArchivoDespachoApi extends AbstractSerializerApi
         DownloadArchivoDespachoService $service,
     ): Response {
         return $service->execute($id);
+    }
+
+    #[Route('/by-factura/{id}', name: 'archivo_despacho_by_factura', requirements: ['id' => UidType::REGEX], methods: ['GET'])]
+    public function byFactura(
+        string $id,
+        ArchivoDespachoRepository $repo,
+        ArchivoDespachoDtoTransformer $transformer,
+    ): Response {
+        $items = array_map(
+            fn ($a) => $transformer->fromObject($a),
+            $repo->findByFacturaUuid($id),
+        );
+
+        return $this->ok(['items' => $items]);
     }
 
     #[Route('/by-despacho/{id}', name: 'archivo_despacho_by_despacho', requirements: ['id' => UidType::REGEX], methods: ['GET'])]

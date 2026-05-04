@@ -3,13 +3,15 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { DecimalPipe } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FacturaService, FacturaCreateDto } from '../../factura.service';
+import { ArchivoDespachoService } from '../../archivo-despacho.service';
 import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
-import { Factura } from '@core/models/core.model';
+import { Factura, ArchivoDespacho } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
+import { PdfViewerComponent } from '@shared/components/pdf-viewer/pdf-viewer.component';
 
 type SortField = 'numeroDocumento' | 'fechaEmision' | 'clienteRazonSocial' | 'importe' | 'total';
 type EstadoFilter = 'todas' | 'activas' | 'anuladas';
@@ -17,11 +19,12 @@ type EstadoFilter = 'todas' | 'activas' | 'anuladas';
 @Component({
   selector: 'app-reporte-facturacion',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, DecimalPipe, PageHeaderComponent, PaginationComponent],
+  imports: [FormsModule, ReactiveFormsModule, DecimalPipe, PageHeaderComponent, PaginationComponent, PdfViewerComponent],
   templateUrl: './reporte-facturacion.component.html',
 })
 export class ReporteFacturacionComponent implements OnInit {
   private facturaService = inject(FacturaService);
+  private archivoService = inject(ArchivoDespachoService);
   private tipoCambioService = inject(TipoCambioService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
@@ -322,6 +325,28 @@ export class ReporteFacturacionComponent implements OnInit {
       error: () => {
         this.notification.error('Error al exportar el reporte');
         this.exporting.set(false);
+      },
+    });
+  }
+
+  viewingArchivo = signal<ArchivoDespacho | null>(null);
+  loadingPdf = signal<string | null>(null); // facturaId cargando
+
+  verPdfFactura(factura: Factura): void {
+    this.loadingPdf.set(factura.id);
+    this.archivoService.getByFactura(factura.id).subscribe({
+      next: res => {
+        this.loadingPdf.set(null);
+        const pdfs = (res.items ?? []).filter(a => a.tipoArchivo === 'FACTURA_PDF' || a.tipoArchivo === 'GUIA_PDF');
+        if (pdfs.length === 0) {
+          this.notification.error('No hay PDF vinculado a esta factura');
+          return;
+        }
+        this.viewingArchivo.set(pdfs[0]);
+      },
+      error: () => {
+        this.loadingPdf.set(null);
+        this.notification.error('Error al buscar el PDF');
       },
     });
   }

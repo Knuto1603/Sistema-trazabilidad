@@ -53,10 +53,22 @@ final readonly class UploadArchivoDespachoService
         if ($facturaUuid) {
             $factura = $this->facturaRepository->ofId($facturaUuid, true);
             $archivo->setFactura($factura);
+        } elseif (in_array($tipoArchivo, ['FACTURA_PDF', 'GUIA_PDF'], true)) {
+            $this->autoLinkFactura($archivo, $file->getClientOriginalName(), $despacho);
         }
 
         $this->archivoDespachoRepository->save($archivo);
 
         return $archivo;
+    }
+
+    private function autoLinkFactura(ArchivoDespacho $archivo, string $clientOriginalName, object $despacho): void
+    {
+        $baseName = pathinfo($clientOriginalName, PATHINFO_FILENAME);
+        $matching = $this->archivoDespachoRepository->findXmlWithFacturaByDespachoAndBaseName($despacho, $baseName);
+
+        if ($matching !== null) {
+            $archivo->setFactura($matching->getFactura());
+        }
     }
 }

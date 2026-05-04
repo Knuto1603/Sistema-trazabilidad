@@ -39,6 +39,17 @@ class ArchivoDespachoRepository extends DoctrineEntityRepository
             ->execute();
     }
 
+    public function findByFacturaUuid(string $facturaUuid): array
+    {
+        return $this->createQueryBuilder('a')
+            ->innerJoin('a.factura', 'f')
+            ->where('f.uuid = :uuid')
+            ->setParameter('uuid', $facturaUuid, UidType::NAME)
+            ->orderBy('a.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findByFactura(object $factura): array
     {
         return $this->createQueryBuilder('a')
@@ -46,5 +57,20 @@ class ArchivoDespachoRepository extends DoctrineEntityRepository
             ->setParameter('factura', $factura)
             ->getQuery()
             ->getResult();
+    }
+
+    public function findXmlWithFacturaByDespachoAndBaseName(object $despacho, string $baseName): ?ArchivoDespacho
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.despacho = :despacho')
+            ->andWhere('a.tipoArchivo IN (:tipos)')
+            ->andWhere('a.nombre LIKE :pattern')
+            ->andWhere('a.factura IS NOT NULL')
+            ->setParameter('despacho', $despacho)
+            ->setParameter('tipos', ['FACTURA_XML', 'GUIA_XML'])
+            ->setParameter('pattern', '%\_' . $baseName . '.%')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

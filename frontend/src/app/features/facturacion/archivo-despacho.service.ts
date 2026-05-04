@@ -38,6 +38,10 @@ export class ArchivoDespachoService {
     return this.http.delete<ApiResponse<null>>(`${this.base}/by-despacho/${despachoId}/delete-all`);
   }
 
+  getByFactura(facturaId: string): Observable<{ status: boolean; items: ArchivoDespacho[] }> {
+    return this.http.get<{ status: boolean; items: ArchivoDespacho[] }>(`${this.base}/by-factura/${facturaId}`);
+  }
+
   download(id: string): Observable<Blob> {
     return this.http.get(`${this.base}/${id}/download`, { responseType: 'blob' });
   }

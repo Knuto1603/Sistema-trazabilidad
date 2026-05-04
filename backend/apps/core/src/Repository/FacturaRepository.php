@@ -185,14 +185,15 @@ class FacturaRepository extends DoctrineEntityRepository
     ): array {
         $qb = $this->createQueryBuilder('factura')
             ->select([
-                'SUM(CASE WHEN factura.isAnulada = false THEN factura.importe ELSE 0 END) AS totalImporte',
-                'SUM(CASE WHEN factura.isAnulada = false THEN factura.igv ELSE 0 END) AS totalIgv',
-                'SUM(CASE WHEN factura.isAnulada = false THEN factura.total ELSE 0 END) AS totalGeneral',
+                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN factura.importe ELSE 0 END) AS totalImporteUsd',
+                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN factura.igv ELSE 0 END) AS totalIgvUsd',
+                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN factura.total ELSE 0 END) AS totalGeneralUsd',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.importe ELSE 0 END) AS totalImportePen',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.igv ELSE 0 END) AS totalIgvPen',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN factura.total ELSE 0 END) AS totalGeneralPen',
                 'SUM(CASE WHEN factura.isAnulada = false THEN 1 ELSE 0 END) AS countActivas',
                 'SUM(CASE WHEN factura.isAnulada = true THEN 1 ELSE 0 END) AS countAnuladas',
+                'SUM(CASE WHEN factura.isAnulada = false AND (factura.moneda = \'USD\' OR factura.moneda IS NULL) THEN 1 ELSE 0 END) AS countActivasUsd',
                 'SUM(CASE WHEN factura.isAnulada = false AND factura.moneda = \'PEN\' THEN 1 ELSE 0 END) AS countActivasPen',
             ])
             ->leftJoin('factura.despacho', 'despacho')
@@ -227,14 +228,15 @@ class FacturaRepository extends DoctrineEntityRepository
         $row = $qb->getQuery()->getSingleResult();
 
         return [
-            'totalImporte'     => (float) ($row['totalImporte'] ?? 0),
-            'totalIgv'         => (float) ($row['totalIgv'] ?? 0),
-            'totalGeneral'     => (float) ($row['totalGeneral'] ?? 0),
+            'totalImporteUsd'  => (float) ($row['totalImporteUsd'] ?? 0),
+            'totalIgvUsd'      => (float) ($row['totalIgvUsd'] ?? 0),
+            'totalGeneralUsd'  => (float) ($row['totalGeneralUsd'] ?? 0),
             'totalImportePen'  => (float) ($row['totalImportePen'] ?? 0),
             'totalIgvPen'      => (float) ($row['totalIgvPen'] ?? 0),
             'totalGeneralPen'  => (float) ($row['totalGeneralPen'] ?? 0),
             'countActivas'     => (int)   ($row['countActivas'] ?? 0),
             'countAnuladas'    => (int)   ($row['countAnuladas'] ?? 0),
+            'countActivasUsd'  => (int)   ($row['countActivasUsd'] ?? 0),
             'countActivasPen'  => (int)   ($row['countActivasPen'] ?? 0),
         ];
     }

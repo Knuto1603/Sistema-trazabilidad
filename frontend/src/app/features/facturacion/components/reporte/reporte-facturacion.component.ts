@@ -35,9 +35,10 @@ export class ReporteFacturacionComponent implements OnInit {
   facturas = signal<Factura[]>([]);
   pagination = signal<Pagination>({ page: 0, itemsPerPage: 25, count: 0, totalItems: 0, startIndex: 0, endIndex: 0 });
   totales = signal<{
-    totalImporte: number; totalIgv: number; totalGeneral: number;
+    totalImporteUsd: number; totalIgvUsd: number; totalGeneralUsd: number;
     totalImportePen: number; totalIgvPen: number; totalGeneralPen: number;
-    countActivas: number; countAnuladas: number; countActivasPen: number;
+    countActivas: number; countAnuladas: number;
+    countActivasUsd: number; countActivasPen: number;
   } | null>(null);
   loading = signal(false);
   loadingTotales = signal(false);
@@ -63,14 +64,15 @@ export class ReporteFacturacionComponent implements OnInit {
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
 
-  // Totales globales (API) — usados en las tarjetas de métricas
-  totalImporte     = computed(() => this.totales()?.totalImporte ?? 0);
-  totalIgv         = computed(() => this.totales()?.totalIgv ?? 0);
-  totalGeneral     = computed(() => this.totales()?.totalGeneral ?? 0);
+  // Totales globales por moneda (API) — usados en las tarjetas de métricas
+  totalImporteUsd  = computed(() => this.totales()?.totalImporteUsd ?? 0);
+  totalIgvUsd      = computed(() => this.totales()?.totalIgvUsd ?? 0);
+  totalGeneralUsd  = computed(() => this.totales()?.totalGeneralUsd ?? 0);
   totalImportePen  = computed(() => this.totales()?.totalImportePen ?? 0);
   totalIgvPen      = computed(() => this.totales()?.totalIgvPen ?? 0);
   totalGeneralPen  = computed(() => this.totales()?.totalGeneralPen ?? 0);
   countActivas     = computed(() => this.totales()?.countActivas ?? 0);
+  countActivasUsd  = computed(() => this.totales()?.countActivasUsd ?? 0);
   countActivasPen  = computed(() => this.totales()?.countActivasPen ?? 0);
 
   // Totales de página — usados en el tfoot (solo filas visibles activas)

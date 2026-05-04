@@ -77,9 +77,10 @@ export class FacturaService {
     isAnulada?: boolean; tipoServicio?: string;
     fechaDesde?: string; fechaHasta?: string; search?: string;
   }): Observable<ApiResponse<{
-    totalImporte: number; totalIgv: number; totalGeneral: number;
+    totalImporteUsd: number; totalIgvUsd: number; totalGeneralUsd: number;
     totalImportePen: number; totalIgvPen: number; totalGeneralPen: number;
-    countActivas: number; countAnuladas: number; countActivasPen: number;
+    countActivas: number; countAnuladas: number;
+    countActivasUsd: number; countActivasPen: number;
   }>> {
     return this.http.get<any>(`${this.base}/totales`, { params: params as any });
   }

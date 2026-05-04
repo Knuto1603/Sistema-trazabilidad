@@ -1,4 +1,4 @@
-import { Component, input, output, inject, signal, effect, OnDestroy } from '@angular/core';
+import { Component, input, output, inject, signal, computed, effect, OnDestroy } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ArchivoDespacho } from '@core/models/core.model';
 import { ArchivoDespachoService } from '@features/facturacion/archivo-despacho.service';
@@ -24,7 +24,7 @@ import { ArchivoDespachoService } from '@features/facturacion/archivo-despacho.s
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0 ml-3">
-            <button (click)="descargar()" [disabled]="loading() || !currentBlob"
+            <button (click)="descargar()" [disabled]="loading() || !hasBlob()"
                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -88,24 +88,24 @@ export class PdfViewerComponent implements OnDestroy {
   loading = signal(true);
   errorMsg = signal('');
   blobUrl = signal<SafeResourceUrl | null>(null);
+  hasBlob = signal(false);
 
-  currentBlob: Blob | null = null;
+  isPdf = computed(() => this.archivo().nombre.toLowerCase().endsWith('.pdf'));
+
+  private currentBlob: Blob | null = null;
   private currentObjectUrl: string | null = null;
 
   constructor() {
     effect(() => {
       const a = this.archivo();
-      if (a?.id) this.loadFile(a.id, a.nombre);
-    });
+      if (a?.id) this.loadFile(a.id);
+    }, { allowSignalWrites: true });
   }
 
-  isPdf(): boolean {
-    return this.archivo().nombre.toLowerCase().endsWith('.pdf');
-  }
-
-  private loadFile(id: string, nombre: string): void {
+  private loadFile(id: string): void {
     this.loading.set(true);
     this.errorMsg.set('');
+    this.hasBlob.set(false);
     this.revokeCurrentUrl();
 
     this.archivoService.download(id).subscribe({
@@ -114,6 +114,7 @@ export class PdfViewerComponent implements OnDestroy {
         const objectUrl = URL.createObjectURL(blob);
         this.currentObjectUrl = objectUrl;
         this.blobUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl));
+        this.hasBlob.set(true);
         this.loading.set(false);
       },
       error: () => {

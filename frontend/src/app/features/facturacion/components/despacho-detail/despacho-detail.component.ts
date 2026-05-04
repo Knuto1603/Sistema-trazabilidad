@@ -1,5 +1,4 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
-import { environment } from '@env/environment';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DecimalPipe, Location } from '@angular/common';
@@ -731,9 +730,15 @@ export class DespachoDetailComponent implements OnInit {
     this.viewingArchivo.set(archivo);
   }
 
-  getFileUrl(ruta: string): string {
-    const base = environment.coreUrl.replace('/api', '');
-    return `${base}/${ruta}`;
+  descargarArchivo(archivo: ArchivoDespacho): void {
+    this.archivoService.download(archivo.id).subscribe(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = archivo.nombre;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   }
 
   isPdfArchivo(archivo: ArchivoDespacho): boolean {

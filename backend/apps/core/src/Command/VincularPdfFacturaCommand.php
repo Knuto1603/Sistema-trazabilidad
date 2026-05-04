@@ -3,6 +3,7 @@
 namespace App\apps\core\Command;
 
 use App\apps\core\Repository\ArchivoDespachoRepository;
+use App\apps\core\Repository\FacturaRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,6 +21,7 @@ class VincularPdfFacturaCommand extends Command
     public function __construct(
         private EntityManagerInterface $em,
         private ArchivoDespachoRepository $archivoDespachoRepository,
+        private FacturaRepository $facturaRepository,
     ) {
         parent::__construct();
     }
@@ -59,19 +61,23 @@ class VincularPdfFacturaCommand extends Command
 
         foreach ($pdfs as $pdf) {
             $originalName = $this->extractOriginalName($pdf->getNombre());
-            $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+            $numeroDocumento = $this->extractNumeroDocumento($originalName);
             $despacho = $pdf->getDespacho();
 
-            $matching = $this->archivoDespachoRepository
-                ->findXmlWithFacturaByDespachoAndBaseName($despacho, $baseName);
-
-            if ($matching === null) {
-                $io->writeln(sprintf('<comment>[SIN MATCH] %s</comment>', $pdf->getNombre()));
+            if ($numeroDocumento === null) {
+                $io->writeln(sprintf('<comment>[SIN NÚMERO] %s</comment>', $pdf->getNombre()));
                 $sinMatch++;
                 continue;
             }
 
-            $factura = $matching->getFactura();
+            $factura = $this->facturaRepository->findByDespachoAndNumeroDocumento($despacho, $numeroDocumento);
+
+            if ($factura === null) {
+                $io->writeln(sprintf('<comment>[SIN MATCH] %s → buscado: %s</comment>', $pdf->getNombre(), $numeroDocumento));
+                $sinMatch++;
+                continue;
+            }
+
             $io->writeln(sprintf(
                 '<info>[OK] %s → %s</info>',
                 $pdf->getNombre(),
@@ -113,5 +119,15 @@ class VincularPdfFacturaCommand extends Command
         // El nombre guardado tiene formato: {uniqid}_{nombreOriginal}
         $pos = strpos($storedName, '_');
         return $pos !== false ? substr($storedName, $pos + 1) : $storedName;
+    }
+
+    private function extractNumeroDocumento(string $originalName): ?string
+    {
+        // Extrae el número de documento del final del nombre: "... -FFF2-1209.pdf" → "FFF2-1209"
+        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+        if (preg_match('/([A-Z0-9]+-\d+)\s*$/i', $baseName, $matches)) {
+            return strtoupper(trim($matches[1]));
+        }
+        return null;
     }
 }

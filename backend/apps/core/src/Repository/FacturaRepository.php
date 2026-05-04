@@ -176,6 +176,19 @@ class FacturaRepository extends DoctrineEntityRepository
         };
     }
 
+    public function findByDespachoAndNumeroDocumento(object $despacho, string $numeroDocumento): ?Factura
+    {
+        return $this->createQueryBuilder('f')
+            ->where('f.despacho = :despacho')
+            ->andWhere('f.numeroDocumento = :numero')
+            ->andWhere('f.isActive = true')
+            ->setParameter('despacho', $despacho)
+            ->setParameter('numero', $numeroDocumento)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function deleteByDespacho(object $despacho): void
     {
         $this->createQueryBuilder('f')

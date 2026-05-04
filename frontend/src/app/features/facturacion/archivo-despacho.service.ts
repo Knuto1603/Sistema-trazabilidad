@@ -37,4 +37,8 @@ export class ArchivoDespachoService {
   deleteAllByDespacho(despachoId: string): Observable<ApiResponse<null>> {
     return this.http.delete<ApiResponse<null>>(`${this.base}/by-despacho/${despachoId}/delete-all`);
   }
+
+  download(id: string): Observable<Blob> {
+    return this.http.get(`${this.base}/${id}/download`, { responseType: 'blob' });
+  }
 }

@@ -766,8 +766,7 @@
 
 @if (viewingArchivo()) {
   <app-pdf-viewer
-    [ruta]="viewingArchivo()!.ruta"
-    [nombre]="viewingArchivo()!.nombre"
+    [archivo]="viewingArchivo()!"
     (close)="viewingArchivo.set(null)">
   </app-pdf-viewer>
 }

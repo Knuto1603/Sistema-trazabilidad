@@ -1,7 +1,7 @@
 import { Component, input, output, inject, signal, effect, OnDestroy } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { environment } from '@env/environment';
+import { ArchivoDespacho } from '@core/models/core.model';
+import { ArchivoDespachoService } from '@features/facturacion/archivo-despacho.service';
 
 @Component({
   selector: 'app-pdf-viewer',
@@ -19,11 +19,12 @@ import { environment } from '@env/environment';
               </svg>
             </div>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-slate-800 truncate">{{ nombre() }}</p>
+              <p class="text-sm font-semibold text-slate-800 truncate">{{ archivo().nombre }}</p>
+              <span class="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-xs font-semibold">{{ archivo().tipoArchivo }}</span>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0 ml-3">
-            <button (click)="descargar()" [disabled]="loading()"
+            <button (click)="descargar()" [disabled]="loading() || !currentBlob"
                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -79,39 +80,35 @@ import { environment } from '@env/environment';
 })
 export class PdfViewerComponent implements OnDestroy {
   private sanitizer = inject(DomSanitizer);
-  private http = inject(HttpClient);
+  private archivoService = inject(ArchivoDespachoService);
 
-  ruta = input.required<string>();
-  nombre = input<string>('documento.pdf');
+  archivo = input.required<ArchivoDespacho>();
   close = output<void>();
 
   loading = signal(true);
   errorMsg = signal('');
   blobUrl = signal<SafeResourceUrl | null>(null);
 
+  currentBlob: Blob | null = null;
   private currentObjectUrl: string | null = null;
-  private currentBlob: Blob | null = null;
 
   constructor() {
     effect(() => {
-      const ruta = this.ruta();
-      if (ruta) this.loadFile(ruta);
+      const a = this.archivo();
+      if (a?.id) this.loadFile(a.id, a.nombre);
     });
   }
 
   isPdf(): boolean {
-    return this.ruta().toLowerCase().endsWith('.pdf');
+    return this.archivo().nombre.toLowerCase().endsWith('.pdf');
   }
 
-  private loadFile(ruta: string): void {
+  private loadFile(id: string, nombre: string): void {
     this.loading.set(true);
     this.errorMsg.set('');
     this.revokeCurrentUrl();
 
-    const base = environment.coreUrl.replace('/api', '');
-    const url = `${base}/${ruta}`;
-
-    this.http.get(url, { responseType: 'blob' }).subscribe({
+    this.archivoService.download(id).subscribe({
       next: blob => {
         this.currentBlob = blob;
         const objectUrl = URL.createObjectURL(blob);
@@ -120,7 +117,7 @@ export class PdfViewerComponent implements OnDestroy {
         this.loading.set(false);
       },
       error: () => {
-        this.errorMsg.set('No se pudo cargar el documento. Verifica que el archivo exista.');
+        this.errorMsg.set('No se pudo cargar el documento. Verifica que el archivo exista en el servidor.');
         this.loading.set(false);
       }
     });
@@ -130,7 +127,7 @@ export class PdfViewerComponent implements OnDestroy {
     if (!this.currentObjectUrl || !this.currentBlob) return;
     const a = document.createElement('a');
     a.href = this.currentObjectUrl;
-    a.download = this.nombre();
+    a.download = this.archivo().nombre;
     a.click();
   }
 

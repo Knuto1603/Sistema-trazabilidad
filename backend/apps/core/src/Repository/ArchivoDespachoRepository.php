@@ -50,6 +50,21 @@ class ArchivoDespachoRepository extends DoctrineEntityRepository
             ->getResult();
     }
 
+    public function findPdfByNumeroDocumentoAndDespacho(string $numeroDocumento, object $despacho): array
+    {
+        return $this->createQueryBuilder('a')
+            ->innerJoin('a.factura', 'f')
+            ->where('a.despacho = :despacho')
+            ->andWhere('f.numeroDocumento = :numero')
+            ->andWhere('a.tipoArchivo IN (:tipos)')
+            ->setParameter('despacho', $despacho)
+            ->setParameter('numero', $numeroDocumento)
+            ->setParameter('tipos', ['FACTURA_PDF', 'GUIA_PDF'])
+            ->orderBy('a.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findByFactura(object $factura): array
     {
         return $this->createQueryBuilder('a')

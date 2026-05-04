@@ -3,6 +3,7 @@
 namespace App\apps\core\Controller;
 
 use App\apps\core\Repository\ArchivoDespachoRepository;
+use App\apps\core\Repository\FacturaRepository;
 use App\apps\core\Service\ArchivoDespacho\DeleteAllArchivosByDespachoService;
 use App\apps\core\Service\ArchivoDespacho\DeleteArchivoDespachoService;
 use App\apps\core\Service\ArchivoDespacho\Dto\ArchivoDespachoDtoTransformer;
@@ -75,12 +76,27 @@ class ArchivoDespachoApi extends AbstractSerializerApi
     public function byFactura(
         string $id,
         ArchivoDespachoRepository $repo,
+        FacturaRepository $facturaRepo,
         ArchivoDespachoDtoTransformer $transformer,
     ): Response {
-        $items = array_map(
-            fn ($a) => $transformer->fromObject($a),
-            $repo->findByFacturaUuid($id),
-        );
+        $archivos = $repo->findByFacturaUuid($id);
+
+        // Fallback: si no hay PDFs vinculados directamente, buscar por numeroDocumento en el mismo despacho
+        $pdfs = array_filter($archivos, fn ($a) => in_array($a->getTipoArchivo(), ['FACTURA_PDF', 'GUIA_PDF'], true));
+        if (empty($pdfs)) {
+            $factura = $facturaRepo->ofId($id);
+            if ($factura !== null && $factura->getDespacho() !== null) {
+                $archivos = array_merge(
+                    $archivos,
+                    $repo->findPdfByNumeroDocumentoAndDespacho(
+                        $factura->getNumeroDocumento(),
+                        $factura->getDespacho(),
+                    )
+                );
+            }
+        }
+
+        $items = array_map(fn ($a) => $transformer->fromObject($a), $archivos);
 
         return $this->ok(['items' => $items]);
     }

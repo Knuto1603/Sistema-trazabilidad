@@ -11,11 +11,10 @@ import { Pagination } from '@core/models/api.model';
         <div class="flex items-center gap-3">
           @if (pageSizes().length > 0) {
             <select
-              [value]="pagination().itemsPerPage"
               (change)="pageSizeChange.emit(+$any($event.target).value)"
               class="px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
               @for (size of pageSizes(); track size) {
-                <option [value]="size">{{ size }} por pág.</option>
+                <option [value]="size" [selected]="size === pagination().itemsPerPage">{{ size }} por pág.</option>
               }
             </select>
           }

@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
+import { Router, ActivatedRoute } from '@angular/router';
 import { FacturaService, FacturaCreateDto } from '../../factura.service';
 import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
@@ -24,6 +25,8 @@ export class ReporteFacturacionComponent implements OnInit {
   private tipoCambioService = inject(TipoCambioService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
 
   facturas = signal<Factura[]>([]);
@@ -98,7 +101,32 @@ export class ReporteFacturacionComponent implements OnInit {
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
+  private syncQueryParams(): void {
+    const params: Record<string, string> = {};
+    if (this.searchText()) params['q'] = this.searchText();
+    if (this.filterServicio()) params['servicio'] = this.filterServicio();
+    if (this.filterAnuladas() !== 'activas') params['estado'] = this.filterAnuladas();
+    if (this.filterFechaDesde()) params['desde'] = this.filterFechaDesde();
+    if (this.filterFechaHasta()) params['hasta'] = this.filterFechaHasta();
+    if (this.currentPage()) params['page'] = String(this.currentPage());
+    if (this.itemsPerPage() !== 25) params['size'] = String(this.itemsPerPage());
+    if (this.sortField() !== 'fechaEmision') params['sort'] = this.sortField();
+    if (this.sortDir() !== 'desc') params['dir'] = this.sortDir();
+    this.router.navigate([], { relativeTo: this.route, queryParams: params, replaceUrl: true });
+  }
+
   ngOnInit(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    this.searchText.set(qp.get('q') ?? '');
+    this.filterServicio.set(qp.get('servicio') ?? '');
+    this.filterAnuladas.set((qp.get('estado') as EstadoFilter) ?? 'activas');
+    this.filterFechaDesde.set(qp.get('desde') ?? '');
+    this.filterFechaHasta.set(qp.get('hasta') ?? '');
+    this.currentPage.set(Number(qp.get('page') ?? 0));
+    const size = Number(qp.get('size') ?? 25);
+    this.itemsPerPage.set(this.PAGE_SIZES.includes(size) ? size : 25);
+    this.sortField.set((qp.get('sort') as SortField) ?? 'fechaEmision');
+    this.sortDir.set((qp.get('dir') as 'asc' | 'desc') ?? 'desc');
     this.load();
     this.facturaForm.get('fechaEmision')!.valueChanges.subscribe(fecha => {
       if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
@@ -138,17 +166,18 @@ export class ReporteFacturacionComponent implements OnInit {
   onSearch(event: Event): void {
     this.searchText.set((event.target as HTMLInputElement).value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.load(); }, 400);
+    this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.syncQueryParams(); this.load(); }, 400);
   }
 
   onFilterChange(): void {
     this.currentPage.set(0);
+    this.syncQueryParams();
     this.load();
   }
 
-  onPageChange(page: number): void { this.currentPage.set(page); this.load(); }
+  onPageChange(page: number): void { this.currentPage.set(page); this.syncQueryParams(); this.load(); }
 
-  onPageSizeChange(size: number): void { this.itemsPerPage.set(size); this.currentPage.set(0); this.load(); }
+  onPageSizeChange(size: number): void { this.itemsPerPage.set(size); this.currentPage.set(0); this.syncQueryParams(); this.load(); }
 
   sortBy(field: SortField): void {
     if (this.sortField() === field) {
@@ -158,6 +187,7 @@ export class ReporteFacturacionComponent implements OnInit {
       this.sortDir.set('asc');
     }
     this.currentPage.set(0);
+    this.syncQueryParams();
     this.load();
   }
 

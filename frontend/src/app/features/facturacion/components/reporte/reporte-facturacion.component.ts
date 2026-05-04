@@ -3,6 +3,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, Validators } from '@angu
 import { DecimalPipe } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { FacturaService, FacturaCreateDto } from '../../factura.service';
+import { ParametroService } from '@features/settings/services/parametro.service';
 import { ArchivoDespachoService } from '../../archivo-despacho.service';
 import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
@@ -24,6 +25,7 @@ type EstadoFilter = 'todas' | 'activas' | 'anuladas';
 })
 export class ReporteFacturacionComponent implements OnInit {
   private facturaService = inject(FacturaService);
+  private parametroService = inject(ParametroService);
   private archivoService = inject(ArchivoDespachoService);
   private tipoCambioService = inject(TipoCambioService);
   private notification = inject(NotificationService);
@@ -81,13 +83,14 @@ export class ReporteFacturacionComponent implements OnInit {
   pageTotal    = computed(() => this.facturas().filter(f => !f.isAnulada).reduce((s, f) => s + (f.total ?? 0), 0));
   pageCount    = computed(() => this.facturas().filter(f => !f.isAnulada).length);
 
+  servicios = signal<{ alias: string; name: string }[]>([]);
+
   readonly TIPOS_DOCUMENTO = [
     { value: '01', label: 'Factura (01)' },
     { value: '09', label: 'Guía de Remisión (09)' },
     { value: '07', label: 'Nota de Crédito (07)' },
     { value: '08', label: 'Nota de Débito (08)' },
   ];
-  readonly SERVICIOS = ['MAQUILA', 'SOBRECOSTO', 'VENTA_CAJAS'];
   readonly TIPOS_OPERACION = ['MARITIMO', 'TERRESTRE'];
   readonly MONEDAS = ['USD', 'PEN'];
   readonly UNIDADES_MEDIDA = ['TNE', 'KGM', 'KG', 'ZZ', 'UND', 'NIU'];
@@ -145,6 +148,9 @@ export class ReporteFacturacionComponent implements OnInit {
     this.sortDir.set((qp.get('dir') as 'asc' | 'desc') ?? 'desc');
     this.load();
     this.loadTotales();
+    this.parametroService.getByParentAlias('TIPOSERVICIO').subscribe({
+      next: res => this.servicios.set(res.items ?? []),
+    });
     this.facturaForm.get('fechaEmision')!.valueChanges.subscribe(fecha => {
       if (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
         this.fetchTipoCambio(fecha, false);

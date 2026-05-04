@@ -20,7 +20,7 @@
       <select [ngModel]="filterServicio()" (ngModelChange)="filterServicio.set($event); onFilterChange()"
         class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
         <option value="">Todos los servicios</option>
-        @for (s of SERVICIOS; track s) { <option [value]="s">{{ s }}</option> }
+        @for (s of servicios(); track s.alias) { <option [value]="s.alias">{{ s.name }}</option> }
       </select>
 
       <select [ngModel]="filterAnuladas()" (ngModelChange)="filterAnuladas.set($event); onFilterChange()"
@@ -432,7 +432,7 @@
             <select formControlName="tipoServicio"
               class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">— Sin servicio —</option>
-              @for (s of SERVICIOS; track s) { <option [value]="s">{{ s }}</option> }
+              @for (s of servicios(); track s.alias) { <option [value]="s.alias">{{ s.name }}</option> }
             </select>
           </div>
           <div>

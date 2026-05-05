@@ -2,10 +2,12 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Service\Voucher\CreateVoucherService;
 use App\apps\core\Service\Voucher\DeleteVoucherService;
 use App\apps\core\Service\Voucher\Dto\VoucherDtoTransformer;
 use App\apps\core\Service\Voucher\ForceDeleteVoucherService;
 use App\apps\core\Service\Voucher\SearchVouchersService;
+use App\apps\core\Service\Voucher\UpdateVoucherService;
 use App\shared\Api\AbstractSerializerApi;
 use App\shared\Doctrine\UidType;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +17,95 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/vouchers')]
 class VoucherApi extends AbstractSerializerApi
 {
+    /** Lista paginada: GET /vouchers/?clienteId=xxx&q=xxx&page=0 */
+    #[Route('/', name: 'voucher_list', methods: ['GET'])]
+    public function list(
+        Request $request,
+        \App\apps\core\Repository\VoucherRepository $voucherRepository,
+        VoucherDtoTransformer $transformer,
+    ): Response {
+        $clienteId = $request->query->get('clienteId', '');
+        if (!$clienteId) {
+            return $this->ok(['items' => [], 'pagination' => ['page' => 0, 'itemsPerPage' => 20, 'count' => 0, 'totalItems' => 0, 'startIndex' => 0, 'endIndex' => 0]]);
+        }
+
+        $q     = $request->query->get('q', '');
+        $page  = max(0, (int) $request->query->get('page', 0));
+        $limit = 20;
+
+        $result     = $voucherRepository->findPaginated($clienteId, $q, $page, $limit);
+        $totalItems = $result['totalItems'];
+        $offset     = $page * $limit;
+        $items      = $transformer->fromObjects($result['items']);
+
+        return $this->ok([
+            'items'      => $items,
+            'pagination' => [
+                'page'         => $page,
+                'itemsPerPage' => $limit,
+                'count'        => count($items),
+                'totalItems'   => $totalItems,
+                'startIndex'   => $totalItems > 0 ? $offset + 1 : 0,
+                'endIndex'     => min($offset + $limit, $totalItems),
+            ],
+        ]);
+    }
+
+    /** Crear voucher: POST /vouchers/ */
+    #[Route('/', name: 'voucher_create', methods: ['POST'])]
+    public function create(
+        Request $request,
+        CreateVoucherService $service,
+        VoucherDtoTransformer $transformer,
+    ): Response {
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        foreach (['clienteId', 'numero', 'montoTotal', 'fecha'] as $field) {
+            if (empty($data[$field])) {
+                return $this->fail("El campo '{$field}' es requerido.");
+            }
+        }
+
+        try {
+            $voucher = $service->execute($data);
+
+            return $this->ok([
+                'message' => 'Voucher creado exitosamente',
+                'item'    => $transformer->fromObject($voucher),
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage());
+        }
+    }
+
+    /** Editar voucher: PUT /vouchers/{id} */
+    #[Route('/{id}', name: 'voucher_update', requirements: ['id' => UidType::REGEX], methods: ['PUT'])]
+    public function update(
+        string $id,
+        Request $request,
+        UpdateVoucherService $service,
+        VoucherDtoTransformer $transformer,
+    ): Response {
+        $data = json_decode($request->getContent(), true) ?? [];
+
+        foreach (['numero', 'montoTotal', 'fecha'] as $field) {
+            if (empty($data[$field])) {
+                return $this->fail("El campo '{$field}' es requerido.");
+            }
+        }
+
+        try {
+            $voucher = $service->execute($id, $data);
+
+            return $this->ok([
+                'message' => 'Voucher actualizado exitosamente',
+                'item'    => $transformer->fromObject($voucher),
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage());
+        }
+    }
+
     /**
      * Autocomplete: GET /vouchers/search?clienteId=xxx&q=partialNumero
      * Retorna vouchers del cliente con saldo disponible (montoRestante > 0)

@@ -37,7 +37,8 @@ export const SIDEBAR_MENU: MenuBlock[] = [
   {
     blockTitle: 'Cuentas por Cobrar',
     items: [
-      { label: 'Cuentas por Cobrar', icon: 'accounts', path: '/app/cuentas-cobrar',            moduleKey: 'cuentas_cobrar' },
+      { label: 'Cuentas por Cobrar', icon: 'accounts',  path: '/app/cuentas-cobrar',          moduleKey: 'cuentas_cobrar' },
+      { label: 'Vouchers',           icon: 'currency',  path: '/app/cuentas-cobrar/vouchers',  moduleKey: 'cuentas_cobrar' },
     ]
   },
   {

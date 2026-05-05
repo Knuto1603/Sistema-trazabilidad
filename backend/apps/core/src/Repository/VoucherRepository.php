@@ -5,6 +5,7 @@ namespace App\apps\core\Repository;
 use App\apps\core\Entity\Voucher;
 use App\shared\Doctrine\DoctrineEntityRepository;
 use App\shared\Doctrine\UidType;
+use Doctrine\ORM\Tools\Pagination\Paginator as DoctrinePaginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -72,6 +73,35 @@ class VoucherRepository extends DoctrineEntityRepository
         }
 
         return $qb->getQuery()->getResult();
+    }
+
+    /** Lista paginada de todos los vouchers de un cliente para el CRUD */
+    public function findPaginated(string $clienteUuid, string $q = '', int $page = 0, int $limit = 20): array
+    {
+        $qb = $this->createQueryBuilder('v')
+            ->select(['v', 'c', 'pagos'])
+            ->leftJoin('v.cliente', 'c')
+            ->leftJoin('v.pagos', 'pagos')
+            ->where('c.uuid = :clienteUuid')
+            ->andWhere('v.isActive = true')
+            ->setParameter('clienteUuid', $clienteUuid, UidType::NAME)
+            ->orderBy('v.fecha', 'DESC');
+
+        if ($q !== '') {
+            $qb->andWhere('v.numero LIKE :q OR v.numeroOperacion LIKE :q')
+               ->setParameter('q', '%' . $q . '%');
+        }
+
+        $query = $qb->getQuery()
+            ->setFirstResult($page * $limit)
+            ->setMaxResults($limit);
+
+        $paginator = new DoctrinePaginator($query, fetchJoinCollection: true);
+
+        return [
+            'items'      => iterator_to_array($paginator),
+            'totalItems' => count($paginator),
+        ];
     }
 
     public function findWithPagos(string $uuid): ?Voucher

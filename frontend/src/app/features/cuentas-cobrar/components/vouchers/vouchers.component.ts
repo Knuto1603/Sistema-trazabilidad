@@ -1,5 +1,5 @@
 import {
-  Component, inject, signal, OnInit, HostListener
+  Component, inject, signal, OnInit
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -39,7 +39,8 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
             type="text"
             [(ngModel)]="clienteBusqueda"
             (ngModelChange)="onClienteBusquedaChange($event)"
-            (focus)="showClienteDropdown.set(true)"
+            (focus)="showClienteDropdown.set(clienteSugerencias().length > 0)"
+            (blur)="onClienteBlur()"
             placeholder="Buscar por RUC o razón social..."
             class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -295,10 +296,10 @@ export class VouchersComponent implements OnInit {
   ngOnInit(): void {
     this.clienteSearch$.pipe(debounceTime(300), distinctUntilChanged()).subscribe(q => {
       if (q.length >= 2) {
-        this.clienteService.getAll({ search: q, itemsPerPage: 10 }).subscribe({
+        this.clienteService.getAll({ search: q, itemsPerPage: 10 } as any).subscribe({
           next: res => {
             this.clienteSugerencias.set(res.items ?? []);
-            this.showClienteDropdown.set(true);
+            this.showClienteDropdown.set((res.items ?? []).length > 0);
           }
         });
       } else {
@@ -330,7 +331,9 @@ export class VouchersComponent implements OnInit {
   limpiarCliente(): void {
     this.clienteSeleccionado.set(null);
     this.clienteBusqueda = '';
+    this.clienteSugerencias.set([]);
     this.items.set([]);
+    this.pagination.set({ totalItems: 0, page: 0, itemsPerPage: 20, count: 0, startIndex: 0, endIndex: 0 });
   }
 
   onQChange(v: string): void {
@@ -449,15 +452,12 @@ export class VouchersComponent implements OnInit {
     });
   }
 
-  onBackdropClick(event: MouseEvent): void {
-    if (event.target === event.currentTarget) this.cerrarModal();
+  onClienteBlur(): void {
+    // timeout para permitir que el click en el dropdown se registre antes de cerrar
+    setTimeout(() => this.showClienteDropdown.set(false), 200);
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement;
-    if (!target.closest('[data-cliente-search]')) {
-      this.showClienteDropdown.set(false);
-    }
+  onBackdropClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) this.cerrarModal();
   }
 }

@@ -16,9 +16,19 @@ export class VoucherService {
     });
   }
 
+  searchTodos(clienteId: string, q: string = ''): Observable<{ status: boolean; items: Voucher[] }> {
+    return this.http.get<{ status: boolean; items: Voucher[] }>(`${this.base}/search`, {
+      params: { clienteId, q, todos: 'true' }
+    });
+  }
+
   getByNumero(clienteId: string, numero: string): Observable<ApiResponse<Voucher>> {
     return this.http.get<ApiResponse<Voucher>>(`${this.base}/by-numero`, {
       params: { clienteId, numero }
     });
+  }
+
+  delete(id: string): Observable<ApiResponse<null>> {
+    return this.http.delete<ApiResponse<null>>(`${this.base}/${id}`);
   }
 }

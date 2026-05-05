@@ -53,6 +53,27 @@ class VoucherRepository extends DoctrineEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /** Búsqueda de todos los vouchers (incluye los de saldo cero) para gestión */
+    public function searchTodos(string $clienteUuid, string $q = '', int $limit = 10): array
+    {
+        $qb = $this->createQueryBuilder('v')
+            ->select(['v', 'c', 'pagos'])
+            ->leftJoin('v.cliente', 'c')
+            ->leftJoin('v.pagos', 'pagos')
+            ->where('c.uuid = :clienteUuid')
+            ->andWhere('v.isActive = true')
+            ->setParameter('clienteUuid', $clienteUuid, UidType::NAME)
+            ->orderBy('v.fecha', 'DESC')
+            ->setMaxResults($limit);
+
+        if ($q !== '') {
+            $qb->andWhere('v.numero LIKE :q')
+               ->setParameter('q', '%' . $q . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function findWithPagos(string $uuid): ?Voucher
     {
         return $this->createQueryBuilder('v')

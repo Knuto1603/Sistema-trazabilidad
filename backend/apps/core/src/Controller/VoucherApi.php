@@ -2,6 +2,7 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Service\Voucher\DeleteVoucherService;
 use App\apps\core\Service\Voucher\Dto\VoucherDtoTransformer;
 use App\apps\core\Service\Voucher\SearchVouchersService;
 use App\shared\Api\AbstractSerializerApi;
@@ -21,12 +22,20 @@ class VoucherApi extends AbstractSerializerApi
     public function search(
         Request $request,
         SearchVouchersService $service,
+        VoucherDtoTransformer $transformer,
+        \App\apps\core\Repository\VoucherRepository $voucherRepository,
     ): Response {
         $clienteId = $request->query->get('clienteId', '');
         $q = $request->query->get('q', '');
+        $todos = filter_var($request->query->get('todos', 'false'), FILTER_VALIDATE_BOOLEAN);
 
         if (!$clienteId) {
             return $this->ok(['items' => []]);
+        }
+
+        if ($todos) {
+            $vouchers = $voucherRepository->searchTodos($clienteId, $q);
+            return $this->ok(['items' => $transformer->fromObjects($vouchers)]);
         }
 
         $items = $service->execute($clienteId, $q);
@@ -66,5 +75,19 @@ class VoucherApi extends AbstractSerializerApi
         }
 
         return $this->ok(['item' => $transformer->fromObject($voucher)]);
+    }
+
+    #[Route('/{id}', name: 'voucher_delete', requirements: ['id' => UidType::REGEX], methods: ['DELETE'])]
+    public function delete(
+        string $id,
+        DeleteVoucherService $service,
+    ): Response {
+        try {
+            $service->execute($id);
+
+            return $this->ok(['message' => 'Voucher eliminado exitosamente', 'item' => null]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage());
+        }
     }
 }

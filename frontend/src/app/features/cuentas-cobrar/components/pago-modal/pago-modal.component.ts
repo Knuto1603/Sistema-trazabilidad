@@ -257,6 +257,88 @@ interface PagoForm {
           </div>
         }
 
+        <!-- Sección: Eliminar voucher equivocado -->
+        <div class="border-t border-gray-200">
+          <button type="button" (click)="mostrarElimVoucher.set(!mostrarElimVoucher())"
+            class="w-full flex items-center justify-between px-6 py-3 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+            <span>¿Registraste un voucher equivocado?</span>
+            <svg class="w-4 h-4 transition-transform" [class.rotate-180]="mostrarElimVoucher()"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
+          @if (mostrarElimVoucher()) {
+            <div class="px-6 pb-5 space-y-3">
+              <p class="text-xs text-gray-500">Busca el voucher por número y elimínalo si no tiene pagos activos.</p>
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  [(ngModel)]="busquedaElimVoucher"
+                  placeholder="N° voucher..."
+                  class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+                <button type="button" (click)="buscarVoucherParaEliminar()"
+                  class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors">
+                  Buscar
+                </button>
+              </div>
+
+              @if (voucheresElim().length > 0) {
+                <div class="space-y-2">
+                  @for (v of voucheresElim(); track v.id) {
+                    <div class="border rounded-lg p-3 text-xs"
+                         [class]="voucherParaEliminar()?.id === v.id ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-gray-50'">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="flex-1">
+                          <div class="font-semibold text-gray-900">{{ v.numero }}</div>
+                          @if (v.numeroOperacion) {
+                            <div class="text-gray-400">Op: {{ v.numeroOperacion }}</div>
+                          }
+                          <div class="text-gray-500 mt-0.5">
+                            Total: {{ v.montoTotal | number:'1.2-2' }} |
+                            Usado: {{ v.montoUsado | number:'1.2-2' }} |
+                            <span [class]="v.montoRestante > 0 ? 'text-green-600 font-medium' : 'text-gray-400'">
+                              Disponible: {{ v.montoRestante | number:'1.2-2' }}
+                            </span>
+                          </div>
+                          @if (v.montoUsado > 0) {
+                            <div class="mt-1 text-orange-600 font-medium">
+                              Tiene pagos asociados — anúlalos primero antes de eliminar
+                            </div>
+                          }
+                        </div>
+                        @if (voucherParaEliminar()?.id !== v.id) {
+                          <button type="button" (click)="voucherParaEliminar.set(v)"
+                            class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors whitespace-nowrap">
+                            Eliminar
+                          </button>
+                        }
+                      </div>
+
+                      @if (voucherParaEliminar()?.id === v.id) {
+                        <div class="mt-3 flex gap-2">
+                          <button type="button" (click)="confirmarEliminarVoucher()"
+                            [disabled]="eliminandoVoucher()"
+                            class="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
+                            @if (eliminandoVoucher()) { Eliminando... } @else { Confirmar eliminación }
+                          </button>
+                          <button type="button" (click)="voucherParaEliminar.set(null)"
+                            class="px-3 py-1.5 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100 transition-colors">
+                            Cancelar
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else if (voucheresElimBuscado()) {
+                <p class="text-xs text-gray-400 text-center py-2">No se encontraron vouchers con ese número.</p>
+              }
+            </div>
+          }
+        </div>
+
       </div>
     </div>
   `
@@ -278,6 +360,13 @@ export class PagoModalComponent implements OnInit {
   modoEdicion = signal<PagoFactura | null>(null);
   pagoAEliminar = signal<PagoFactura | null>(null);
   justificanteElim = '';
+
+  mostrarElimVoucher = signal(false);
+  voucheresElim = signal<Voucher[]>([]);
+  voucheresElimBuscado = signal(false);
+  busquedaElimVoucher = '';
+  voucherParaEliminar = signal<Voucher | null>(null);
+  eliminandoVoucher = signal(false);
 
   private voucherSearch$ = new Subject<string>();
 
@@ -473,6 +562,39 @@ export class PagoModalComponent implements OnInit {
     this.voucherSugerencias.set([]);
     this.showAutocomplete.set(false);
     this.modoEdicion.set(null);
+  }
+
+  buscarVoucherParaEliminar(): void {
+    const clienteId = this.cuenta().clienteId;
+    if (!clienteId) return;
+    this.voucheresElimBuscado.set(false);
+    this.voucherParaEliminar.set(null);
+    this.voucherService.searchTodos(clienteId, this.busquedaElimVoucher.trim()).subscribe({
+      next: res => {
+        this.voucheresElim.set(res.items ?? []);
+        this.voucheresElimBuscado.set(true);
+      }
+    });
+  }
+
+  confirmarEliminarVoucher(): void {
+    const v = this.voucherParaEliminar();
+    if (!v) return;
+    this.eliminandoVoucher.set(true);
+    this.voucherService.delete(v.id).subscribe({
+      next: () => {
+        this.notif.success(`Voucher ${v.numero} eliminado`);
+        this.voucherParaEliminar.set(null);
+        this.voucheresElim.set([]);
+        this.busquedaElimVoucher = '';
+        this.voucheresElimBuscado.set(false);
+        this.eliminandoVoucher.set(false);
+      },
+      error: (err) => {
+        this.notif.error(err?.error?.message ?? 'No se pudo eliminar el voucher');
+        this.eliminandoVoucher.set(false);
+      }
+    });
   }
 
   @HostListener('document:click', ['$event'])

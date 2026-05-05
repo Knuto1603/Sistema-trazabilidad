@@ -224,7 +224,35 @@ const SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'] as const;
                             <div class="flex items-center gap-1.5 ml-auto">
                               <span class="text-gray-400">{{ pago.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
                             </div>
+                            <!-- Botón desligar -->
+                            <button (click)="iniciarDesligar(pago.id)" title="Desligar voucher de esta factura"
+                              class="ml-2 text-red-400 hover:text-red-600 transition-colors shrink-0">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                              </svg>
+                            </button>
                           </div>
+
+                          <!-- Panel confirmación desligar -->
+                          @if (pagoDesligando() === pago.id) {
+                            <div class="mt-1 bg-red-50 border border-red-200 rounded-lg px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                              <input type="text" [(ngModel)]="justificanteDesligar"
+                                placeholder="Motivo (requerido)"
+                                class="flex-1 text-xs border border-red-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-400"/>
+                              <div class="flex gap-2 shrink-0">
+                                <button (click)="confirmarDesligar()"
+                                  [disabled]="!justificanteDesligar.trim() || guardandoDesligar()"
+                                  class="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
+                                  @if (guardandoDesligar()) { Desligando... } @else { Confirmar }
+                                </button>
+                                <button (click)="cancelarDesligar()"
+                                  class="px-3 py-1.5 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100 transition-colors">
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          }
                         }
                       </div>
                     </div>
@@ -249,6 +277,7 @@ const SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'] as const;
       <app-factura-detail-modal
         [cuenta]="detailItem()!"
         (closed)="detailItem.set(null)"
+        (pagoAnulado)="onPagoRegistrado()"
       />
     }
 
@@ -287,6 +316,11 @@ export class CuentasCobrarListComponent implements OnInit {
   selectedItem = signal<CuentaCobrar | null>(null);
   detailItem = signal<CuentaCobrar | null>(null);
   expandedIds = signal<Set<string>>(new Set());
+
+  // Desligar voucher de factura (anular pago)
+  pagoDesligando = signal<string | null>(null);
+  justificanteDesligar = '';
+  guardandoDesligar = signal(false);
 
   ngOnInit(): void {
     this.loadData();
@@ -408,6 +442,35 @@ export class CuentasCobrarListComponent implements OnInit {
         this.notif.error('Error al exportar');
         this.exportando.set(false);
       },
+    });
+  }
+
+  iniciarDesligar(pagoId: string): void {
+    this.pagoDesligando.set(pagoId);
+    this.justificanteDesligar = '';
+  }
+
+  cancelarDesligar(): void {
+    this.pagoDesligando.set(null);
+    this.justificanteDesligar = '';
+  }
+
+  confirmarDesligar(): void {
+    const pagoId = this.pagoDesligando();
+    if (!pagoId || !this.justificanteDesligar.trim()) return;
+    this.guardandoDesligar.set(true);
+    this.service.deletePago(pagoId, { justificante: this.justificanteDesligar.trim() }).subscribe({
+      next: () => {
+        this.notif.success('Voucher desligado de la factura');
+        this.pagoDesligando.set(null);
+        this.justificanteDesligar = '';
+        this.guardandoDesligar.set(false);
+        this.onPagoRegistrado();
+      },
+      error: (err) => {
+        this.notif.error(err?.error?.message ?? 'Error al desligar el voucher');
+        this.guardandoDesligar.set(false);
+      }
     });
   }
 

@@ -56,6 +56,11 @@ export const routes: Routes = [
         loadChildren: () => import('@features/cuentas-cobrar/cuentas-cobrar.routes').then(m => m.cuentasCobrarRoutes)
       },
       {
+        path: 'vouchers',
+        canActivate: [moduleGuard('cuentas_cobrar')],
+        loadComponent: () => import('@features/cuentas-cobrar/components/vouchers/vouchers.component').then(m => m.VouchersComponent)
+      },
+      {
         path: 'dev',
         canActivate: [knutoGuard],
         loadChildren: () => import('@features/dev/dev.routes').then(m => m.devRoutes)

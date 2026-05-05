@@ -1,11 +1,14 @@
-import { Component, input, output, HostListener } from '@angular/core';
+import { Component, input, output, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { CuentaCobrar } from '@core/models/core.model';
+import { CuentasCobrarService } from '../../cuentas-cobrar.service';
+import { NotificationService } from '@core/services/notification.service';
 
 @Component({
   selector: 'app-factura-detail-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" (click)="onBackdropClick($event)">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
@@ -136,26 +139,57 @@ import { CuentaCobrar } from '@core/models/core.model';
             <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Historial de pagos</h3>
             <div class="space-y-2">
               @for (pago of cuenta().pagos; track pago.id) {
-                <div class="flex items-start justify-between rounded-lg p-3 text-xs"
+                <div class="rounded-lg text-xs"
                      [class]="pago.isActive ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200 opacity-60'">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                      <span class="font-semibold text-gray-900">Voucher: {{ pago.voucherNumero }}</span>
-                      @if (!pago.isActive) {
-                        <span class="px-1.5 py-0.5 bg-red-100 text-red-600 rounded">ANULADO</span>
+                  <div class="flex items-start justify-between p-3">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="font-semibold text-gray-900">Voucher: {{ pago.voucherNumero }}</span>
+                        @if (!pago.isActive) {
+                          <span class="px-1.5 py-0.5 bg-red-100 text-red-600 rounded">ANULADO</span>
+                        }
+                      </div>
+                      @if (pago.voucherNumeroOperacion) {
+                        <div class="text-gray-500">Op: {{ pago.voucherNumeroOperacion }}</div>
+                      }
+                      <div class="text-gray-400 mt-0.5">{{ pago.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+                      @if (!pago.isActive && pago.justificanteEliminacion) {
+                        <div class="text-red-500 mt-1">Motivo: {{ pago.justificanteEliminacion }}</div>
                       }
                     </div>
-                    @if (pago.voucherNumeroOperacion) {
-                      <div class="text-gray-500">Op: {{ pago.voucherNumeroOperacion }}</div>
-                    }
-                    <div class="text-gray-400 mt-0.5">{{ pago.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
-                    @if (!pago.isActive && pago.justificanteEliminacion) {
-                      <div class="text-red-500 mt-1">Motivo: {{ pago.justificanteEliminacion }}</div>
-                    }
+                    <div class="flex items-center gap-3 ml-4">
+                      <span class="font-semibold" [class]="pago.isActive ? 'text-green-700' : 'text-gray-400'">
+                        {{ cuenta().moneda }} {{ pago.montoAplicado | number:'1.2-2' }}
+                      </span>
+                      @if (pago.isActive) {
+                        <button (click)="iniciarDesligar(pago.id)" title="Desligar voucher de esta factura"
+                          class="text-red-400 hover:text-red-600 transition-colors shrink-0">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                          </svg>
+                        </button>
+                      }
+                    </div>
                   </div>
-                  <span class="font-semibold ml-4" [class]="pago.isActive ? 'text-green-700' : 'text-gray-400'">
-                    {{ cuenta().moneda }} {{ pago.montoAplicado | number:'1.2-2' }}
-                  </span>
+                  @if (pagoDesligando() === pago.id) {
+                    <div class="border-t border-green-200 px-3 pb-3 pt-2 flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                      <input type="text" [(ngModel)]="justificanteDesligar"
+                        placeholder="Motivo del desvinculado (requerido)"
+                        class="flex-1 text-xs border border-red-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-red-400"/>
+                      <div class="flex gap-2 shrink-0">
+                        <button (click)="confirmarDesligar()"
+                          [disabled]="!justificanteDesligar.trim() || guardandoDesligar()"
+                          class="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
+                          @if (guardandoDesligar()) { Desligando... } @else { Confirmar }
+                        </button>
+                        <button (click)="cancelarDesligar()"
+                          class="px-3 py-1.5 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100 transition-colors">
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  }
                 </div>
               }
             </div>
@@ -200,6 +234,43 @@ import { CuentaCobrar } from '@core/models/core.model';
 export class FacturaDetailModalComponent {
   cuenta = input.required<CuentaCobrar>();
   closed = output<void>();
+  pagoAnulado = output<void>();
+
+  private service = inject(CuentasCobrarService);
+  private notif = inject(NotificationService);
+
+  pagoDesligando = signal<string | null>(null);
+  justificanteDesligar = '';
+  guardandoDesligar = signal(false);
+
+  iniciarDesligar(pagoId: string): void {
+    this.pagoDesligando.set(pagoId);
+    this.justificanteDesligar = '';
+  }
+
+  cancelarDesligar(): void {
+    this.pagoDesligando.set(null);
+    this.justificanteDesligar = '';
+  }
+
+  confirmarDesligar(): void {
+    const pagoId = this.pagoDesligando();
+    if (!pagoId || !this.justificanteDesligar.trim()) return;
+    this.guardandoDesligar.set(true);
+    this.service.deletePago(pagoId, { justificante: this.justificanteDesligar.trim() }).subscribe({
+      next: () => {
+        this.notif.success('Voucher desligado de la factura');
+        this.pagoDesligando.set(null);
+        this.justificanteDesligar = '';
+        this.guardandoDesligar.set(false);
+        this.pagoAnulado.emit();
+      },
+      error: (err) => {
+        this.notif.error(err?.error?.message ?? 'Error al desligar el voucher');
+        this.guardandoDesligar.set(false);
+      }
+    });
+  }
 
   estadoBadgeClass(): string {
     const base = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ';

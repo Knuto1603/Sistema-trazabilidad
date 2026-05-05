@@ -35,6 +35,14 @@ final class PagoFacturaDtoTransformer extends DtoTransformer
             }
         }
 
+        $factura = $object->getFactura();
+        if ($factura) {
+            $dto->facturaId = UidType::toString($factura->uuid());
+            $dto->facturaNumero = $factura->getNumeroDocumento();
+            $dto->facturaRazonSocial = $factura->getClienteFactura()?->getRazonSocial()
+                ?? $factura->getDespacho()?->getCliente()?->getRazonSocial();
+        }
+
         $dto->ofEntity($object);
 
         return $dto;

@@ -3,11 +3,16 @@
 namespace App\apps\core\Service\Voucher\Dto;
 
 use App\apps\core\Entity\Voucher;
+use App\apps\core\Service\PagoFactura\Dto\PagoFacturaDtoTransformer;
 use App\shared\Doctrine\UidType;
 use App\shared\Service\Transformer\DtoTransformer;
 
 final class VoucherDtoTransformer extends DtoTransformer
 {
+    public function __construct(
+        private PagoFacturaDtoTransformer $pagoTransformer,
+    ) {}
+
     /** @param Voucher $object */
     public function fromObject(mixed $object): ?VoucherDto
     {
@@ -29,6 +34,25 @@ final class VoucherDtoTransformer extends DtoTransformer
         }
 
         $dto->ofEntity($object);
+
+        return $dto;
+    }
+
+    /** Igual que fromObject pero además incluye los pagos activos con info de factura */
+    public function fromObjectWithPagos(mixed $object): ?VoucherDto
+    {
+        $dto = $this->fromObject($object);
+        if ($dto === null) {
+            return null;
+        }
+
+        $pagos = [];
+        foreach ($object->getPagos() as $pago) {
+            if ($pago->isActive()) {
+                $pagos[] = $this->pagoTransformer->fromObject($pago);
+            }
+        }
+        $dto->pagos = $pagos;
 
         return $dto;
     }

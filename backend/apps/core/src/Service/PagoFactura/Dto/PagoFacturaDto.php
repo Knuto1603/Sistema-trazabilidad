@@ -22,5 +22,10 @@ final class PagoFacturaDto
         public ?float $voucherMontoUsado = null,
         public ?string $voucherFecha = null,
         public ?string $voucherClienteId = null,
+
+        // Factura info (cuando se consulta desde perspectiva del voucher)
+        public ?string $facturaId = null,
+        public ?string $facturaNumero = null,
+        public ?string $facturaRazonSocial = null,
     ) {}
 }

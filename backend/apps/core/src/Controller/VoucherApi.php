@@ -4,6 +4,7 @@ namespace App\apps\core\Controller;
 
 use App\apps\core\Service\Voucher\DeleteVoucherService;
 use App\apps\core\Service\Voucher\Dto\VoucherDtoTransformer;
+use App\apps\core\Service\Voucher\ForceDeleteVoucherService;
 use App\apps\core\Service\Voucher\SearchVouchersService;
 use App\shared\Api\AbstractSerializerApi;
 use App\shared\Doctrine\UidType;
@@ -77,6 +78,21 @@ class VoucherApi extends AbstractSerializerApi
         return $this->ok(['item' => $transformer->fromObject($voucher)]);
     }
 
+    #[Route('/{id}', name: 'voucher_get', requirements: ['id' => UidType::REGEX], methods: ['GET'])]
+    public function getOne(
+        string $id,
+        \App\apps\core\Repository\VoucherRepository $voucherRepository,
+        VoucherDtoTransformer $transformer,
+    ): Response {
+        $voucher = $voucherRepository->findWithPagos($id);
+
+        if ($voucher === null) {
+            return $this->fail('Voucher no encontrado.', null, 404);
+        }
+
+        return $this->ok(['item' => $transformer->fromObjectWithPagos($voucher)]);
+    }
+
     #[Route('/{id}', name: 'voucher_delete', requirements: ['id' => UidType::REGEX], methods: ['DELETE'])]
     public function delete(
         string $id,
@@ -86,6 +102,24 @@ class VoucherApi extends AbstractSerializerApi
             $service->execute($id);
 
             return $this->ok(['message' => 'Voucher eliminado exitosamente', 'item' => null]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage());
+        }
+    }
+
+    #[Route('/{id}/force', name: 'voucher_force_delete', requirements: ['id' => UidType::REGEX], methods: ['DELETE'])]
+    public function forceDelete(
+        string $id,
+        Request $request,
+        ForceDeleteVoucherService $service,
+    ): Response {
+        $data = json_decode($request->getContent(), true) ?? [];
+        $justificante = $data['justificante'] ?? '';
+
+        try {
+            $service->execute($id, $justificante);
+
+            return $this->ok(['message' => 'Voucher y sus pagos eliminados exitosamente', 'item' => null]);
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage());
         }

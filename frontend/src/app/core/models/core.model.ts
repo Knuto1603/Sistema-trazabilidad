@@ -86,6 +86,12 @@ export interface Voucher {
   montoTotal: number; fecha: string;
   clienteId?: string; clienteRazonSocial?: string;
   montoRestante: number; montoUsado: number; isActive: boolean;
+  pagos?: PagoEnVoucher[];
+}
+
+export interface PagoEnVoucher {
+  id: string; montoAplicado: number; isActive: boolean;
+  facturaId?: string; facturaNumero?: string; facturaRazonSocial?: string;
 }
 
 export interface PagoFactura {
@@ -94,6 +100,7 @@ export interface PagoFactura {
   voucherId?: string; voucherNumero?: string; voucherNumeroOperacion?: string;
   voucherMontoTotal?: number; voucherMontoRestante?: number; voucherMontoUsado?: number;
   voucherFecha?: string; voucherClienteId?: string;
+  facturaId?: string; facturaNumero?: string; facturaRazonSocial?: string;
 }
 
 export type EstadoCuenta = 'PENDIENTE' | 'PAGADO' | 'VENCIDA';

@@ -28,7 +28,17 @@ export class VoucherService {
     });
   }
 
+  getById(id: string): Observable<ApiResponse<Voucher>> {
+    return this.http.get<ApiResponse<Voucher>>(`${this.base}/${id}`);
+  }
+
   delete(id: string): Observable<ApiResponse<null>> {
     return this.http.delete<ApiResponse<null>>(`${this.base}/${id}`);
+  }
+
+  forceDelete(id: string, justificante: string): Observable<ApiResponse<null>> {
+    return this.http.delete<ApiResponse<null>>(`${this.base}/${id}/force`, {
+      body: { justificante }
+    });
   }
 }

@@ -4,7 +4,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
-import { CuentaCobrar, PagoFactura, Voucher } from '@core/models/core.model';
+import { CuentaCobrar, PagoEnVoucher, PagoFactura, Voucher } from '@core/models/core.model';
 import { CuentasCobrarService } from '../../cuentas-cobrar.service';
 import { VoucherService } from '../../voucher.service';
 import { NotificationService } from '@core/services/notification.service';
@@ -309,7 +309,7 @@ interface PagoForm {
                           }
                         </div>
                         @if (voucherParaEliminar()?.id !== v.id) {
-                          <button type="button" (click)="voucherParaEliminar.set(v)"
+                          <button type="button" (click)="seleccionarVoucherParaEliminar(v)"
                             class="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors whitespace-nowrap">
                             Eliminar
                           </button>
@@ -317,16 +317,48 @@ interface PagoForm {
                       </div>
 
                       @if (voucherParaEliminar()?.id === v.id) {
-                        <div class="mt-3 flex gap-2">
-                          <button type="button" (click)="confirmarEliminarVoucher()"
-                            [disabled]="eliminandoVoucher()"
-                            class="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
-                            @if (eliminandoVoucher()) { Eliminando... } @else { Confirmar eliminación }
-                          </button>
-                          <button type="button" (click)="voucherParaEliminar.set(null)"
-                            class="px-3 py-1.5 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100 transition-colors">
-                            Cancelar
-                          </button>
+                        <div class="mt-3 space-y-3">
+                          <!-- Pagos vinculados (si los hay) -->
+                          @if (v.montoUsado > 0) {
+                            <div class="bg-orange-50 border border-orange-200 rounded-lg p-2">
+                              <p class="text-orange-700 font-medium mb-1">Este voucher está aplicado a las siguientes facturas:</p>
+                              @if (cargandoPagosVoucher()) {
+                                <p class="text-xs text-gray-400">Cargando facturas vinculadas...</p>
+                              } @else {
+                                @for (pago of pagosDelVoucher(); track pago.id) {
+                                  <div class="flex justify-between items-center text-xs py-0.5">
+                                    <span class="text-gray-700 font-medium">{{ pago.facturaNumero ?? '—' }}</span>
+                                    <span class="text-gray-500 truncate max-w-[120px]" [title]="pago.facturaRazonSocial ?? ''">
+                                      {{ pago.facturaRazonSocial ?? '' }}
+                                    </span>
+                                    <span class="text-orange-700 font-semibold">{{ pago.montoAplicado | number:'1.2-2' }}</span>
+                                  </div>
+                                }
+                              }
+                              <p class="text-xs text-orange-600 mt-1">Los pagos serán anulados automáticamente al eliminar el voucher.</p>
+                            </div>
+                            <div>
+                              <input
+                                type="text"
+                                [(ngModel)]="justificanteForceDelete"
+                                placeholder="Motivo de la eliminación (requerido)"
+                                class="w-full border border-orange-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-400"
+                              />
+                            </div>
+                          }
+                          <div class="flex gap-2">
+                            <button type="button" (click)="confirmarEliminarVoucher()"
+                              [disabled]="eliminandoVoucher() || (v.montoUsado > 0 && !justificanteForceDelete.trim())"
+                              class="px-4 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs rounded-lg transition-colors">
+                              @if (eliminandoVoucher()) { Eliminando... }
+                              @else if (v.montoUsado > 0) { Anular pagos y eliminar voucher }
+                              @else { Confirmar eliminación }
+                            </button>
+                            <button type="button" (click)="voucherParaEliminar.set(null)"
+                              class="px-3 py-1.5 border border-gray-300 text-gray-600 text-xs rounded-lg hover:bg-gray-100 transition-colors">
+                              Cancelar
+                            </button>
+                          </div>
                         </div>
                       }
                     </div>
@@ -366,6 +398,9 @@ export class PagoModalComponent implements OnInit {
   voucheresElimBuscado = signal(false);
   busquedaElimVoucher = '';
   voucherParaEliminar = signal<Voucher | null>(null);
+  pagosDelVoucher = signal<PagoEnVoucher[]>([]);
+  cargandoPagosVoucher = signal(false);
+  justificanteForceDelete = '';
   eliminandoVoucher = signal(false);
 
   private voucherSearch$ = new Subject<string>();
@@ -569,6 +604,8 @@ export class PagoModalComponent implements OnInit {
     if (!clienteId) return;
     this.voucheresElimBuscado.set(false);
     this.voucherParaEliminar.set(null);
+    this.pagosDelVoucher.set([]);
+    this.justificanteForceDelete = '';
     this.voucherService.searchTodos(clienteId, this.busquedaElimVoucher.trim()).subscribe({
       next: res => {
         this.voucheresElim.set(res.items ?? []);
@@ -577,18 +614,43 @@ export class PagoModalComponent implements OnInit {
     });
   }
 
+  seleccionarVoucherParaEliminar(v: Voucher): void {
+    this.voucherParaEliminar.set(v);
+    this.pagosDelVoucher.set([]);
+    this.justificanteForceDelete = '';
+    if (v.montoUsado > 0) {
+      this.cargandoPagosVoucher.set(true);
+      this.voucherService.getById(v.id).subscribe({
+        next: res => {
+          this.pagosDelVoucher.set(res.item?.pagos ?? []);
+          this.cargandoPagosVoucher.set(false);
+        },
+        error: () => this.cargandoPagosVoucher.set(false),
+      });
+    }
+  }
+
   confirmarEliminarVoucher(): void {
     const v = this.voucherParaEliminar();
     if (!v) return;
     this.eliminandoVoucher.set(true);
-    this.voucherService.delete(v.id).subscribe({
+
+    const delete$ = v.montoUsado > 0
+      ? this.voucherService.forceDelete(v.id, this.justificanteForceDelete)
+      : this.voucherService.delete(v.id);
+
+    delete$.subscribe({
       next: () => {
         this.notif.success(`Voucher ${v.numero} eliminado`);
         this.voucherParaEliminar.set(null);
+        this.pagosDelVoucher.set([]);
+        this.justificanteForceDelete = '';
         this.voucheresElim.set([]);
         this.busquedaElimVoucher = '';
         this.voucheresElimBuscado.set(false);
         this.eliminandoVoucher.set(false);
+        this.cargarPagos();
+        this.pagoRegistrado.emit();
       },
       error: (err) => {
         this.notif.error(err?.error?.message ?? 'No se pudo eliminar el voucher');

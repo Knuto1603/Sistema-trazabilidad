@@ -17,5 +17,6 @@ final class VoucherDto
         public ?string $clienteRazonSocial = null,
         public ?float $montoRestante = null,
         public ?float $montoUsado = null,
+        public ?array $pagos = null,
     ) {}
 }

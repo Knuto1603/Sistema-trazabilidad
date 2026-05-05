@@ -77,10 +77,13 @@ class VoucherRepository extends DoctrineEntityRepository
     public function findWithPagos(string $uuid): ?Voucher
     {
         return $this->createQueryBuilder('v')
-            ->select(['v', 'c', 'pagos', 'pf'])
+            ->select(['v', 'c', 'pagos', 'pf', 'pfd', 'pfdc', 'pfcf'])
             ->leftJoin('v.cliente', 'c')
             ->leftJoin('v.pagos', 'pagos')
             ->leftJoin('pagos.factura', 'pf')
+            ->leftJoin('pf.despacho', 'pfd')
+            ->leftJoin('pfd.cliente', 'pfdc')
+            ->leftJoin('pf.clienteFactura', 'pfcf')
             ->where('v.uuid = :uuid')
             ->setParameter('uuid', $uuid, UidType::NAME)
             ->getQuery()

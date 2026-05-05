@@ -52,6 +52,11 @@ final class FacturaDto implements DtoRequestInterface
 
         public ?int $despachoNumero = null,
         public ?string $clienteRazonSocial = null,
+
+        #[Uid]
+        public ?string $clienteFacturaId = null,
+        public ?string $clienteFacturaRuc = null,
+        public ?string $clienteFacturaRazonSocial = null,
     ) {
     }
 }

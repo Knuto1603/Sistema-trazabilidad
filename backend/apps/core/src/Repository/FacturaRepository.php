@@ -24,18 +24,20 @@ class FacturaRepository extends DoctrineEntityRepository
     public function allQuery(): QueryBuilder
     {
         return $this->createQueryBuilder('factura')
-            ->select(['factura', 'despacho', 'cliente'])
+            ->select(['factura', 'despacho', 'cliente', 'clienteFactura'])
             ->leftJoin('factura.despacho', 'despacho')
             ->leftJoin('despacho.cliente', 'cliente')
+            ->leftJoin('factura.clienteFactura', 'clienteFactura')
             ->orderBy('factura.fechaEmision', 'DESC');
     }
 
     public function createQueryBuilderWithPagos(): QueryBuilder
     {
         return $this->createQueryBuilder('f')
-            ->select(['f', 'd', 'c', 'o', 'pagos', 'v'])
+            ->select(['f', 'd', 'c', 'cf', 'o', 'pagos', 'v'])
             ->leftJoin('f.despacho', 'd')
             ->leftJoin('d.cliente', 'c')
+            ->leftJoin('f.clienteFactura', 'cf')
             ->leftJoin('d.operacion', 'o')
             ->leftJoin('f.pagos', 'pagos')
             ->leftJoin('pagos.voucher', 'v')
@@ -53,9 +55,10 @@ class FacturaRepository extends DoctrineEntityRepository
     public function findByDespachoUuid(string $despachoUuid): array
     {
         return $this->createQueryBuilder('f')
-            ->select(['f', 'd', 'c'])
+            ->select(['f', 'd', 'c', 'cf'])
             ->leftJoin('f.despacho', 'd')
             ->leftJoin('d.cliente', 'c')
+            ->leftJoin('f.clienteFactura', 'cf')
             ->where('d.uuid = :uuid')
             ->setParameter('uuid', $despachoUuid, UidType::NAME)
             ->orderBy('f.fechaEmision', 'ASC')
@@ -108,9 +111,10 @@ class FacturaRepository extends DoctrineEntityRepository
         int $itemsPerPage = 20,
     ): array {
         $qb = $this->createQueryBuilder('f')
-            ->select(['f', 'd', 'c', 'o', 'pagos', 'v'])
+            ->select(['f', 'd', 'c', 'cf', 'o', 'pagos', 'v'])
             ->leftJoin('f.despacho', 'd')
             ->leftJoin('d.cliente', 'c')
+            ->leftJoin('f.clienteFactura', 'cf')
             ->leftJoin('d.operacion', 'o')
             ->leftJoin('f.pagos', 'pagos')
             ->leftJoin('pagos.voucher', 'v')

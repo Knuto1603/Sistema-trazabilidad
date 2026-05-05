@@ -4,13 +4,14 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { DecimalPipe, Location } from '@angular/common';
 import { DespachoService } from '../../despacho.service';
 import { FacturaService, FacturaCreateDto } from '../../factura.service';
+import { ClienteService } from '../../cliente.service';
 import { ArchivoDespachoService } from '../../archivo-despacho.service';
 import { TipoCambioService } from '../../tipo-cambio.service';
 import { NotificationService } from '@core/services/notification.service';
 import { AuthService } from '@core/services/auth.service';
 import { OperacionService } from '@features/settings/services/operacion.service';
 import { ParametroService } from '@features/settings/services/parametro.service';
-import { Despacho, Factura, ArchivoDespacho } from '@core/models/core.model';
+import { Despacho, Factura, ArchivoDespacho, Cliente } from '@core/models/core.model';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
 import { PageHeaderComponent } from '@shared/components/page-header/page-header.component';
 import { PdfViewerComponent } from '@shared/components/pdf-viewer/pdf-viewer.component';
@@ -55,6 +56,7 @@ export class DespachoDetailComponent implements OnInit {
   private authService = inject(AuthService);
   private operacionService = inject(OperacionService);
   private parametroService = inject(ParametroService);
+  private clienteService = inject(ClienteService);
   private fb = inject(FormBuilder);
 
   despachoId = signal<string>('');
@@ -69,6 +71,11 @@ export class DespachoDetailComponent implements OnInit {
   parsingXml = signal(false);
   fetchingTc = signal(false);
   aplicandoTc = signal(false);
+
+  // Cliente de facturación diferente al del despacho
+  buscandoClienteFactura = signal(false);
+  clienteFacturaSeleccionado = signal<Cliente | null>(null);
+  rucClienteFacturaInput = signal('');
 
   showFacturaModal = signal(false);
   editingFacturaId = signal<string | null>(null);
@@ -137,6 +144,7 @@ export class DespachoDetailComponent implements OnInit {
     tipoOperacion: [''],
     contenedor: [''],
     destino: [''],
+    clienteFacturaId: [null as string | null],
   });
 
   archivoForm = this.fb.group({
@@ -215,7 +223,9 @@ export class DespachoDetailComponent implements OnInit {
 
   openNuevaFactura(): void {
     const tipoOperacion = this.detectTipoOperacionFromDespacho();
-    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', tipoOperacion });
+    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', tipoOperacion, clienteFacturaId: null });
+    this.clienteFacturaSeleccionado.set(null);
+    this.rucClienteFacturaInput.set('');
     this.editingFacturaId.set(null);
     this.showFacturaModal.set(true);
   }
@@ -248,13 +258,30 @@ export class DespachoDetailComponent implements OnInit {
       tipoOperacion: factura.tipoOperacion ?? '',
       contenedor: factura.contenedor ?? '',
       destino: factura.destino ?? '',
+      clienteFacturaId: factura.clienteFacturaId ?? null,
     });
+
+    if (factura.clienteFacturaId && factura.clienteFacturaRuc && factura.clienteFacturaRazonSocial) {
+      this.clienteFacturaSeleccionado.set({
+        id: factura.clienteFacturaId,
+        ruc: factura.clienteFacturaRuc,
+        razonSocial: factura.clienteFacturaRazonSocial,
+        isActive: true,
+      } as Cliente);
+      this.rucClienteFacturaInput.set(factura.clienteFacturaRuc);
+    } else {
+      this.clienteFacturaSeleccionado.set(null);
+      this.rucClienteFacturaInput.set('');
+    }
+
     this.showFacturaModal.set(true);
   }
 
   closeFacturaModal(): void {
     this.showFacturaModal.set(false);
-    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE' });
+    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', clienteFacturaId: null });
+    this.clienteFacturaSeleccionado.set(null);
+    this.rucClienteFacturaInput.set('');
     this.editingFacturaId.set(null);
   }
 
@@ -375,6 +402,7 @@ export class DespachoDetailComponent implements OnInit {
       contenedor: raw.contenedor || undefined,
       destino: raw.destino || undefined,
       despachoId: this.despachoId(),
+      clienteFacturaId: raw.clienteFacturaId ?? null,
     };
 
     const editId = this.editingFacturaId();
@@ -829,6 +857,7 @@ export class DespachoDetailComponent implements OnInit {
                 contenedor: factura.contenedor,
                 destino: factura.destino,
                 despachoId: factura.despachoId,
+                clienteFacturaId: factura.clienteFacturaId ?? null,
               };
               this.facturaService.update(factura.id, dto).subscribe({
                 next: r => { if (r.status) actualizadas++; resolve(); },
@@ -929,6 +958,50 @@ export class DespachoDetailComponent implements OnInit {
         this.enviandoCorreo.set(false);
       },
     });
+  }
+
+  buscarClienteFacturaPorRuc(): void {
+    const ruc = this.rucClienteFacturaInput().trim();
+    if (ruc.length < 11) return;
+    this.buscandoClienteFactura.set(true);
+    this.clienteService.searchByRuc(ruc).subscribe({
+      next: res => {
+        if (res.status && res.item) {
+          const c = res.item as any;
+          if (!c.id) {
+            this.notification.error('El RUC no está registrado como cliente en el sistema. Regístrelo primero en Clientes.');
+            this.clienteFacturaSeleccionado.set(null);
+            this.facturaForm.patchValue({ clienteFacturaId: null });
+            this.buscandoClienteFactura.set(false);
+            return;
+          }
+          const clienteEncontrado: Cliente = {
+            id: c.id,
+            ruc: c.ruc ?? ruc,
+            razonSocial: c.razonSocial ?? '',
+            isActive: c.isActive ?? true,
+          };
+          this.clienteFacturaSeleccionado.set(clienteEncontrado);
+          this.facturaForm.patchValue({ clienteFacturaId: clienteEncontrado.id });
+          this.notification.success(`Cliente encontrado: ${clienteEncontrado.razonSocial}`);
+        } else {
+          this.notification.error('RUC no encontrado en el sistema ni en SUNAT');
+          this.clienteFacturaSeleccionado.set(null);
+          this.facturaForm.patchValue({ clienteFacturaId: null });
+        }
+        this.buscandoClienteFactura.set(false);
+      },
+      error: () => {
+        this.notification.error('Error al buscar el RUC');
+        this.buscandoClienteFactura.set(false);
+      }
+    });
+  }
+
+  limpiarClienteFactura(): void {
+    this.clienteFacturaSeleccionado.set(null);
+    this.rucClienteFacturaInput.set('');
+    this.facturaForm.patchValue({ clienteFacturaId: null });
   }
 
   fieldFacturaInvalid(field: string): boolean {

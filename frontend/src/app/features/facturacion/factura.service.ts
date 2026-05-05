@@ -28,6 +28,7 @@ export interface FacturaCreateDto {
   contenedor?: string;
   destino?: string;
   despachoId: string;
+  clienteFacturaId?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

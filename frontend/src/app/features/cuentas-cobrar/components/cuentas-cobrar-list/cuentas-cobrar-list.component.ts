@@ -119,6 +119,13 @@ const SEDES = ['SULLANA', 'TAMBOGRANDE', 'GENERAL'] as const;
                 <td class="px-4 py-3">
                   <div class="font-medium text-gray-900 text-xs">{{ item.clienteRazonSocial }}</div>
                   <div class="text-gray-400 text-xs">{{ item.clienteRuc }}</div>
+                  @if (item.clienteFacturaRazonSocial) {
+                    <div class="text-amber-600 text-xs font-medium mt-0.5 flex items-center gap-1"
+                      [title]="'Facturado a: ' + item.clienteFacturaRazonSocial + ' · RUC ' + item.clienteFacturaRuc">
+                      <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                      {{ item.clienteFacturaRazonSocial }}
+                    </div>
+                  }
                 </td>
                 <td class="px-4 py-3">
                   <div class="font-mono text-gray-900 text-xs">{{ item.numeroDocumento }}</div>

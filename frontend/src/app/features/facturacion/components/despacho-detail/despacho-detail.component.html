@@ -124,7 +124,14 @@
                     {{ f.tipoDocumento === '01' ? 'FAC' : f.tipoDocumento === '09' ? 'GR' : 'NC' }}
                   </span>
                 </td>
-                <td class="px-3 py-2 font-mono font-semibold text-slate-700">{{ f.numeroDocumento }}</td>
+                <td class="px-3 py-2">
+                  <p class="font-mono font-semibold text-slate-700">{{ f.numeroDocumento }}</p>
+                  @if (f.clienteFacturaRazonSocial) {
+                    <p class="text-xs text-amber-600 font-medium truncate max-w-[120px]" [title]="f.clienteFacturaRazonSocial + ' · RUC ' + (f.clienteFacturaRuc ?? '')">
+                      ↳ {{ f.clienteFacturaRazonSocial }}
+                    </p>
+                  }
+                </td>
                 <td class="px-3 py-2 text-slate-600">{{ f.fechaEmision }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.kgCaja ?? '-' }}</td>
                 <td class="px-3 py-2 text-right text-slate-600">{{ f.cajas ?? '-' }}</td>
@@ -578,6 +585,59 @@
             <label class="block text-xs font-semibold text-slate-500 mb-1">Detalle</label>
             <textarea formControlName="detalle" rows="3" placeholder="Descripción del item en el XML"
               class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+          </div>
+
+          <!-- Facturar a cliente diferente -->
+          <div class="border border-amber-200 rounded-xl p-4 bg-amber-50/40 space-y-3">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold text-amber-700 uppercase tracking-wide flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                Facturar a cliente diferente
+              </p>
+              @if (clienteFacturaSeleccionado()) {
+                <button type="button" (click)="limpiarClienteFactura()"
+                  class="text-xs text-slate-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                  Quitar
+                </button>
+              }
+            </div>
+            <p class="text-xs text-amber-600">
+              La factura seguirá asociada al cliente del despacho para búsquedas y reportes.
+              Solo el destinatario fiscal cambia.
+            </p>
+
+            @if (clienteFacturaSeleccionado()) {
+              <div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-200">
+                <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                  <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-slate-800">{{ clienteFacturaSeleccionado()?.razonSocial }}</p>
+                  <p class="text-xs text-slate-400 font-mono">RUC {{ clienteFacturaSeleccionado()?.ruc }}</p>
+                </div>
+              </div>
+            } @else {
+              <div class="flex gap-2">
+                <input type="text" [value]="rucClienteFacturaInput()"
+                  (input)="rucClienteFacturaInput.set($any($event.target).value)"
+                  (keydown.enter)="$event.preventDefault(); buscarClienteFacturaPorRuc()"
+                  maxlength="11"
+                  placeholder="RUC del cliente a facturar (11 dígitos)"
+                  class="flex-1 px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono bg-white">
+                <button type="button" (click)="buscarClienteFacturaPorRuc()"
+                  [disabled]="buscandoClienteFactura() || rucClienteFacturaInput().length < 11"
+                  class="px-3 py-2 text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 disabled:opacity-50 rounded-xl border border-amber-200 transition-colors whitespace-nowrap flex items-center gap-1.5">
+                  @if (buscandoClienteFactura()) {
+                    <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    Buscando...
+                  } @else {
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    Buscar RUC
+                  }
+                </button>
+              </div>
+            }
           </div>
 
           <div class="flex gap-3 justify-end pt-2 border-t border-slate-100">

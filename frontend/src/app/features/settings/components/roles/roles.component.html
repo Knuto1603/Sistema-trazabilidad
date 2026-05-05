@@ -44,15 +44,15 @@
                   <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs font-mono">{{ item.alias }}</span>
                 </td>
                 <td class="px-4 py-3 hidden lg:table-cell">
-                  @if ((item.modules?.length ?? 0) === 0) {
+                  @if (item.modules.length === 0) {
                     <span class="text-xs text-slate-400 italic">Sin módulos</span>
                   } @else {
                     <div class="flex flex-wrap gap-1">
-                      @for (key of (item.modules ?? []).slice(0, 4); track key) {
+                      @for (key of item.modules.slice(0, 4); track key) {
                         <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{{ getModuleLabel(key) }}</span>
                       }
-                      @if ((item.modules?.length ?? 0) > 4) {
-                        <span class="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-xs font-medium">+{{ (item.modules?.length ?? 0) - 4 }} más</span>
+                      @if (item.modules.length > 4) {
+                        <span class="px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded text-xs font-medium">+{{ item.modules.length - 4 }} más</span>
                       }
                     </div>
                   }

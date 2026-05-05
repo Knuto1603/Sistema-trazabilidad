@@ -76,7 +76,9 @@ export interface Factura {
   importe?: number; igv?: number; total?: number; tipoCambio?: number;
   tipoServicio?: string; tipoOperacion?: string; isAnulada: boolean;
   contenedor?: string; destino?: string;
-  despachoId: string; despachoNumero?: number; clienteRazonSocial?: string; isActive: boolean;
+  despachoId: string; despachoNumero?: number; clienteRazonSocial?: string;
+  clienteFacturaId?: string; clienteFacturaRuc?: string; clienteFacturaRazonSocial?: string;
+  isActive: boolean;
 }
 
 export interface Voucher {
@@ -105,6 +107,7 @@ export interface CuentaCobrar {
   tipoServicio?: string; destino?: string;
   despachoId: string; despachoNumero?: number; sede?: string;
   clienteId?: string; clienteRazonSocial?: string; clienteRuc?: string;
+  clienteFacturaId?: string; clienteFacturaRuc?: string; clienteFacturaRazonSocial?: string;
   operacionId?: string; operacionNombre?: string;
   montoPagado: number; montoPendiente: number; estado: EstadoCuenta;
   pagos: PagoFactura[];

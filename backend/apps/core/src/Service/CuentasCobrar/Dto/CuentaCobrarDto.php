@@ -29,10 +29,15 @@ final class CuentaCobrarDto
     public ?int $despachoNumero = null;
     public ?string $sede = null;
 
-    // Cliente
+    // Cliente comercial (siempre el del despacho)
     public ?string $clienteId = null;
     public ?string $clienteRazonSocial = null;
     public ?string $clienteRuc = null;
+
+    // Cliente de facturación (override fiscal, nullable)
+    public ?string $clienteFacturaId = null;
+    public ?string $clienteFacturaRazonSocial = null;
+    public ?string $clienteFacturaRuc = null;
 
     // Operación
     public ?string $operacionId = null;

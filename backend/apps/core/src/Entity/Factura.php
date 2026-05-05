@@ -94,6 +94,10 @@ class Factura
     #[ORM\JoinColumn(nullable: false)]
     private ?Despacho $despacho = null;
 
+    #[ORM\ManyToOne(targetEntity: Cliente::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Cliente $clienteFactura = null;
+
     #[ORM\OneToMany(targetEntity: PagoFactura::class, mappedBy: 'factura')]
     private Collection $pagos;
 
@@ -175,6 +179,9 @@ class Factura
 
     public function getDespacho(): ?Despacho { return $this->despacho; }
     public function setDespacho(?Despacho $despacho): static { $this->despacho = $despacho; return $this; }
+
+    public function getClienteFactura(): ?Cliente { return $this->clienteFactura; }
+    public function setClienteFactura(?Cliente $clienteFactura): static { $this->clienteFactura = $clienteFactura; return $this; }
 
     public function getPagos(): Collection { return $this->pagos; }
 

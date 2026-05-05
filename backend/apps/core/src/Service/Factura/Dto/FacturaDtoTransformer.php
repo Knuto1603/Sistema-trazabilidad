@@ -49,6 +49,12 @@ final class FacturaDtoTransformer extends DtoTransformer
             }
         }
 
+        if ($object->getClienteFactura()) {
+            $dto->clienteFacturaId = UidType::toString($object->getClienteFactura()->uuid());
+            $dto->clienteFacturaRuc = $object->getClienteFactura()->getRuc();
+            $dto->clienteFacturaRazonSocial = $object->getClienteFactura()->getRazonSocial();
+        }
+
         $dto->ofEntity($object);
 
         return $dto;

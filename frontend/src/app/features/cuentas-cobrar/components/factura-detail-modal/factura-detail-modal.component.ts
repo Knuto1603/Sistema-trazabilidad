@@ -131,7 +131,7 @@ import { CuentaCobrar } from '@core/models/core.model';
         </div>
 
         <!-- Historial de pagos -->
-        @if (cuenta().pagos?.length > 0) {
+        @if (cuenta().pagos.length > 0) {
           <div class="px-6 pb-4 border-t border-gray-100 pt-4">
             <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Historial de pagos</h3>
             <div class="space-y-2">

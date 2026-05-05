@@ -93,6 +93,13 @@ readonly class GetCuentasCobrarService
             }
         }
 
+        $clienteFactura = $factura->getClienteFactura();
+        if ($clienteFactura !== null) {
+            $dto->clienteFacturaId = UidType::toString($clienteFactura->uuid());
+            $dto->clienteFacturaRazonSocial = $clienteFactura->getRazonSocial();
+            $dto->clienteFacturaRuc = $clienteFactura->getRuc();
+        }
+
         $montoPagado = 0.0;
         foreach ($factura->getPagos() as $pago) {
             if ($pago->isActive()) {

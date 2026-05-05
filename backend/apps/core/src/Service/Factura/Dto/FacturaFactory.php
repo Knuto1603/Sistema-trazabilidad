@@ -3,12 +3,14 @@
 namespace App\apps\core\Service\Factura\Dto;
 
 use App\apps\core\Entity\Factura;
+use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\DespachoRepository;
 
 final readonly class FacturaFactory
 {
     public function __construct(
         private DespachoRepository $despachoRepository,
+        private ClienteRepository $clienteRepository,
     ) {
     }
 
@@ -54,6 +56,13 @@ final readonly class FacturaFactory
         $factura->setIsAnulada($dto->isAnulada);
         $factura->setContenedor($dto->contenedor);
         $factura->setDestino($dto->destino);
+
+        if ($dto->clienteFacturaId) {
+            $clienteFactura = $this->clienteRepository->ofId($dto->clienteFacturaId, false);
+            $factura->setClienteFactura($clienteFactura);
+        } else {
+            $factura->setClienteFactura(null);
+        }
 
         match ($dto->isActive) {
             false => $factura->disable(),

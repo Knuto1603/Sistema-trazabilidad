@@ -64,6 +64,14 @@ readonly class GetCuentasCobrarService
         $dto->moneda = $factura->getMoneda();
         $dto->contenedor = $factura->getContenedor();
         $dto->numeroGuia = $factura->getNumeroGuia();
+        $dto->detalle = $factura->getDetalle();
+        $dto->cajas = $factura->getCajas();
+        $dto->kgCaja = $factura->getKgCaja();
+        $dto->importe = $factura->getImporte() !== null ? (float) $factura->getImporte() : null;
+        $dto->igv = $factura->getIgv() !== null ? (float) $factura->getIgv() : null;
+        $dto->tipoCambio = $factura->getTipoCambio() !== null ? (float) $factura->getTipoCambio() : null;
+        $dto->tipoServicio = $factura->getTipoServicio();
+        $dto->destino = $factura->getDestino();
 
         $despacho = $factura->getDespacho();
         if ($despacho !== null) {

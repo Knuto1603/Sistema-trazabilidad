@@ -14,6 +14,16 @@ final class CuentaCobrarDto
     public ?string $contenedor = null;
     public ?string $numeroGuia = null;
 
+    // Línea de factura
+    public ?string $detalle = null;
+    public ?int $cajas = null;
+    public ?float $kgCaja = null;
+    public ?float $importe = null;
+    public ?float $igv = null;
+    public ?float $tipoCambio = null;
+    public ?string $tipoServicio = null;
+    public ?string $destino = null;
+
     // Despacho
     public ?string $despachoId = null;
     public ?int $despachoNumero = null;

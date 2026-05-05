@@ -312,12 +312,12 @@ export class PagoModalComponent implements OnInit {
     return pendienteReal;
   });
 
-  formValido = computed(() => {
+  formValido(): boolean {
     if (!this.form.voucherNumero.trim()) return false;
     if (!this.form.montoAplicado || this.form.montoAplicado <= 0) return false;
     if (!this.modoEdicion() && !this.voucherSeleccionado() && !this.form.voucherMontoTotal) return false;
     return true;
-  });
+  }
 
   ngOnInit(): void {
     this.cargarPagos();

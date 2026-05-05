@@ -100,6 +100,9 @@ export interface CuentaCobrar {
   id: string; tipoDocumento: string; numeroDocumento: string;
   fechaEmision: string; fechaVencimiento?: string;
   total?: number; moneda: string; contenedor?: string; numeroGuia?: string;
+  detalle?: string; cajas?: number; kgCaja?: number;
+  importe?: number; igv?: number; tipoCambio?: number;
+  tipoServicio?: string; destino?: string;
   despachoId: string; despachoNumero?: number; sede?: string;
   clienteId?: string; clienteRazonSocial?: string; clienteRuc?: string;
   operacionId?: string; operacionNombre?: string;

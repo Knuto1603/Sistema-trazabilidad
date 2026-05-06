@@ -1,9 +1,10 @@
 import {
-  Component, inject, signal, OnInit
+  Component, inject, signal, OnInit, DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged, Subject, catchError, of } from 'rxjs';
 import { Cliente, Voucher, PagoEnVoucher } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
 import { VoucherService, VoucherFormDto } from '../../voucher.service';
@@ -61,8 +62,12 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
             @if (clienteSeleccionado()) {
               <div class="mt-1 flex items-center gap-2">
                 <span class="text-xs text-blue-600 font-medium">{{ clienteSeleccionado()!.razonSocial }}</span>
-                <button type="button" (click)="limpiarCliente()" class="text-xs text-gray-400 hover:text-red-500 transition-colors">
-                  ✕ Quitar filtro
+                <button type="button" (click)="limpiarCliente()"
+                  class="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-0.5">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                  Quitar filtro
                 </button>
               </div>
             }
@@ -124,15 +129,19 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2 justify-end">
-                      <button (click)="abrirEditar(v)" title="Editar"
-                        class="text-blue-500 hover:text-blue-700 transition-colors">
+                      <button (click)="abrirEditar(v)"
+                        [attr.aria-label]="'Editar voucher ' + v.numero"
+                        title="Editar"
+                        class="text-blue-500 hover:text-blue-700 transition-colors p-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
                       </button>
-                      <button (click)="iniciarEliminar(v)" title="Eliminar"
-                        class="text-red-400 hover:text-red-600 transition-colors">
+                      <button (click)="iniciarEliminar(v)"
+                        [attr.aria-label]="'Eliminar voucher ' + v.numero"
+                        title="Eliminar"
+                        class="text-red-400 hover:text-red-600 transition-colors p-1">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -162,24 +171,24 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
               <h2 class="text-lg font-semibold text-gray-900">
                 {{ editando() ? 'Editar Voucher' : 'Nuevo Voucher' }}
               </h2>
-              @if (clienteSeleccionado()) {
-                <p class="text-xs text-gray-400 mt-0.5">{{ clienteSeleccionado()!.razonSocial }}</p>
+              @if (editando()) {
+                <p class="text-xs text-gray-400 mt-0.5">{{ editando()!.clienteRazonSocial }}</p>
               }
             </div>
-            <button (click)="cerrarModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+            <button (click)="cerrarModal()" aria-label="Cerrar modal" class="text-gray-400 hover:text-gray-600 transition-colors">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           </div>
 
-          <!-- Selector de cliente para nuevo voucher -->
+          <!-- Selector de cliente (solo al crear) -->
           @if (!editando()) {
             <div class="px-6 pt-5">
               <label class="block text-xs font-medium text-gray-600 mb-1">Cliente *</label>
-              @if (clienteSeleccionado()) {
+              @if (clienteModal()) {
                 <div class="flex items-center justify-between border border-green-300 bg-green-50 rounded-lg px-3 py-2">
-                  <span class="text-sm font-medium text-green-800">{{ clienteSeleccionado()!.razonSocial }}</span>
+                  <span class="text-sm font-medium text-green-800">{{ clienteModal()!.razonSocial }}</span>
                   <button type="button" (click)="limpiarClienteModal()" class="text-xs text-gray-400 hover:text-red-500">Cambiar</button>
                 </div>
               } @else {
@@ -308,15 +317,17 @@ export class VouchersComponent implements OnInit {
   private voucherService = inject(VoucherService);
   private clienteService = inject(ClienteService);
   private notif = inject(NotificationService);
+  private destroyRef = inject(DestroyRef);
 
-  // Filtro por cliente (opcional)
+  // Filtro de tabla por cliente (opcional)
   clienteBusqueda = '';
   clienteSeleccionado = signal<Cliente | null>(null);
   clienteSugerencias = signal<Cliente[]>([]);
   showClienteDropdown = signal(false);
   private clienteSearch$ = new Subject<string>();
 
-  // Buscador de cliente dentro del modal de nuevo voucher
+  // Cliente para el modal de nuevo voucher (independiente del filtro de tabla)
+  clienteModal = signal<Cliente | null>(null);
   clienteBusquedaModal = '';
   clienteSugerenciasModal = signal<Cliente[]>([]);
   showClienteDropdownModal = signal(false);
@@ -346,45 +357,49 @@ export class VouchersComponent implements OnInit {
   eliminando = signal(false);
 
   formValido(): boolean {
-    const tieneCliente = !!this.editando() || !!this.clienteSeleccionado();
+    const tieneCliente = !!this.editando() || !!this.clienteModal();
     return tieneCliente && !!this.form.numero.trim() && !!this.form.montoTotal && this.form.montoTotal > 0 && !!this.form.fecha;
   }
 
   ngOnInit(): void {
-    // Búsqueda de cliente para el filtro de tabla
-    this.clienteSearch$.pipe(debounceTime(300), distinctUntilChanged()).subscribe(q => {
-      if (q.length >= 2) {
-        this.clienteService.getAll({ search: q, itemsPerPage: 10 } as any).subscribe({
-          next: res => {
-            this.clienteSugerencias.set(res.items ?? []);
-            this.showClienteDropdown.set((res.items ?? []).length > 0);
-          }
-        });
-      } else {
-        this.clienteSugerencias.set([]);
-        this.showClienteDropdown.set(false);
-      }
-    });
+    this.clienteSearch$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(q => {
+        if (q.length >= 2) {
+          this.clienteService.getAll({ search: q, itemsPerPage: 10 })
+            .pipe(catchError(() => of({ items: [] as Cliente[], status: false, message: '' })))
+            .subscribe(res => {
+              this.clienteSugerencias.set(res.items ?? []);
+              this.showClienteDropdown.set((res.items ?? []).length > 0);
+            });
+        } else {
+          this.clienteSugerencias.set([]);
+          this.showClienteDropdown.set(false);
+        }
+      });
 
-    // Búsqueda de cliente para el modal de nuevo voucher
-    this.clienteSearchModal$.pipe(debounceTime(300), distinctUntilChanged()).subscribe(q => {
-      if (q.length >= 2) {
-        this.clienteService.getAll({ search: q, itemsPerPage: 10 } as any).subscribe({
-          next: res => {
-            this.clienteSugerenciasModal.set(res.items ?? []);
-            this.showClienteDropdownModal.set((res.items ?? []).length > 0);
-          }
-        });
-      } else {
-        this.clienteSugerenciasModal.set([]);
-        this.showClienteDropdownModal.set(false);
-      }
-    });
+    this.clienteSearchModal$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(q => {
+        if (q.length >= 2) {
+          this.clienteService.getAll({ search: q, itemsPerPage: 10 })
+            .pipe(catchError(() => of({ items: [] as Cliente[], status: false, message: '' })))
+            .subscribe(res => {
+              this.clienteSugerenciasModal.set(res.items ?? []);
+              this.showClienteDropdownModal.set((res.items ?? []).length > 0);
+            });
+        } else {
+          this.clienteSugerenciasModal.set([]);
+          this.showClienteDropdownModal.set(false);
+        }
+      });
 
-    this.qSearch$.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
-      this.page.set(0);
-      this.cargar();
-    });
+    this.qSearch$
+      .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.page.set(0);
+        this.cargar();
+      });
 
     this.cargar();
   }
@@ -417,21 +432,21 @@ export class VouchersComponent implements OnInit {
     setTimeout(() => this.showClienteDropdown.set(false), 200);
   }
 
-  // --- Búsqueda de cliente en el modal ---
+  // --- Cliente en el modal (independiente del filtro) ---
 
   onClienteBusquedaModalChange(v: string): void {
     this.clienteSearchModal$.next(v.trim());
   }
 
   seleccionarClienteModal(c: Cliente): void {
-    this.clienteSeleccionado.set(c);
+    this.clienteModal.set(c);
     this.clienteBusquedaModal = '';
     this.clienteSugerenciasModal.set([]);
     this.showClienteDropdownModal.set(false);
   }
 
   limpiarClienteModal(): void {
-    this.clienteSeleccionado.set(null);
+    this.clienteModal.set(null);
     this.clienteBusquedaModal = '';
   }
 
@@ -467,7 +482,10 @@ export class VouchersComponent implements OnInit {
 
   abrirNuevo(): void {
     this.editando.set(null);
+    this.clienteModal.set(null);
     this.clienteBusquedaModal = '';
+    this.clienteSugerenciasModal.set([]);
+    this.showClienteDropdownModal.set(false);
     this.form = { numero: '', numeroOperacion: '', montoTotal: null, fecha: new Date().toISOString().split('T')[0] };
     this.mostrarModal.set(true);
   }
@@ -481,12 +499,16 @@ export class VouchersComponent implements OnInit {
   cerrarModal(): void {
     this.mostrarModal.set(false);
     this.editando.set(null);
+    this.clienteModal.set(null);
+    this.clienteBusquedaModal = '';
+    this.clienteSugerenciasModal.set([]);
+    this.showClienteDropdownModal.set(false);
   }
 
   guardar(): void {
     if (!this.formValido() || this.guardando()) return;
-    const cliente = this.clienteSeleccionado();
     const edicion = this.editando();
+    const cliente = this.clienteModal();
     if (!edicion && !cliente) return;
     this.guardando.set(true);
 

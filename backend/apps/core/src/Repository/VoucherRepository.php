@@ -75,20 +75,23 @@ class VoucherRepository extends DoctrineEntityRepository
         return $qb->getQuery()->getResult();
     }
 
-    /** Lista paginada de todos los vouchers de un cliente para el CRUD */
-    public function findPaginated(string $clienteUuid, string $q = '', int $page = 0, int $limit = 20): array
+    /** Lista paginada de vouchers. Si clienteUuid está vacío devuelve todos los clientes. */
+    public function findPaginated(string $clienteUuid = '', string $q = '', int $page = 0, int $limit = 20): array
     {
         $qb = $this->createQueryBuilder('v')
             ->select(['v', 'c', 'pagos'])
             ->leftJoin('v.cliente', 'c')
             ->leftJoin('v.pagos', 'pagos')
-            ->where('c.uuid = :clienteUuid')
-            ->andWhere('v.isActive = true')
-            ->setParameter('clienteUuid', $clienteUuid, UidType::NAME)
+            ->where('v.isActive = true')
             ->orderBy('v.fecha', 'DESC');
 
+        if ($clienteUuid !== '') {
+            $qb->andWhere('c.uuid = :clienteUuid')
+               ->setParameter('clienteUuid', $clienteUuid, UidType::NAME);
+        }
+
         if ($q !== '') {
-            $qb->andWhere('v.numero LIKE :q OR v.numeroOperacion LIKE :q')
+            $qb->andWhere('v.numero LIKE :q OR v.numeroOperacion LIKE :q OR c.razonSocial LIKE :q')
                ->setParameter('q', '%' . $q . '%');
         }
 

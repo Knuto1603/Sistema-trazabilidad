@@ -18,129 +18,139 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
   imports: [CommonModule, FormsModule, PageHeaderComponent, PaginationComponent],
   template: `
     <app-page-header title="Vouchers / Depósitos">
-      @if (clienteSeleccionado()) {
-        <button (click)="abrirNuevo()"
-          class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          Nuevo Voucher
-        </button>
-      }
+      <button (click)="abrirNuevo()"
+        class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Nuevo Voucher
+      </button>
     </app-page-header>
 
     <div class="p-6 space-y-5">
 
-      <!-- Selector de cliente -->
+      <!-- Filtros -->
       <div class="bg-white rounded-xl border border-gray-200 p-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-        <div class="relative max-w-md">
-          <input
-            type="text"
-            [(ngModel)]="clienteBusqueda"
-            (ngModelChange)="onClienteBusquedaChange($event)"
-            (focus)="showClienteDropdown.set(clienteSugerencias().length > 0)"
-            (blur)="onClienteBlur()"
-            placeholder="Buscar por RUC o razón social..."
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          @if (showClienteDropdown() && clienteSugerencias().length > 0) {
-            <div class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-              @for (c of clienteSugerencias(); track c.id) {
-                <button type="button" (click)="seleccionarCliente(c)"
-                  class="w-full text-left px-3 py-2.5 hover:bg-blue-50 text-sm border-b border-gray-100 last:border-0">
-                  <div class="font-medium text-gray-900">{{ c.razonSocial }}</div>
-                  <div class="text-xs text-gray-400">{{ c.ruc }}</div>
-                </button>
+        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+
+          <!-- Filtro por cliente -->
+          <div class="flex-1 max-w-sm">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Filtrar por cliente</label>
+            <div class="relative">
+              <input
+                type="text"
+                [(ngModel)]="clienteBusqueda"
+                (ngModelChange)="onClienteBusquedaChange($event)"
+                (focus)="showClienteDropdown.set(clienteSugerencias().length > 0)"
+                (blur)="onClienteBlur()"
+                placeholder="Todos los clientes..."
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              @if (showClienteDropdown() && clienteSugerencias().length > 0) {
+                <div class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                  @for (c of clienteSugerencias(); track c.id) {
+                    <button type="button" (click)="seleccionarCliente(c)"
+                      class="w-full text-left px-3 py-2.5 hover:bg-blue-50 text-sm border-b border-gray-100 last:border-0">
+                      <div class="font-medium text-gray-900">{{ c.razonSocial }}</div>
+                      <div class="text-xs text-gray-400">{{ c.ruc }}</div>
+                    </button>
+                  }
+                </div>
               }
             </div>
-          }
-        </div>
-        @if (clienteSeleccionado()) {
-          <div class="mt-2 flex items-center gap-3">
-            <span class="text-sm text-green-700 font-medium">{{ clienteSeleccionado()!.razonSocial }}</span>
-            <button type="button" (click)="limpiarCliente()" class="text-xs text-gray-400 hover:text-gray-600">
-              Cambiar cliente
-            </button>
+            @if (clienteSeleccionado()) {
+              <div class="mt-1 flex items-center gap-2">
+                <span class="text-xs text-blue-600 font-medium">{{ clienteSeleccionado()!.razonSocial }}</span>
+                <button type="button" (click)="limpiarCliente()" class="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                  ✕ Quitar filtro
+                </button>
+              </div>
+            }
           </div>
+
+          <!-- Búsqueda texto libre -->
+          <div class="flex-1 max-w-xs">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Buscar por número</label>
+            <input
+              type="text"
+              [(ngModel)]="qInput"
+              (ngModelChange)="onQChange($event)"
+              placeholder="N° voucher u operación..."
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div class="text-sm text-gray-400 self-end pb-2">
+            {{ pagination().totalItems }} voucher(s)
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+        @if (cargando()) {
+          <div class="py-12 text-center text-gray-400 text-sm">Cargando...</div>
+        } @else if (items().length === 0) {
+          <div class="py-12 text-center text-gray-400 text-sm">No hay vouchers registrados.</div>
+        } @else {
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">N° Voucher</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">N° Operación</th>
+                <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Fecha</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Total</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Usado</th>
+                <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Disponible</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              @for (v of items(); track v.id) {
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="px-4 py-3">
+                    <div class="font-medium text-gray-800 text-xs leading-tight">{{ v.clienteRazonSocial ?? '—' }}</div>
+                  </td>
+                  <td class="px-4 py-3 font-medium text-gray-900">{{ v.numero }}</td>
+                  <td class="px-4 py-3 text-gray-500 hidden sm:table-cell">{{ v.numeroOperacion ?? '—' }}</td>
+                  <td class="px-4 py-3 text-gray-500 hidden md:table-cell">{{ v.fecha | date:'dd/MM/yyyy' }}</td>
+                  <td class="px-4 py-3 text-right text-gray-900">{{ v.montoTotal | number:'1.2-2' }}</td>
+                  <td class="px-4 py-3 text-right hidden sm:table-cell" [class]="v.montoUsado > 0 ? 'text-amber-600' : 'text-gray-400'">
+                    {{ v.montoUsado | number:'1.2-2' }}
+                  </td>
+                  <td class="px-4 py-3 text-right font-semibold" [class]="v.montoRestante > 0.001 ? 'text-green-600' : 'text-gray-400'">
+                    {{ v.montoRestante | number:'1.2-2' }}
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex items-center gap-2 justify-end">
+                      <button (click)="abrirEditar(v)" title="Editar"
+                        class="text-blue-500 hover:text-blue-700 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                      </button>
+                      <button (click)="iniciarEliminar(v)" title="Eliminar"
+                        class="text-red-400 hover:text-red-600 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         }
       </div>
 
-      <!-- Filtro de búsqueda -->
-      @if (clienteSeleccionado()) {
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <input
-            type="text"
-            [(ngModel)]="qInput"
-            (ngModelChange)="onQChange($event)"
-            placeholder="Buscar por número o N° operación..."
-            class="w-full sm:w-72 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span class="text-sm text-gray-400">{{ pagination().totalItems }} voucher(s)</span>
-        </div>
-
-        <!-- Tabla -->
-        <div class="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-          @if (cargando()) {
-            <div class="py-12 text-center text-gray-400 text-sm">Cargando...</div>
-          } @else if (items().length === 0) {
-            <div class="py-12 text-center text-gray-400 text-sm">No hay vouchers registrados para este cliente.</div>
-          } @else {
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">N° Voucher</th>
-                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">N° Operación</th>
-                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fecha</th>
-                  <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Monto Total</th>
-                  <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Usado</th>
-                  <th class="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Disponible</th>
-                  <th class="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                @for (v of items(); track v.id) {
-                  <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 font-medium text-gray-900">{{ v.numero }}</td>
-                    <td class="px-4 py-3 text-gray-500">{{ v.numeroOperacion ?? '—' }}</td>
-                    <td class="px-4 py-3 text-gray-500">{{ v.fecha | date:'dd/MM/yyyy' }}</td>
-                    <td class="px-4 py-3 text-right text-gray-900">{{ v.montoTotal | number:'1.2-2' }}</td>
-                    <td class="px-4 py-3 text-right" [class]="v.montoUsado > 0 ? 'text-amber-600' : 'text-gray-400'">
-                      {{ v.montoUsado | number:'1.2-2' }}
-                    </td>
-                    <td class="px-4 py-3 text-right font-medium" [class]="v.montoRestante > 0.001 ? 'text-green-600' : 'text-gray-400'">
-                      {{ v.montoRestante | number:'1.2-2' }}
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="flex items-center gap-2 justify-end">
-                        <button (click)="abrirEditar(v)" title="Editar"
-                          class="text-blue-500 hover:text-blue-700 transition-colors">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                          </svg>
-                        </button>
-                        <button (click)="iniciarEliminar(v)" title="Eliminar"
-                          class="text-red-400 hover:text-red-600 transition-colors">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-        </div>
-
-        <app-pagination
-          [pagination]="pagination()"
-          (pageChange)="onPageChange($event)"
-        />
-      }
+      <app-pagination
+        [pagination]="pagination()"
+        (pageChange)="onPageChange($event)"
+      />
     </div>
 
     <!-- Modal Crear / Editar -->
@@ -148,15 +158,55 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" (click)="onBackdropClick($event)">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md" (click)="$event.stopPropagation()">
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">
-              {{ editando() ? 'Editar Voucher' : 'Nuevo Voucher' }}
-            </h2>
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">
+                {{ editando() ? 'Editar Voucher' : 'Nuevo Voucher' }}
+              </h2>
+              @if (clienteSeleccionado()) {
+                <p class="text-xs text-gray-400 mt-0.5">{{ clienteSeleccionado()!.razonSocial }}</p>
+              }
+            </div>
             <button (click)="cerrarModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
               </svg>
             </button>
           </div>
+
+          <!-- Selector de cliente para nuevo voucher -->
+          @if (!editando()) {
+            <div class="px-6 pt-5">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Cliente *</label>
+              @if (clienteSeleccionado()) {
+                <div class="flex items-center justify-between border border-green-300 bg-green-50 rounded-lg px-3 py-2">
+                  <span class="text-sm font-medium text-green-800">{{ clienteSeleccionado()!.razonSocial }}</span>
+                  <button type="button" (click)="limpiarClienteModal()" class="text-xs text-gray-400 hover:text-red-500">Cambiar</button>
+                </div>
+              } @else {
+                <div class="relative">
+                  <input
+                    type="text"
+                    [(ngModel)]="clienteBusquedaModal"
+                    (ngModelChange)="onClienteBusquedaModalChange($event)"
+                    (blur)="onClienteBlurModal()"
+                    placeholder="Busca el cliente..."
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  @if (showClienteDropdownModal() && clienteSugerenciasModal().length > 0) {
+                    <div class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      @for (c of clienteSugerenciasModal(); track c.id) {
+                        <button type="button" (click)="seleccionarClienteModal(c)"
+                          class="w-full text-left px-3 py-2.5 hover:bg-blue-50 text-sm border-b border-gray-100 last:border-0">
+                          <div class="font-medium text-gray-900">{{ c.razonSocial }}</div>
+                          <div class="text-xs text-gray-400">{{ c.ruc }}</div>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
 
           <div class="px-6 py-5 space-y-4">
             <div>
@@ -259,12 +309,18 @@ export class VouchersComponent implements OnInit {
   private clienteService = inject(ClienteService);
   private notif = inject(NotificationService);
 
-  // Estado cliente
+  // Filtro por cliente (opcional)
   clienteBusqueda = '';
   clienteSeleccionado = signal<Cliente | null>(null);
   clienteSugerencias = signal<Cliente[]>([]);
   showClienteDropdown = signal(false);
   private clienteSearch$ = new Subject<string>();
+
+  // Buscador de cliente dentro del modal de nuevo voucher
+  clienteBusquedaModal = '';
+  clienteSugerenciasModal = signal<Cliente[]>([]);
+  showClienteDropdownModal = signal(false);
+  private clienteSearchModal$ = new Subject<string>();
 
   // Lista
   items = signal<Voucher[]>([]);
@@ -290,10 +346,12 @@ export class VouchersComponent implements OnInit {
   eliminando = signal(false);
 
   formValido(): boolean {
-    return !!this.form.numero.trim() && !!this.form.montoTotal && this.form.montoTotal > 0 && !!this.form.fecha;
+    const tieneCliente = !!this.editando() || !!this.clienteSeleccionado();
+    return tieneCliente && !!this.form.numero.trim() && !!this.form.montoTotal && this.form.montoTotal > 0 && !!this.form.fecha;
   }
 
   ngOnInit(): void {
+    // Búsqueda de cliente para el filtro de tabla
     this.clienteSearch$.pipe(debounceTime(300), distinctUntilChanged()).subscribe(q => {
       if (q.length >= 2) {
         this.clienteService.getAll({ search: q, itemsPerPage: 10 } as any).subscribe({
@@ -308,11 +366,30 @@ export class VouchersComponent implements OnInit {
       }
     });
 
-    this.qSearch$.pipe(debounceTime(350), distinctUntilChanged()).subscribe(q => {
+    // Búsqueda de cliente para el modal de nuevo voucher
+    this.clienteSearchModal$.pipe(debounceTime(300), distinctUntilChanged()).subscribe(q => {
+      if (q.length >= 2) {
+        this.clienteService.getAll({ search: q, itemsPerPage: 10 } as any).subscribe({
+          next: res => {
+            this.clienteSugerenciasModal.set(res.items ?? []);
+            this.showClienteDropdownModal.set((res.items ?? []).length > 0);
+          }
+        });
+      } else {
+        this.clienteSugerenciasModal.set([]);
+        this.showClienteDropdownModal.set(false);
+      }
+    });
+
+    this.qSearch$.pipe(debounceTime(350), distinctUntilChanged()).subscribe(() => {
       this.page.set(0);
       this.cargar();
     });
+
+    this.cargar();
   }
+
+  // --- Filtro de cliente (tabla) ---
 
   onClienteBusquedaChange(v: string): void {
     if (this.clienteSeleccionado()) this.clienteSeleccionado.set(null);
@@ -332,9 +409,37 @@ export class VouchersComponent implements OnInit {
     this.clienteSeleccionado.set(null);
     this.clienteBusqueda = '';
     this.clienteSugerencias.set([]);
-    this.items.set([]);
-    this.pagination.set({ totalItems: 0, page: 0, itemsPerPage: 20, count: 0, startIndex: 0, endIndex: 0 });
+    this.page.set(0);
+    this.cargar();
   }
+
+  onClienteBlur(): void {
+    setTimeout(() => this.showClienteDropdown.set(false), 200);
+  }
+
+  // --- Búsqueda de cliente en el modal ---
+
+  onClienteBusquedaModalChange(v: string): void {
+    this.clienteSearchModal$.next(v.trim());
+  }
+
+  seleccionarClienteModal(c: Cliente): void {
+    this.clienteSeleccionado.set(c);
+    this.clienteBusquedaModal = '';
+    this.clienteSugerenciasModal.set([]);
+    this.showClienteDropdownModal.set(false);
+  }
+
+  limpiarClienteModal(): void {
+    this.clienteSeleccionado.set(null);
+    this.clienteBusquedaModal = '';
+  }
+
+  onClienteBlurModal(): void {
+    setTimeout(() => this.showClienteDropdownModal.set(false), 200);
+  }
+
+  // --- Lista ---
 
   onQChange(v: string): void {
     this.qSearch$.next(v.trim());
@@ -346,10 +451,9 @@ export class VouchersComponent implements OnInit {
   }
 
   private cargar(): void {
-    const cliente = this.clienteSeleccionado();
-    if (!cliente) return;
     this.cargando.set(true);
-    this.voucherService.list(cliente.id, this.qInput.trim(), this.page()).subscribe({
+    const clienteId = this.clienteSeleccionado()?.id ?? '';
+    this.voucherService.list(clienteId, this.qInput.trim(), this.page()).subscribe({
       next: res => {
         this.items.set(res.items ?? []);
         if (res.pagination) this.pagination.set(res.pagination);
@@ -359,8 +463,11 @@ export class VouchersComponent implements OnInit {
     });
   }
 
+  // --- Modal crear/editar ---
+
   abrirNuevo(): void {
     this.editando.set(null);
+    this.clienteBusquedaModal = '';
     this.form = { numero: '', numeroOperacion: '', montoTotal: null, fecha: new Date().toISOString().split('T')[0] };
     this.mostrarModal.set(true);
   }
@@ -379,18 +486,18 @@ export class VouchersComponent implements OnInit {
   guardar(): void {
     if (!this.formValido() || this.guardando()) return;
     const cliente = this.clienteSeleccionado();
-    if (!cliente) return;
+    const edicion = this.editando();
+    if (!edicion && !cliente) return;
     this.guardando.set(true);
 
     const dto: VoucherFormDto = {
-      clienteId: cliente.id,
+      clienteId: cliente?.id,
       numero: this.form.numero.trim(),
       numeroOperacion: this.form.numeroOperacion.trim() || undefined,
       montoTotal: this.form.montoTotal!,
       fecha: this.form.fecha,
     };
 
-    const edicion = this.editando();
     const req$ = edicion
       ? this.voucherService.update(edicion.id, dto)
       : this.voucherService.create(dto);
@@ -408,6 +515,8 @@ export class VouchersComponent implements OnInit {
       }
     });
   }
+
+  // --- Eliminar ---
 
   iniciarEliminar(v: Voucher): void {
     this.voucherAEliminar.set(v);
@@ -450,11 +559,6 @@ export class VouchersComponent implements OnInit {
         this.eliminando.set(false);
       }
     });
-  }
-
-  onClienteBlur(): void {
-    // timeout para permitir que el click en el dropdown se registre antes de cerrar
-    setTimeout(() => this.showClienteDropdown.set(false), 200);
   }
 
   onBackdropClick(event: MouseEvent): void {

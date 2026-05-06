@@ -18,10 +18,10 @@ export class VoucherService {
   private http = inject(HttpClient);
   private base = `${environment.coreUrl}/vouchers`;
 
-  list(clienteId: string, q: string = '', page: number = 0): Observable<ApiListResponse<Voucher>> {
-    return this.http.get<ApiListResponse<Voucher>>(`${this.base}/`, {
-      params: { clienteId, q, page: page.toString() }
-    });
+  list(clienteId: string = '', q: string = '', page: number = 0): Observable<ApiListResponse<Voucher>> {
+    const params: Record<string, string> = { q, page: page.toString() };
+    if (clienteId) params['clienteId'] = clienteId;
+    return this.http.get<ApiListResponse<Voucher>>(`${this.base}/`, { params });
   }
 
   create(dto: VoucherFormDto): Observable<ApiResponse<Voucher>> {

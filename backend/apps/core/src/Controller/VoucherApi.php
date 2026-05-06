@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/vouchers')]
 class VoucherApi extends AbstractSerializerApi
 {
-    /** Lista paginada: GET /vouchers/?clienteId=xxx&q=xxx&page=0 */
+    /** Lista paginada: GET /vouchers/?clienteId=xxx&q=xxx&page=0 (clienteId opcional) */
     #[Route('/', name: 'voucher_list', methods: ['GET'])]
     public function list(
         Request $request,
@@ -25,10 +25,6 @@ class VoucherApi extends AbstractSerializerApi
         VoucherDtoTransformer $transformer,
     ): Response {
         $clienteId = $request->query->get('clienteId', '');
-        if (!$clienteId) {
-            return $this->ok(['items' => [], 'pagination' => ['page' => 0, 'itemsPerPage' => 20, 'count' => 0, 'totalItems' => 0, 'startIndex' => 0, 'endIndex' => 0]]);
-        }
-
         $q     = $request->query->get('q', '');
         $page  = max(0, (int) $request->query->get('page', 0));
         $limit = 20;

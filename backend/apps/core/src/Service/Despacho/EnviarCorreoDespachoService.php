@@ -14,6 +14,7 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use Lexik\Bundle\JWTAuthenticationBundle\Security\Authenticator\Token\JWTPostAuthenticationToken;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final readonly class EnviarCorreoDespachoService
@@ -107,7 +108,10 @@ final readonly class EnviarCorreoDespachoService
      */
     private function resolveRemitente(): array
     {
-        $userUuid = $this->tokenStorage->getToken()?->getUserIdentifier();
+        $token    = $this->tokenStorage->getToken();
+        $userUuid = ($token instanceof JWTPostAuthenticationToken)
+            ? ($token->getPayload()['id'] ?? null)
+            : $token?->getUserIdentifier();
 
         if ($userUuid !== null) {
             $smtpConfig = $this->userSmtpConfigRepository->findByUserUuid($userUuid);

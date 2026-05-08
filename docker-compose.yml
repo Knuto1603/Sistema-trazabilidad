@@ -51,6 +51,9 @@ services:
       CORS_ALLOW_ORIGIN: ${CORS_ALLOW_ORIGIN}
       APISPERU_TOKEN: ${APISPERU_TOKEN}
       MAILER_DSN: ${MAILER_DSN:-null://null}
+      APP_SMTP_ENCRYPTION_KEY: ${APP_SMTP_ENCRYPTION_KEY}
+      SMTP_HOST: ${SMTP_HOST:-smtp.hostinger.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
     depends_on:
       db:
         condition: service_healthy

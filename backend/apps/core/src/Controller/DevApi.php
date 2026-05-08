@@ -21,7 +21,7 @@ use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
-use Lexik\Bundle\JWTAuthenticationBundle\Security\Authenticator\Token\JWTPostAuthenticationToken;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -206,6 +206,7 @@ class DevApi extends AbstractSerializerApi
         UserSmtpConfigRepository $smtpConfigRepository,
         SmtpEncryptionService $encryption,
         TokenStorageInterface $tokenStorage,
+        JWTTokenManagerInterface $jwtManager,
     ): Response {
         $destinatario = \trim($request->request->get('destinatario', ''));
 
@@ -213,10 +214,8 @@ class DevApi extends AbstractSerializerApi
             return $this->fail('Ingresa un email de destinatario válido.');
         }
 
-        $token    = $tokenStorage->getToken();
-        $userUuid = ($token instanceof JWTPostAuthenticationToken)
-            ? ($token->getPayload()['id'] ?? null)
-            : $token?->getUserIdentifier();
+        $payload  = $jwtManager->decode($tokenStorage->getToken());
+        $userUuid = $payload['id'] ?? null;
 
         if (!$userUuid) {
             return $this->fail('No se pudo identificar al usuario autenticado.');

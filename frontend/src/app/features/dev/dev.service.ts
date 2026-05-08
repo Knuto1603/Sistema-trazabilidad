@@ -81,6 +81,12 @@ export class DevService {
     return this.http.post<ApiResponse<null>>(`${this.base}/correo/test`, form);
   }
 
+  testCorreoSmtp(destinatario: string): Observable<ApiResponse<null>> {
+    const form = new FormData();
+    form.append('destinatario', destinatario);
+    return this.http.post<ApiResponse<null>>(`${this.base}/correo/test-smtp`, form);
+  }
+
   getJwtConfig(): Observable<ApiResponse<JwtConfig>> {
     return this.http.get<ApiResponse<JwtConfig>>(`${this.securityBase}/jwt-config`);
   }

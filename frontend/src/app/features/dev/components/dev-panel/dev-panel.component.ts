@@ -33,6 +33,11 @@ export class DevPanelComponent implements OnInit {
   correoArchivos = signal<File[]>([]);
   enviandoCorreo = signal(false);
 
+  // SMTP personal test
+  smtpDestinatario  = signal('');
+  enviandoSmtp      = signal(false);
+  smtpTestResultado = signal<{ ok: boolean; msg: string } | null>(null);
+
   // Migraciones
   migraciones = signal<DevMigraciones | null>(null);
   loadingMig = signal(false);
@@ -108,6 +113,24 @@ export class DevPanelComponent implements OnInit {
         this.notif.error(err?.error?.message ?? 'Error al enviar correo');
         this.enviandoCorreo.set(false);
       }
+    });
+  }
+
+  testSmtpPersonal(): void {
+    const dest = this.smtpDestinatario().trim();
+    if (!dest) { this.notif.warning('Ingresa un destinatario'); return; }
+
+    this.enviandoSmtp.set(true);
+    this.smtpTestResultado.set(null);
+    this.devService.testCorreoSmtp(dest).subscribe({
+      next: res => {
+        this.smtpTestResultado.set({ ok: true, msg: res.message ?? 'Correo enviado correctamente' });
+        this.enviandoSmtp.set(false);
+      },
+      error: err => {
+        this.smtpTestResultado.set({ ok: false, msg: err?.error?.message ?? 'Error al enviar correo' });
+        this.enviandoSmtp.set(false);
+      },
     });
   }
 

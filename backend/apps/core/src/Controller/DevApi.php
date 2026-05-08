@@ -7,16 +7,21 @@ use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\DespachoRepository;
 use App\apps\core\Repository\FacturaRepository;
 use App\apps\core\Repository\ParametroRepository;
+use App\apps\core\Repository\UserSmtpConfigRepository;
 use App\shared\Api\AbstractSerializerApi;
+use App\shared\Service\SmtpEncryptionService;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Process\Process;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/dev')]
@@ -31,6 +36,10 @@ class DevApi extends AbstractSerializerApi
         #[Autowire('%env(MAILER_DSN)%')]
         private readonly string $mailerDsn,
         private readonly MailerInterface $mailer,
+        #[Autowire('%env(SMTP_HOST)%')]
+        private readonly string $smtpHost,
+        #[Autowire('%env(int:SMTP_PORT)%')]
+        private readonly int $smtpPort,
     ) {
     }
 
@@ -185,6 +194,61 @@ class DevApi extends AbstractSerializerApi
             }
 
             return $this->ok(['message' => $msg, 'item' => null]);
+        } catch (\Throwable $e) {
+            return $this->fail('Error al enviar: ' . $e->getMessage());
+        }
+    }
+
+    #[Route('/correo/test-smtp', name: 'dev_correo_test_smtp', methods: ['POST'])]
+    public function correoTestSmtp(
+        Request $request,
+        UserSmtpConfigRepository $smtpConfigRepository,
+        SmtpEncryptionService $encryption,
+        TokenStorageInterface $tokenStorage,
+    ): Response {
+        $destinatario = \trim($request->request->get('destinatario', ''));
+
+        if (!$destinatario || !\filter_var($destinatario, FILTER_VALIDATE_EMAIL)) {
+            return $this->fail('Ingresa un email de destinatario válido.');
+        }
+
+        $userUuid = $tokenStorage->getToken()?->getUserIdentifier();
+        if (!$userUuid) {
+            return $this->fail('No se pudo identificar al usuario autenticado.');
+        }
+
+        $config = $smtpConfigRepository->findByUserUuid($userUuid);
+        if ($config === null) {
+            return $this->fail('No tienes configuración SMTP personal. Configúrala en Usuarios > ícono de sobre.');
+        }
+
+        try {
+            $smtpPassword = $encryption->decrypt($config->getSmtpPasswordEncrypted());
+            $dsn = sprintf(
+                'smtp://%s:%s@%s:%d',
+                rawurlencode($config->getSmtpEmail()),
+                rawurlencode($smtpPassword),
+                $this->smtpHost,
+                $this->smtpPort
+            );
+
+            $transport = Transport::fromDsn($dsn);
+            sodium_memzero($smtpPassword);
+            $dsn = str_repeat("\0", strlen($dsn));
+            unset($dsn);
+
+            $email = (new Email())
+                ->from(new Address($config->getSmtpEmail(), $config->getSmtpEmail()))
+                ->to($destinatario)
+                ->subject('TEST SMTP Personal - Sistema Trazabilidad')
+                ->text("Correo de prueba enviado desde tu configuración SMTP personal.\n\nRemitente: {$config->getSmtpEmail()}\nServidor: {$this->smtpHost}:{$this->smtpPort}\n\nSi recibiste este mensaje, tu SMTP personal está funcionando correctamente.");
+
+            (new Mailer($transport))->send($email);
+
+            return $this->ok([
+                'message' => "Correo enviado a {$destinatario} desde {$config->getSmtpEmail()}",
+                'item'    => null,
+            ]);
         } catch (\Throwable $e) {
             return $this->fail('Error al enviar: ' . $e->getMessage());
         }

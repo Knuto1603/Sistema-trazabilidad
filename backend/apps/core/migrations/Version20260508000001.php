@@ -19,7 +19,7 @@ final class Version20260508000001 extends AbstractMigration
         $this->addSql('
             CREATE TABLE core_user_smtp_config (
                 id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-                uuid VARCHAR(22) NOT NULL,
+                uuid BINARY(16) NOT NULL,
                 user_uuid VARCHAR(22) NOT NULL,
                 smtp_email VARCHAR(150) NOT NULL,
                 smtp_password_encrypted VARCHAR(500) NOT NULL,

@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { CampahnaService, CampahnaCreateDto } from '../../services/campahna.service';
 import { FrutaService } from '../../services/fruta.service';
 import { NotificationService } from '@core/services/notification.service';
+import { RefDataService } from '@core/services/ref-data.service';
 import { AuthService } from '@core/services/auth.service';
 import { Campaign } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
@@ -20,6 +21,7 @@ export class CampanhasComponent implements OnInit {
   private frutaService = inject(FrutaService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
+  private refData = inject(RefDataService);
   private fb = inject(FormBuilder);
 
   items = signal<Campaign[]>([]);
@@ -144,6 +146,7 @@ export class CampanhasComponent implements OnInit {
     op.subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidate(CampahnaService.CACHE_SHARED);
           this.notification.success(current ? 'Campaña actualizada' : 'Campaña creada');
           this.closeModal();
           this.load();
@@ -164,6 +167,7 @@ export class CampanhasComponent implements OnInit {
     op.subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidate(CampahnaService.CACHE_SHARED);
           this.notification.success(item.isActive ? 'Campaña deshabilitada' : 'Campaña habilitada');
           this.load();
         }
@@ -188,6 +192,7 @@ export class CampanhasComponent implements OnInit {
     this.campahnaService.delete(id).subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidate(CampahnaService.CACHE_SHARED);
           this.notification.success('Campaña eliminada');
           this.load();
         }

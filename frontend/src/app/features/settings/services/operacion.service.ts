@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 import { ApiResponse, ApiListResponse } from '@core/models/api.model';
 import { Operacion } from '@core/models/core.model';
+import { RefDataService } from '@core/services/ref-data.service';
 
 export interface OperacionCreateDto {
   nombre: string;
@@ -13,12 +14,19 @@ export interface OperacionCreateDto {
 @Injectable({ providedIn: 'root' })
 export class OperacionService {
   private http = inject(HttpClient);
+  private refData = inject(RefDataService);
   private url = `${environment.coreUrl}/operaciones`;
 
+  static readonly CACHE_PREFIX = 'operaciones:';
+
   getAll(sede?: string): Observable<{ status: boolean; items: Operacion[] }> {
-    const params: any = {};
+    const key = `${OperacionService.CACHE_PREFIX}${sede ?? 'all'}`;
+    const params: Record<string, string> = {};
     if (sede) params['sede'] = sede;
-    return this.http.get<{ status: boolean; items: Operacion[] }>(`${this.url}/`, { params });
+    return this.refData.getOrFetch(
+      key,
+      () => this.http.get<{ status: boolean; items: Operacion[] }>(`${this.url}/`, { params })
+    );
   }
 
   create(dto: OperacionCreateDto): Observable<ApiResponse<Operacion>> {

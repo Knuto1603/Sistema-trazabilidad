@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '@env/environment.development';
 import { ApiListResponse, ApiResponse, FilterParams } from '@core/models/api.model';
 import { Campaign } from '@core/models/core.model';
+import { RefDataService } from '@core/services/ref-data.service';
 
 export interface CampahnaCreateDto {
   nombre: string;
@@ -16,7 +17,10 @@ export interface CampahnaCreateDto {
 @Injectable({ providedIn: 'root' })
 export class CampahnaService {
   private http = inject(HttpClient);
+  private refData = inject(RefDataService);
   private url = `${environment.coreUrl}/campahnas`;
+
+  static readonly CACHE_SHARED = 'campahnas:shared';
 
   getAll(filters: FilterParams = {}) {
     let params = new HttpParams();
@@ -27,7 +31,10 @@ export class CampahnaService {
   }
 
   getShared() {
-    return this.http.get<{ status: boolean; items: { id: string; name: string }[] }>(`${this.url}/shared`);
+    return this.refData.getOrFetch(
+      CampahnaService.CACHE_SHARED,
+      () => this.http.get<{ status: boolean; items: { id: string; name: string }[] }>(`${this.url}/shared`)
+    );
   }
 
   create(data: CampahnaCreateDto) {

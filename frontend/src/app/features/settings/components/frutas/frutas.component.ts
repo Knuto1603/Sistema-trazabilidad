@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { FrutaService, FrutaCreateDto } from '../../services/fruta.service';
 import { NotificationService } from '@core/services/notification.service';
+import { RefDataService } from '@core/services/ref-data.service';
 import { Fruit } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
@@ -15,6 +16,7 @@ import { PaginationComponent } from '@shared/components/pagination/pagination.co
 export class FrutasComponent implements OnInit {
   private frutaService = inject(FrutaService);
   private notification = inject(NotificationService);
+  private refData = inject(RefDataService);
   private fb = inject(FormBuilder);
 
   items = signal<Fruit[]>([]);
@@ -102,6 +104,7 @@ export class FrutasComponent implements OnInit {
     this.frutaService.create(data).subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidate(FrutaService.CACHE_SHARED);
           this.notification.success('Fruta creada');
           this.closeModal();
           this.load();
@@ -122,6 +125,7 @@ export class FrutasComponent implements OnInit {
     op.subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidate(FrutaService.CACHE_SHARED);
           this.notification.success(item.isActive ? 'Fruta deshabilitada' : 'Fruta habilitada');
           this.load();
         }

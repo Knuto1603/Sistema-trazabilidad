@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { OperacionService, OperacionCreateDto } from '../../services/operacion.service';
 import { NotificationService } from '@core/services/notification.service';
+import { RefDataService } from '@core/services/ref-data.service';
 import { AuthService } from '@core/services/auth.service';
 import { Operacion } from '@core/models/core.model';
 import { ConfirmDialogComponent } from '@shared/components/confirm-dialog/confirm-dialog.component';
@@ -16,6 +17,7 @@ export class OperacionesComponent implements OnInit {
   private operacionService = inject(OperacionService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
+  private refData = inject(RefDataService);
   private fb = inject(FormBuilder);
 
   items = signal<Operacion[]>([]);
@@ -93,6 +95,7 @@ export class OperacionesComponent implements OnInit {
     op.subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidatePrefix(OperacionService.CACHE_PREFIX);
           this.notification.success(current ? 'Operación actualizada' : 'Operación creada');
           this.closeModal();
           this.load();
@@ -110,6 +113,7 @@ export class OperacionesComponent implements OnInit {
     op.subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidatePrefix(OperacionService.CACHE_PREFIX);
           this.notification.success(item.isActive ? 'Operación deshabilitada' : 'Operación habilitada');
           this.load();
         }
@@ -133,7 +137,11 @@ export class OperacionesComponent implements OnInit {
     if (!id) return;
     this.operacionService.delete(id).subscribe({
       next: res => {
-        if (res.status) { this.notification.success('Operación eliminada'); this.load(); }
+        if (res.status) {
+          this.refData.invalidatePrefix(OperacionService.CACHE_PREFIX);
+          this.notification.success('Operación eliminada');
+          this.load();
+        }
         this.cancelDelete();
       },
       error: () => { this.notification.error('Error al eliminar'); this.cancelDelete(); },

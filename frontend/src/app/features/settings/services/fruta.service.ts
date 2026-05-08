@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '@env/environment.development';
 import { ApiListResponse, ApiResponse, FilterParams } from '@core/models/api.model';
 import { Fruit } from '@core/models/core.model';
+import { RefDataService } from '@core/services/ref-data.service';
 
 export interface FrutaCreateDto {
   codigo: string;
@@ -12,7 +13,10 @@ export interface FrutaCreateDto {
 @Injectable({ providedIn: 'root' })
 export class FrutaService {
   private http = inject(HttpClient);
+  private refData = inject(RefDataService);
   private url = `${environment.coreUrl}/frutas`;
+
+  static readonly CACHE_SHARED = 'frutas:shared';
 
   getAll(filters: FilterParams = {}) {
     let params = new HttpParams();
@@ -23,7 +27,10 @@ export class FrutaService {
   }
 
   getShared() {
-    return this.http.get<{ status: boolean; items: { id: string; nombre: string }[] }>(`${this.url}/shared`);
+    return this.refData.getOrFetch(
+      FrutaService.CACHE_SHARED,
+      () => this.http.get<{ status: boolean; items: { id: string; nombre: string }[] }>(`${this.url}/shared`)
+    );
   }
 
   create(data: FrutaCreateDto) {

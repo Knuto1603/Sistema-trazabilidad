@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { ParametroService } from '../../services/parametro.service';
 import { NotificationService } from '@core/services/notification.service';
+import { RefDataService } from '@core/services/ref-data.service';
 import { AuthService } from '@core/services/auth.service';
 import { Parameter } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
@@ -19,6 +20,7 @@ export class ParametrosComponent implements OnInit {
   private parametroService = inject(ParametroService);
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
+  private refData = inject(RefDataService);
   private fb = inject(FormBuilder);
 
   items = signal<Parameter[]>([]);
@@ -105,6 +107,7 @@ export class ParametrosComponent implements OnInit {
     op.subscribe({
       next: res => {
         if (res.status) {
+          this.refData.invalidatePrefix(ParametroService.CACHE_PREFIX);
           this.notification.success(current ? 'Parámetro actualizado' : 'Parámetro creado');
           this.closeModal(); this.load();
         }
@@ -118,6 +121,7 @@ export class ParametrosComponent implements OnInit {
     const op = item.isActive ? this.parametroService.disable(item.id) : this.parametroService.enable(item.id);
     op.subscribe(res => {
       if (res.status) {
+        this.refData.invalidatePrefix(ParametroService.CACHE_PREFIX);
         this.notification.success(item.isActive ? 'Parámetro deshabilitado' : 'Parámetro habilitado');
         this.load();
       }
@@ -131,7 +135,11 @@ export class ParametrosComponent implements OnInit {
     const id = this.deletingId();
     if (!id) return;
     this.parametroService.delete(id).subscribe(res => {
-      if (res.status) { this.notification.success('Parámetro eliminado'); this.load(); }
+      if (res.status) {
+        this.refData.invalidatePrefix(ParametroService.CACHE_PREFIX);
+        this.notification.success('Parámetro eliminado');
+        this.load();
+      }
       this.cancelDelete();
     });
   }

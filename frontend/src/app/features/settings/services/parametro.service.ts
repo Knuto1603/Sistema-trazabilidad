@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '@env/environment.development';
 import { ApiListResponse, ApiResponse, FilterParams } from '@core/models/api.model';
 import { Parameter } from '@core/models/core.model';
+import { RefDataService } from '@core/services/ref-data.service';
 
 export interface ParametroCreateDto {
   name: string;
@@ -14,7 +15,10 @@ export interface ParametroCreateDto {
 @Injectable({ providedIn: 'root' })
 export class ParametroService {
   private http = inject(HttpClient);
+  private refData = inject(RefDataService);
   private url = `${environment.coreUrl}/parametros`;
+
+  static readonly CACHE_PREFIX = 'parametros:';
 
   getAll(filters: FilterParams = {}) {
     let params = new HttpParams();
@@ -25,7 +29,10 @@ export class ParametroService {
   }
 
   getParents() {
-    return this.http.get<{ status: boolean; items: { id: string; name: string }[] }>(`${this.url}/parents`);
+    return this.refData.getOrFetch(
+      `${ParametroService.CACHE_PREFIX}parents`,
+      () => this.http.get<{ status: boolean; items: { id: string; name: string }[] }>(`${this.url}/parents`)
+    );
   }
 
   create(data: ParametroCreateDto) {
@@ -49,8 +56,11 @@ export class ParametroService {
   }
 
   getByParentAlias(alias: string) {
-    return this.http.get<{ status: boolean; items: { id: string; name: string; alias: string }[] }>(
-      `${this.url}/by-parent-alias/${alias}`
+    return this.refData.getOrFetch(
+      `${ParametroService.CACHE_PREFIX}alias:${alias}`,
+      () => this.http.get<{ status: boolean; items: { id: string; name: string; alias: string }[] }>(
+        `${this.url}/by-parent-alias/${alias}`
+      )
     );
   }
 }

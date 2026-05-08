@@ -38,6 +38,13 @@ export interface Producer {
 export interface AppUser {
   id: string; username: string; fullname: string;
   roles: string[]; photo?: string; photoUrl?: string; isActive: boolean;
+  smtpEmail?: string | null; hasSmtpConfig?: boolean;
+}
+
+export interface UserSmtpConfig {
+  userUuid: string;
+  smtpEmail: string;
+  hasPassword: boolean;
 }
 
 // Rol de usuario

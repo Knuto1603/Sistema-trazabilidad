@@ -18,6 +18,18 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class UserSmtpConfigApi extends AbstractSerializerApi
 {
+    #[Route('/', name: 'smtp_config_list', methods: ['GET'])]
+    public function list(UserSmtpConfigRepository $repository): Response
+    {
+        $configs = $repository->findAll();
+        $items = array_map(
+            static fn($c) => ['userUuid' => $c->getUserUuid(), 'smtpEmail' => $c->getSmtpEmail()],
+            $configs
+        );
+
+        return $this->ok(['items' => $items]);
+    }
+
     #[Route('/{userUuid}', name: 'smtp_config_get', requirements: ['userUuid' => UidType::REGEX], methods: ['GET'])]
     public function get(
         string $userUuid,

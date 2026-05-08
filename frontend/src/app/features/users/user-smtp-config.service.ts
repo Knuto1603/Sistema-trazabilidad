@@ -9,6 +9,10 @@ export class UserSmtpConfigService {
   private http = inject(HttpClient);
   private url = `${environment.coreUrl}/smtp-config`;
 
+  getAll() {
+    return this.http.get<{ status: boolean; items: { userUuid: string; smtpEmail: string }[] }>(`${this.url}/`);
+  }
+
   get(userUuid: string) {
     return this.http.get<ApiResponse<UserSmtpConfig | null>>(`${this.url}/${userUuid}`);
   }

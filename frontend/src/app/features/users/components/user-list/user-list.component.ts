@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule, FormBuilder, FormGroup, Validators
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil, forkJoin } from 'rxjs';
 
 import { UserService } from '../../user.service';
 import { UserSmtpConfigService } from '../../user-smtp-config.service';
@@ -102,11 +102,23 @@ export class UserListComponent implements OnInit, OnDestroy {
   loadUsers(page?: number): void {
     this.isLoading.set(true);
     const currentPage = page !== undefined ? page : this.pagination().page;
-    this.userService.getAll({ page: currentPage, itemsPerPage: this.pagination().itemsPerPage, search: this.searchTerm() || undefined })
-      .subscribe({
-        next: res => { this.users.set(res.items); this.pagination.set(res.pagination); this.isLoading.set(false); },
-        error: () => { this.notificationService.error('Error al cargar los usuarios.'); this.isLoading.set(false); },
-      });
+    forkJoin({
+      users: this.userService.getAll({ page: currentPage, itemsPerPage: this.pagination().itemsPerPage, search: this.searchTerm() || undefined }),
+      smtp:  this.smtpConfigService.getAll(),
+    }).subscribe({
+      next: ({ users, smtp }) => {
+        const smtpMap = new Map((smtp.items ?? []).map(s => [s.userUuid, s.smtpEmail]));
+        const enriched = users.items.map(u => ({
+          ...u,
+          hasSmtpConfig: smtpMap.has(u.id),
+          smtpEmail: smtpMap.get(u.id) ?? null,
+        }));
+        this.users.set(enriched);
+        this.pagination.set(users.pagination);
+        this.isLoading.set(false);
+      },
+      error: () => { this.notificationService.error('Error al cargar los usuarios.'); this.isLoading.set(false); },
+    });
   }
 
   onSearch(event: Event): void { this.searchSubject.next((event.target as HTMLInputElement).value); }

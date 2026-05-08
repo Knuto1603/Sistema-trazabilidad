@@ -10,5 +10,4 @@ export interface User {
 export interface LoginResponse {
   token: string;
   status: boolean;
-  user: User;
 }

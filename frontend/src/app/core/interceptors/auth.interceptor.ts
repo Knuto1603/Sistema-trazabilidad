@@ -1,7 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
   const campaignId = localStorage.getItem('activeCampaignId');
 
   const headers: Record<string, string> = {};

@@ -1,14 +1,12 @@
 import { Injectable, signal, inject, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { LoginResponse, User } from '../models/auth.model';
-import { forkJoin, map, of, take, tap } from 'rxjs';
+import { tap } from 'rxjs';
 import { environment } from '@env/environment.development';
-import { RolesService } from './roles.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private rolesService = inject(RolesService);
 
   private apiUrl = environment.securityUrl;
 
@@ -24,8 +22,7 @@ export class AuthService {
         if (res.status) {
           const storage = rememberMe ? localStorage : sessionStorage;
           storage.setItem('token', res.token);
-          storage.setItem('user', JSON.stringify(res.user));
-          this.#currentUser.set(res.user);
+          this.#currentUser.set(this.decodeUser(res.token));
         }
       })
     );
@@ -33,9 +30,7 @@ export class AuthService {
 
   logout() {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
     sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
     this.#currentUser.set(null);
   }
 
@@ -45,10 +40,24 @@ export class AuthService {
 
   private checkSession() {
     const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
-    const savedUser = localStorage.getItem('user') ?? sessionStorage.getItem('user');
+    if (token) {
+      this.#currentUser.set(this.decodeUser(token));
+    }
+  }
 
-    if (token && savedUser) {
-      this.#currentUser.set(JSON.parse(savedUser));
+  private decodeUser(token: string): User | null {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        id: payload['id'],
+        username: payload['username'],
+        fullname: payload['fullname'] ?? '',
+        roles: payload['roles'] ?? [],
+        modules: payload['modules'] ?? [],
+        avatar: payload['avatar'] ?? null,
+      };
+    } catch {
+      return null;
     }
   }
 

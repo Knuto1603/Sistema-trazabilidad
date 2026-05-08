@@ -1,5 +1,4 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
@@ -8,7 +7,7 @@ import { LoadingScreenComponent } from "@shared/loading-screen/loading-screen.co
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, LoadingScreenComponent],
+  imports: [ReactiveFormsModule, RouterModule, LoadingScreenComponent],
   templateUrl: './login.component.html',
 })
 export class LoginComponent implements OnInit {
@@ -28,13 +27,9 @@ export class LoginComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    console.log(this.authService.isAuthenticated());
-    console.log(this.authService.currentUser());
-
     if (this.authService.isAuthenticated()) {
       this.router.navigate(['/app/dashboard']);
-    }
-    else {
+    } else {
       this.isCheckingSession.set(false);
     }
   }

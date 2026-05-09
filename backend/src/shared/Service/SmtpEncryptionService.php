@@ -27,9 +27,9 @@ final readonly class SmtpEncryptionService
         $this->key = $decoded;
     }
 
-    public function encrypt(string $plaintext): string
+    public function encrypt(string &$plaintext): string
     {
-        $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
+        $nonce      = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
         $ciphertext = sodium_crypto_secretbox($plaintext, $nonce, $this->key);
         sodium_memzero($plaintext);
 

@@ -110,7 +110,7 @@ final readonly class EnviarCorreoDespachoService
     private function resolveRemitente(): array
     {
         $payload  = $this->jwtManager->decode($this->tokenStorage->getToken());
-        $userUuid = $payload['id'] ?? null;
+        $userUuid = \is_array($payload) ? ($payload['id'] ?? null) : null;
 
         if ($userUuid !== null) {
             $smtpConfig = $this->userSmtpConfigRepository->findByUserUuid($userUuid);

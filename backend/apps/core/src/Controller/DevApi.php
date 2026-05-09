@@ -215,7 +215,7 @@ class DevApi extends AbstractSerializerApi
         }
 
         $payload  = $jwtManager->decode($tokenStorage->getToken());
-        $userUuid = $payload['id'] ?? null;
+        $userUuid = \is_array($payload) ? ($payload['id'] ?? null) : null;
 
         if (!$userUuid) {
             return $this->fail('No se pudo identificar al usuario autenticado.');

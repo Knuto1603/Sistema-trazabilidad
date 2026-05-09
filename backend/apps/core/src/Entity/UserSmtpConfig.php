@@ -8,7 +8,6 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: UserSmtpConfigRepository::class)]
 #[ORM\Table(name: 'core_user_smtp_config')]
-#[ORM\Index(columns: ['user_uuid'], name: 'idx_smtp_config_user_uuid')]
 #[ORM\HasLifecycleCallbacks]
 class UserSmtpConfig
 {
@@ -23,10 +22,10 @@ class UserSmtpConfig
     private string $userUuid = '';
 
     #[ORM\Column(length: 150)]
-    private string $smtpEmail;
+    private string $smtpEmail = '';
 
     #[ORM\Column(length: 500)]
-    private string $smtpPasswordEncrypted;
+    private string $smtpPasswordEncrypted = '';
 
     public function getId(): ?int
     {

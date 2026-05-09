@@ -28,7 +28,8 @@ final readonly class SaveUserSmtpConfigService
         $config->setSmtpEmail($dto->smtpEmail);
 
         if (!empty($dto->smtpPassword)) {
-            $config->setSmtpPasswordEncrypted($this->encryption->encrypt($dto->smtpPassword));
+            $pass = $dto->smtpPassword;
+            $config->setSmtpPasswordEncrypted($this->encryption->encrypt($pass));
         }
 
         $config->enable();

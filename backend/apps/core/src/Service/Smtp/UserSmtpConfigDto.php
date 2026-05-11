@@ -14,6 +14,21 @@ final class UserSmtpConfigDto
 
         #[Assert\Length(min: 4, max: 100, minMessage: 'La contraseña debe tener al menos 4 caracteres.')]
         public ?string $smtpPassword = null,
+
+        #[Assert\Length(max: 150)]
+        public ?string $displayName = null,
+
+        #[Assert\Length(max: 150)]
+        public ?string $firmaNombre = null,
+
+        #[Assert\Length(max: 100)]
+        public ?string $firmaCargo = null,
+
+        #[Assert\Length(max: 150)]
+        public ?string $firmaEmpresa = null,
+
+        #[Assert\Length(max: 500)]
+        public ?string $ccEmails = null,
     ) {
     }
 }

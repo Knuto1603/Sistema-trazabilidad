@@ -5,8 +5,11 @@ namespace App\apps\security\Controller;
 use App\apps\security\Repository\UserRepository;
 use App\apps\security\Service\Auth\TokenCheckDto;
 use App\apps\security\Service\JwtConfigService;
+use App\apps\security\Service\User\Dto\UpdateMeDto;
 use App\apps\security\Service\User\Dto\UserDtoTransformer;
+use App\apps\security\Service\User\UpdateMeService;
 use App\shared\Api\AbstractApi;
+use App\shared\Api\DtoSerializer;
 use Lexik\Bundle\JWTAuthenticationBundle\Security\Http\Authentication\AuthenticationSuccessHandler;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -45,6 +48,40 @@ final class SecurityApi extends AbstractApi
         $userDto = $userDtoTransformer->fromObject($token->getUser());
 
         return $this->ok(['item' => $userDto]);
+    }
+
+    #[Route('/me', name: 'security_me_get', methods: ['GET'])]
+    public function getMe(
+        TokenStorageInterface $tokenStorage,
+        UserDtoTransformer $transformer,
+    ): Response {
+        $token = $tokenStorage->getToken();
+        if (null === $token || !is_object($token->getUser())) {
+            return $this->fail('No autenticado', code: Response::HTTP_UNAUTHORIZED);
+        }
+
+        return $this->ok(['item' => $transformer->fromObject($token->getUser())]);
+    }
+
+    #[Route('/me', name: 'security_me_update', methods: ['PUT'])]
+    public function updateMe(
+        Request $request,
+        TokenStorageInterface $tokenStorage,
+        UpdateMeService $service,
+        UserDtoTransformer $transformer,
+        DtoSerializer $serializer,
+    ): Response {
+        $token = $tokenStorage->getToken();
+        if (null === $token || !is_object($token->getUser())) {
+            return $this->fail('No autenticado', code: Response::HTTP_UNAUTHORIZED);
+        }
+
+        $uuid = $token->getUser()->getUserIdentifier();
+        /** @var UpdateMeDto $dto */
+        $dto = $serializer->deserialize($request->getContent(), UpdateMeDto::class);
+        $user = $service->execute($uuid, $dto);
+
+        return $this->ok(['message' => 'Perfil actualizado', 'item' => $transformer->fromObject($user)]);
     }
 
     #[Route('/dev/jwt-config', methods: ['GET'])]

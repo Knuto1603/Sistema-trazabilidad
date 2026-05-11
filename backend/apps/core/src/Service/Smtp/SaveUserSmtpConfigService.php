@@ -32,6 +32,12 @@ final readonly class SaveUserSmtpConfigService
             $config->setSmtpPasswordEncrypted($this->encryption->encrypt($pass));
         }
 
+        $config->setDisplayName($dto->displayName);
+        $config->setFirmaNombre($dto->firmaNombre);
+        $config->setFirmaCargo($dto->firmaCargo);
+        $config->setFirmaEmpresa($dto->firmaEmpresa);
+        $config->setCcEmails($dto->ccEmails);
+
         $config->enable();
         $this->repository->save($config);
 

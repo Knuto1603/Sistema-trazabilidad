@@ -45,6 +45,11 @@ export interface UserSmtpConfig {
   userUuid: string;
   smtpEmail: string;
   hasPassword: boolean;
+  displayName?: string | null;
+  firmaNombre?: string | null;
+  firmaCargo?: string | null;
+  firmaEmpresa?: string | null;
+  ccEmails?: string | null;
 }
 
 // Rol de usuario

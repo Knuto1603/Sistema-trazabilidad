@@ -47,8 +47,6 @@ export class DespachosListComponent implements OnInit {
   search = signal('');
   currentPage = signal(0);
   itemsPerPage = signal(10);
-  sefiltro = signal<string>('');
-  frutafiltro = signal<string>('');
 
   readonly PAGE_SIZES = [10, 25, 50];
 
@@ -100,8 +98,6 @@ export class DespachosListComponent implements OnInit {
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
     this.search.set(qp.get('q') ?? '');
-    this.sefiltro.set(qp.get('sede') ?? '');
-    this.frutafiltro.set(qp.get('fruta') ?? '');
     this.currentPage.set(Number(qp.get('page') ?? 0));
     const size = Number(qp.get('size') ?? 10);
     this.itemsPerPage.set(this.PAGE_SIZES.includes(size) ? size : 10);
@@ -117,8 +113,6 @@ export class DespachosListComponent implements OnInit {
   private syncQueryParams(): void {
     const params: Record<string, string> = {};
     if (this.search()) params['q'] = this.search();
-    if (this.sefiltro()) params['sede'] = this.sefiltro();
-    if (this.frutafiltro()) params['fruta'] = this.frutafiltro();
     if (this.currentPage()) params['page'] = String(this.currentPage());
     if (this.itemsPerPage() !== 10) params['size'] = String(this.itemsPerPage());
     this.router.navigate([], { relativeTo: this.route, queryParams: params, replaceUrl: true });
@@ -133,8 +127,6 @@ export class DespachosListComponent implements OnInit {
     }
     this.loading.set(true);
     const params: any = { page: this.currentPage(), itemsPerPage: this.itemsPerPage(), search: this.search() };
-    if (this.sefiltro()) params['sede'] = this.sefiltro();
-    if (this.frutafiltro()) params['frutaId'] = this.frutafiltro();
     params['campanhaId'] = campanhaId;
 
     this.despachoService.getAll(params).subscribe({
@@ -150,20 +142,6 @@ export class DespachosListComponent implements OnInit {
     this.search.set((event.target as HTMLInputElement).value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.syncQueryParams(); this.load(); }, 400);
-  }
-
-  onSedeFilter(sede: string): void {
-    this.sefiltro.set(sede);
-    this.currentPage.set(0);
-    this.syncQueryParams();
-    this.load();
-  }
-
-  onFrutaFilter(frutaId: string): void {
-    this.frutafiltro.set(frutaId);
-    this.currentPage.set(0);
-    this.syncQueryParams();
-    this.load();
   }
 
   onPageChange(page: number): void { this.currentPage.set(page); this.syncQueryParams(); this.load(); }

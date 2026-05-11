@@ -16,8 +16,8 @@ final class Version20260511000001 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE core_despacho ADD campahna_id INT DEFAULT NULL');
-        $this->addSql('UPDATE core_despacho d JOIN core_campahna c ON d.fruta_id = c.fruta_id AND d.sede = c.sede SET d.campahna_id = c.id');
+        $this->connection->executeStatement('ALTER TABLE core_despacho ADD campahna_id INT DEFAULT NULL');
+        $this->connection->executeStatement('UPDATE core_despacho d JOIN core_campahna c ON d.fruta_id = c.fruta_id AND d.sede = c.sede SET d.campahna_id = c.id');
 
         $unmatched = (int) $this->connection->fetchOne('SELECT COUNT(*) FROM core_despacho WHERE campahna_id IS NULL');
         $this->abortIf($unmatched > 0, sprintf(

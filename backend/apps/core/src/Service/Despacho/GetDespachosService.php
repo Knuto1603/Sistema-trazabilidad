@@ -56,6 +56,14 @@ final readonly class GetDespachosService
                     ['sede' => $filterDto->sede]
                 ));
             }
+
+            if ($filterDto->campanhaId) {
+                $this->filterService->addFilter(new ConditionFilter(
+                    'campahna.uuid = :campanhaId',
+                    ['campanhaId' => UidType::fromString($filterDto->campanhaId)],
+                    ['campanhaId' => UidType::NAME]
+                ));
+            }
         }
 
         $sorting = SortingDto::create($filterDto->sort, $filterDto->direction);

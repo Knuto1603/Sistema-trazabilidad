@@ -22,10 +22,11 @@ class DespachoRepository extends DoctrineEntityRepository
     public function allQuery(): QueryBuilder
     {
         return $this->createQueryBuilder('despacho')
-            ->select(['despacho', 'cliente', 'fruta', 'operacion'])
+            ->select(['despacho', 'cliente', 'fruta', 'operacion', 'campahna'])
             ->leftJoin('despacho.cliente', 'cliente')
             ->leftJoin('despacho.fruta', 'fruta')
             ->leftJoin('despacho.operacion', 'operacion')
+            ->innerJoin('despacho.campahna', 'campahna')
             ->orderBy('despacho.id', 'DESC');
     }
 

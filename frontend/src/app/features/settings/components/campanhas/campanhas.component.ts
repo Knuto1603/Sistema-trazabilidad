@@ -5,6 +5,7 @@ import { FrutaService } from '../../services/fruta.service';
 import { NotificationService } from '@core/services/notification.service';
 import { RefDataService } from '@core/services/ref-data.service';
 import { AuthService } from '@core/services/auth.service';
+import { CampaignService } from '@core/services/campaign.service';
 import { Campaign } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
@@ -22,6 +23,7 @@ export class CampanhasComponent implements OnInit {
   private notification = inject(NotificationService);
   private authService = inject(AuthService);
   private refData = inject(RefDataService);
+  private campaignService = inject(CampaignService);
   private fb = inject(FormBuilder);
 
   items = signal<Campaign[]>([]);
@@ -147,6 +149,7 @@ export class CampanhasComponent implements OnInit {
       next: res => {
         if (res.status) {
           this.refData.invalidate(CampahnaService.CACHE_SHARED);
+          this.campaignService.loadCampaigns();
           this.notification.success(current ? 'Campaña actualizada' : 'Campaña creada');
           this.closeModal();
           this.load();
@@ -168,6 +171,7 @@ export class CampanhasComponent implements OnInit {
       next: res => {
         if (res.status) {
           this.refData.invalidate(CampahnaService.CACHE_SHARED);
+          this.campaignService.loadCampaigns();
           this.notification.success(item.isActive ? 'Campaña deshabilitada' : 'Campaña habilitada');
           this.load();
         }
@@ -193,6 +197,7 @@ export class CampanhasComponent implements OnInit {
       next: res => {
         if (res.status) {
           this.refData.invalidate(CampahnaService.CACHE_SHARED);
+          this.campaignService.loadCampaigns();
           this.notification.success('Campaña eliminada');
           this.load();
         }

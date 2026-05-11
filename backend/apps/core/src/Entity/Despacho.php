@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
 class Despacho
 {
     use EntityTrait;
+    use ContextTrait;
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

@@ -6,6 +6,7 @@ use App\apps\core\Entity\Despacho;
 use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Repository\FrutaRepository;
 use App\apps\core\Repository\OperacionRepository;
+use App\apps\core\Service\Contexto\ContextService;
 
 final readonly class DespachoFactory
 {
@@ -13,6 +14,7 @@ final readonly class DespachoFactory
         private ClienteRepository $clienteRepository,
         private FrutaRepository $frutaRepository,
         private OperacionRepository $operacionRepository,
+        private ContextService $contextService,
     ) {
     }
 
@@ -43,6 +45,12 @@ final readonly class DespachoFactory
         $despacho->setSede($dto->sede);
         $despacho->setContenedor($dto->contenedor);
         $despacho->setObservaciones($dto->observaciones);
+
+        $campahna = $this->contextService->getCampahnaActual();
+        if ($campahna === null) {
+            throw new \LogicException('Se requiere una campaña activa (header X-Campahna-Id) para crear o modificar un despacho.');
+        }
+        $despacho->setCampahna($campahna);
 
         if ($dto->numeroPlanta !== null) {
             $despacho->setNumeroPlanta($dto->numeroPlanta);

@@ -21,7 +21,7 @@ export class DespachoService {
   private http = inject(HttpClient);
   private base = `${environment.coreUrl}/despachos`;
 
-  getAll(params: FilterParams & { clienteId?: string; frutaId?: string; sede?: string }): Observable<ApiListResponse<Despacho>> {
+  getAll(params: FilterParams & { clienteId?: string; frutaId?: string; sede?: string; campanhaId?: string }): Observable<ApiListResponse<Despacho>> {
     return this.http.get<ApiListResponse<Despacho>>(`${this.base}/`, { params: params as any });
   }
 

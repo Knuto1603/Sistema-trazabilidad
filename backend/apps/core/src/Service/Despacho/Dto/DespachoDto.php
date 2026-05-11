@@ -37,6 +37,7 @@ final class DespachoDto implements DtoRequestInterface
         public ?string $clienteRazonSocial = null,
         public ?string $frutaNombre = null,
         public ?string $operacionNombre = null,
+        public ?string $campanhaId = null,
     ) {
     }
 }

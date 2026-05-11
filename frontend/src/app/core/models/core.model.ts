@@ -76,6 +76,7 @@ export interface Despacho {
   clienteId: string; clienteRuc?: string; clienteRazonSocial?: string;
   frutaId: string; frutaNombre?: string;
   operacionId?: string; operacionNombre?: string;
+  campanhaId?: string;
   isActive: boolean;
 }
 

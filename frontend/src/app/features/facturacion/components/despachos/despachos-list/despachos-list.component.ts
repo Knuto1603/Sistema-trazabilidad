@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnInit, signal, inject, computed, effect } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DespachoService, DespachoCreateDto } from '../../../despacho.service';
@@ -31,6 +31,14 @@ export class DespachosListComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
+
+  constructor() {
+    effect(() => {
+      this.campaignService.activeCampaignId();
+      this.currentPage.set(0);
+      this.load();
+    });
+  }
 
   items = signal<Despacho[]>([]);
   pagination = signal<Pagination>({ page: 0, itemsPerPage: 10, count: 0, totalItems: 0, startIndex: 0, endIndex: 0 });
@@ -98,7 +106,6 @@ export class DespachosListComponent implements OnInit {
     const size = Number(qp.get('size') ?? 10);
     this.itemsPerPage.set(this.PAGE_SIZES.includes(size) ? size : 10);
     this.loadFrutas();
-    this.load();
   }
 
   loadFrutas(): void {
@@ -118,10 +125,17 @@ export class DespachosListComponent implements OnInit {
   }
 
   load(): void {
+    const campanhaId = this.campaignService.activeCampaignId();
+    if (!campanhaId) {
+      this.items.set([]);
+      this.loading.set(false);
+      return;
+    }
     this.loading.set(true);
     const params: any = { page: this.currentPage(), itemsPerPage: this.itemsPerPage(), search: this.search() };
     if (this.sefiltro()) params['sede'] = this.sefiltro();
     if (this.frutafiltro()) params['frutaId'] = this.frutafiltro();
+    params['campanhaId'] = campanhaId;
 
     this.despachoService.getAll(params).subscribe({
       next: res => {

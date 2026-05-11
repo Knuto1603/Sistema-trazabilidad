@@ -3,6 +3,7 @@
 namespace App\apps\core\Service\Despacho\Filter;
 
 use App\shared\Service\Dto\FilterDto;
+use App\shared\Validator\Uid;
 
 class DespachoFilterDto extends FilterDto
 {
@@ -15,6 +16,8 @@ class DespachoFilterDto extends FilterDto
         public ?string $clienteId = null,
         public ?string $frutaId = null,
         public ?string $sede = null,
+        #[Uid]
+        public ?string $campanhaId = null,
     ) {
         parent::__construct($page, $itemsPerPage, $search, $sort, $direction);
     }

@@ -222,16 +222,14 @@ export class DespachoDetailComponent implements OnInit {
   }
 
   openNuevaFactura(): void {
-    const tipoOperacion = this.detectTipoOperacionFromDespacho();
-    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', tipoOperacion, clienteFacturaId: null });
+    const d = this.despacho();
+    const tipoOperacion = d?.operacionNombre ?? '';
+    const contenedor = d?.contenedor ?? '';
+    this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', tipoOperacion, contenedor, clienteFacturaId: null });
     this.clienteFacturaSeleccionado.set(null);
     this.rucClienteFacturaInput.set('');
     this.editingFacturaId.set(null);
     this.showFacturaModal.set(true);
-  }
-
-  private detectTipoOperacionFromDespacho(): string {
-    return this.despacho()?.operacionNombre ?? '';
   }
 
   openEditFactura(factura: Factura): void {
@@ -307,19 +305,21 @@ export class DespachoDetailComponent implements OnInit {
 
           if (isGuia) {
             const current = this.facturaForm.value;
+            const desp = this.despacho();
             const patch: any = {};
             if (d.numeroDocumento) patch['numeroGuia'] = d.numeroDocumento;
             if (!current['cajas'] && d.cajas) patch['cajas'] = d.cajas;
             if (!current['kgCaja'] && d.kgCaja) patch['kgCaja'] = d.kgCaja;
             if (!current['cantidad'] && d.cantidad) patch['cantidad'] = d.cantidad;
             if (!current['unidadMedida'] && d.unidadMedida) patch['unidadMedida'] = d.unidadMedida;
-            if (!current['tipoOperacion'] && d.tipoOperacion) patch['tipoOperacion'] = d.tipoOperacion;
-            if (!current['contenedor'] && d.contenedor) patch['contenedor'] = d.contenedor;
+            if (!current['tipoOperacion']) patch['tipoOperacion'] = d.tipoOperacion || desp?.operacionNombre || '';
+            if (!current['contenedor']) patch['contenedor'] = d.contenedor || desp?.contenedor || '';
             if (!current['detalle'] && d.detalle) patch['detalle'] = d.detalle;
             this.facturaForm.patchValue(patch);
             this.autocalcularCajas();
             this.notification.success('Guía XML procesada. Datos completados.');
           } else {
+            const desp = this.despacho();
             this.facturaForm.patchValue({
               tipoDocumento: d.tipoDocumento ?? '01',
               serie: d.serie ?? '',
@@ -338,8 +338,8 @@ export class DespachoDetailComponent implements OnInit {
               igv: d.igv ?? null,
               total: d.total ?? null,
               tipoServicio: d.tipoServicio ?? '',
-              tipoOperacion: d.tipoOperacion ?? '',
-              contenedor: d.contenedor ?? '',
+              tipoOperacion: d.tipoOperacion || desp?.operacionNombre || '',
+              contenedor: d.contenedor || desp?.contenedor || '',
             });
             if (!d.cajas) this.autocalcularCajas();
             this.showFacturaModal.set(true);
@@ -633,6 +633,7 @@ export class DespachoDetailComponent implements OnInit {
       const linkedGuia = f.linkedGuiaIdx !== null ? guias[f.linkedGuiaIdx] : null;
       const h = f.header ?? f.parsed; // encabezado (serie, correlativo, fecha, etc.)
       const it = f.parsed;            // datos del ítem (cantidad, importe, detalle, etc.)
+      const desp = this.despacho();
       const dto: FacturaCreateDto = {
         tipoDocumento: h.tipoDocumento ?? '01',
         serie: h.serie ?? '',
@@ -651,8 +652,8 @@ export class DespachoDetailComponent implements OnInit {
         igv: it.igv ?? undefined,
         total: it.total ?? undefined,
         tipoServicio: f.tipoServicio || undefined,
-        tipoOperacion: it.tipoOperacion || undefined,
-        contenedor: it.contenedor || undefined,
+        tipoOperacion: it.tipoOperacion || desp?.operacionNombre || undefined,
+        contenedor: it.contenedor || desp?.contenedor || undefined,
         destino: f.destino || undefined,
         despachoId,
       };

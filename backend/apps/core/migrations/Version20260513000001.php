@@ -18,7 +18,7 @@ final class Version20260513000001 extends AbstractMigration
     {
         $this->addSql('CREATE TABLE core_fruta_variedad (
             id INT AUTO_INCREMENT NOT NULL,
-            uuid VARCHAR(255) NOT NULL,
+            uuid BINARY(16) NOT NULL,
             nombre VARCHAR(100) NOT NULL,
             fruta_id INT NOT NULL,
             is_active TINYINT(1) NOT NULL DEFAULT 1,

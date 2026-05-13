@@ -34,7 +34,7 @@ class Despacho
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $observaciones = null;
 
-    #[ORM\Column(type: 'date', nullable: true)]
+    #[ORM\Column(type: 'date_immutable', nullable: true)]
     private ?\DateTimeImmutable $fechaDespacho = null;
 
     #[ORM\ManyToOne(targetEntity: Cliente::class)]

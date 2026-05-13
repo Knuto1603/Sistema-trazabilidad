@@ -21,6 +21,7 @@ final class DespachoDtoTransformer extends DtoTransformer
         $dto->sede = $object->getSede();
         $dto->contenedor = $object->getContenedor();
         $dto->observaciones = $object->getObservaciones();
+        $dto->fechaDespacho = $object->getFechaDespacho()?->format('Y-m-d');
 
         if ($object->getCliente()) {
             $dto->clienteId = UidType::toString($object->getCliente()->uuid());

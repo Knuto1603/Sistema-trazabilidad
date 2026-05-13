@@ -34,6 +34,9 @@ class Despacho
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $observaciones = null;
 
+    #[ORM\Column(type: 'date', nullable: true)]
+    private ?\DateTimeImmutable $fechaDespacho = null;
+
     #[ORM\ManyToOne(targetEntity: Cliente::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?Cliente $cliente = null;
@@ -62,6 +65,9 @@ class Despacho
 
     public function getObservaciones(): ?string { return $this->observaciones; }
     public function setObservaciones(?string $v): static { $this->observaciones = $v; return $this; }
+
+    public function getFechaDespacho(): ?\DateTimeImmutable { return $this->fechaDespacho; }
+    public function setFechaDespacho(?\DateTimeImmutable $v): static { $this->fechaDespacho = $v; return $this; }
 
     public function getCliente(): ?Cliente { return $this->cliente; }
     public function setCliente(?Cliente $cliente): static { $this->cliente = $cliente; return $this; }

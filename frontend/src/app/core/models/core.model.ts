@@ -81,6 +81,7 @@ export interface Despacho {
   frutaId: string; frutaNombre?: string;
   operacionId?: string; operacionNombre?: string;
   campanhaId?: string;
+  fechaDespacho?: string;
   isActive: boolean;
 }
 

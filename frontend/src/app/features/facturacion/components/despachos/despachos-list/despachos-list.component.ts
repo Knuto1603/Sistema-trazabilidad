@@ -84,6 +84,7 @@ export class DespachosListComponent implements OnInit {
     operacionId: ['' as string],
     contenedor: [''],
     observaciones: [''],
+    fechaDespacho: ['' as string],
     numeroPlanta: [null as number | null],
     numeroCliente: [null as number | null],
   });
@@ -229,6 +230,7 @@ export class DespachosListComponent implements OnInit {
       operacionId: item.operacionId ?? '',
       contenedor: item.contenedor ?? '',
       observaciones: item.observaciones ?? '',
+      fechaDespacho: item.fechaDespacho ?? '',
       numeroPlanta: item.numeroPlanta ?? null,
       numeroCliente: item.numeroCliente ?? null,
     });
@@ -400,6 +402,7 @@ export class DespachosListComponent implements OnInit {
       operacionId: (raw as any).operacionId || undefined,
       contenedor: raw.contenedor || undefined,
       observaciones: raw.observaciones || undefined,
+      fechaDespacho: (raw as any).fechaDespacho || undefined,
       numeroPlanta: raw.numeroPlanta ?? undefined,
       numeroCliente: (raw as any).numeroCliente ?? undefined,
     };

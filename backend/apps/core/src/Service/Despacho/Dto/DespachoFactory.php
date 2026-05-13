@@ -46,6 +46,10 @@ final readonly class DespachoFactory
         $despacho->setContenedor($dto->contenedor);
         $despacho->setObservaciones($dto->observaciones);
 
+        $despacho->setFechaDespacho(
+            $dto->fechaDespacho ? new \DateTimeImmutable($dto->fechaDespacho) : null
+        );
+
         $campahna = $this->contextService->getCampahnaActual();
         if ($campahna === null) {
             throw new \LogicException('Se requiere una campaña activa (header X-Campahna-Id) para crear o modificar un despacho.');

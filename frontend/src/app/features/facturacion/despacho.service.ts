@@ -9,6 +9,7 @@ export interface DespachoCreateDto {
   sede: string;
   contenedor?: string;
   observaciones?: string;
+  fechaDespacho?: string;
   clienteId: string;
   frutaId: string;
   operacionId?: string;

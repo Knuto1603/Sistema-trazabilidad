@@ -76,6 +76,7 @@ export class DespachosListComponent implements OnInit {
   rucLoadingCliente = signal(false);
 
   isAdmin = computed(() => this.authService.hasRole('ROLE_ADMIN'));
+  activeCampaign = computed(() => this.campaignService.activeCampaign());
 
   form = this.fb.group({
     clienteId: ['', Validators.required],
@@ -215,7 +216,11 @@ export class DespachosListComponent implements OnInit {
     this.clienteSearch.set('');
     this.clienteSearchResults.set([]);
     this.clienteDropdownOpen.set(false);
-    const sede = this.campaignService.activeCampaign()?.sede ?? undefined;
+    const campaign = this.campaignService.activeCampaign();
+    const sede = campaign?.sede ?? undefined;
+    if (campaign) {
+      this.form.patchValue({ frutaId: campaign.frutaId, sede: campaign.sede ?? '' });
+    }
     this.loadOperacionesBySede(sede);
     this.searchClientes('');
     this.showModal.set(true);

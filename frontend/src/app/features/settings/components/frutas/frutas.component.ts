@@ -1,9 +1,9 @@
-import { Component, OnInit, signal, inject, computed } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { FrutaService, FrutaCreateDto } from '../../services/fruta.service';
+import { FrutaService, FrutaCreateDto, FrutaVariedadCreateDto } from '../../services/fruta.service';
 import { NotificationService } from '@core/services/notification.service';
 import { RefDataService } from '@core/services/ref-data.service';
-import { Fruit } from '@core/models/core.model';
+import { Fruit, FrutaVariedad } from '@core/models/core.model';
 import { Pagination } from '@core/models/api.model';
 import { PaginationComponent } from '@shared/components/pagination/pagination.component';
 
@@ -27,16 +27,24 @@ export class FrutasComponent implements OnInit {
   saving = signal(false);
   search = signal('');
   currentPage = signal(0);
-
   showModal = signal(false);
+
+  selectedFruta = signal<Fruit | null>(null);
+  variedades = signal<FrutaVariedad[]>([]);
+  loadingVariedades = signal(false);
+  savingVariedad = signal(false);
+  showVariedadesModal = signal(false);
 
   form = this.fb.group({
     codigo: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(5)]],
     nombre: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]]
   });
 
-  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  variedadForm = this.fb.group({
+    nombre: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(100)]]
+  });
 
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
   skeletonRows = [1, 2, 3, 4, 5];
 
   ngOnInit(): void {
@@ -134,8 +142,87 @@ export class FrutasComponent implements OnInit {
     });
   }
 
+  openVariedades(fruta: Fruit): void {
+    this.selectedFruta.set(fruta);
+    this.variedadForm.reset();
+    this.showVariedadesModal.set(true);
+    this.loadVariedades(fruta.id);
+  }
+
+  closeVariedadesModal(): void {
+    this.showVariedadesModal.set(false);
+    this.selectedFruta.set(null);
+    this.variedades.set([]);
+    this.variedadForm.reset();
+  }
+
+  private loadVariedades(frutaId: string): void {
+    this.loadingVariedades.set(true);
+    this.frutaService.getVariedades(frutaId).subscribe({
+      next: res => {
+        if (res.status) this.variedades.set(res.items);
+        this.loadingVariedades.set(false);
+      },
+      error: () => {
+        this.notification.error('Error al cargar variedades');
+        this.loadingVariedades.set(false);
+      }
+    });
+  }
+
+  saveVariedad(): void {
+    if (this.variedadForm.invalid) {
+      this.variedadForm.markAllAsTouched();
+      return;
+    }
+    const fruta = this.selectedFruta();
+    if (!fruta) return;
+
+    this.savingVariedad.set(true);
+    const data: FrutaVariedadCreateDto = { nombre: this.variedadForm.value.nombre! };
+
+    this.frutaService.createVariedad(fruta.id, data).subscribe({
+      next: res => {
+        if (res.status) {
+          this.notification.success('Variedad creada');
+          this.variedadForm.reset();
+          this.loadVariedades(fruta.id);
+        }
+        this.savingVariedad.set(false);
+      },
+      error: () => {
+        this.notification.error('Error al crear la variedad');
+        this.savingVariedad.set(false);
+      }
+    });
+  }
+
+  toggleVariedad(variedad: FrutaVariedad): void {
+    const fruta = this.selectedFruta();
+    if (!fruta) return;
+
+    const op = variedad.isActive
+      ? this.frutaService.disableVariedad(variedad.id)
+      : this.frutaService.enableVariedad(variedad.id);
+
+    op.subscribe({
+      next: res => {
+        if (res.status) {
+          this.notification.success(variedad.isActive ? 'Variedad deshabilitada' : 'Variedad habilitada');
+          this.loadVariedades(fruta.id);
+        }
+      },
+      error: () => this.notification.error('Error al cambiar estado')
+    });
+  }
+
   hasError(field: string): boolean {
     const control = this.form.get(field);
+    return !!(control?.invalid && control?.touched);
+  }
+
+  hasVariedadError(field: string): boolean {
+    const control = this.variedadForm.get(field);
     return !!(control?.invalid && control?.touched);
   }
 }

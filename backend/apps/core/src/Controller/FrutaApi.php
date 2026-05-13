@@ -9,7 +9,13 @@ use App\apps\core\Service\Fruta\Dto\FrutaDto;
 use App\apps\core\Service\Fruta\Dto\FrutaDtoTransformer;
 use App\apps\core\Service\Fruta\GetFrutasService;
 use App\apps\core\Service\Fruta\GetFrutasShared;
+use App\apps\core\Service\FrutaVariedad\ChangeStateFrutaVariedadService;
+use App\apps\core\Service\FrutaVariedad\CreateFrutaVariedadService;
+use App\apps\core\Service\FrutaVariedad\Dto\FrutaVariedadDto;
+use App\apps\core\Service\FrutaVariedad\Dto\FrutaVariedadDtoTransformer;
+use App\apps\core\Service\FrutaVariedad\GetFrutaVariedadesService;
 use App\shared\Api\AbstractSerializerApi;
+use App\shared\Doctrine\UidType;
 use App\shared\Service\Dto\FilterDto;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
@@ -86,9 +92,59 @@ class FrutaApi extends AbstractSerializerApi
         GetFrutasShared $service
     ): Response
     {
-        return $this->ok(['items'=>$service->execute()]);
+        return $this->ok(['items' => $service->execute()]);
     }
 
+    #[Route('/{id}/variedades', name: 'fruta_variedad_list', requirements: ['id' => UidType::REGEX], methods: ['GET'])]
+    public function variedadesList(
+        string $id,
+        GetFrutaVariedadesService $service,
+    ): Response
+    {
+        return $this->ok($service->execute($id));
+    }
 
+    #[Route('/{id}/variedades', name: 'fruta_variedad_create', requirements: ['id' => UidType::REGEX], methods: ['POST'])]
+    public function variedadCreate(
+        string $id,
+        #[MapRequestPayload]
+        FrutaVariedadDto $dto,
+        CreateFrutaVariedadService $service,
+        FrutaVariedadDtoTransformer $transformer,
+    ): Response
+    {
+        $variedad = $service->execute($id, $dto);
+        return $this->ok([
+            'message' => 'Variedad creada',
+            'item' => $transformer->fromObject($variedad),
+        ]);
+    }
 
+    #[Route('/variedades/{id}/enable', name: 'fruta_variedad_enable', requirements: ['id' => UidType::REGEX], methods: ['PATCH'])]
+    public function variedadEnable(
+        string $id,
+        ChangeStateFrutaVariedadService $service,
+        FrutaVariedadDtoTransformer $transformer,
+    ): Response
+    {
+        $variedad = $service->execute($id, true);
+        return $this->ok([
+            'message' => 'Variedad habilitada',
+            'item' => $transformer->fromObject($variedad),
+        ]);
+    }
+
+    #[Route('/variedades/{id}/disable', name: 'fruta_variedad_disable', requirements: ['id' => UidType::REGEX], methods: ['PATCH'])]
+    public function variedadDisable(
+        string $id,
+        ChangeStateFrutaVariedadService $service,
+        FrutaVariedadDtoTransformer $transformer,
+    ): Response
+    {
+        $variedad = $service->execute($id, false);
+        return $this->ok([
+            'message' => 'Variedad deshabilitada',
+            'item' => $transformer->fromObject($variedad),
+        ]);
+    }
 }

@@ -2,11 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '@env/environment.development';
 import { ApiListResponse, ApiResponse, FilterParams } from '@core/models/api.model';
-import { Fruit } from '@core/models/core.model';
+import { Fruit, FrutaVariedad } from '@core/models/core.model';
 import { RefDataService } from '@core/services/ref-data.service';
 
 export interface FrutaCreateDto {
   codigo: string;
+  nombre: string;
+}
+
+export interface FrutaVariedadCreateDto {
   nombre: string;
 }
 
@@ -43,5 +47,21 @@ export class FrutaService {
 
   disable(id: string) {
     return this.http.patch<ApiResponse<Fruit>>(`${this.url}/${id}/disable`, {});
+  }
+
+  getVariedades(frutaId: string) {
+    return this.http.get<{ status: boolean; items: FrutaVariedad[] }>(`${this.url}/${frutaId}/variedades`);
+  }
+
+  createVariedad(frutaId: string, data: FrutaVariedadCreateDto) {
+    return this.http.post<ApiResponse<FrutaVariedad>>(`${this.url}/${frutaId}/variedades`, data);
+  }
+
+  enableVariedad(id: string) {
+    return this.http.patch<ApiResponse<FrutaVariedad>>(`${this.url}/variedades/${id}/enable`, {});
+  }
+
+  disableVariedad(id: string) {
+    return this.http.patch<ApiResponse<FrutaVariedad>>(`${this.url}/variedades/${id}/disable`, {});
   }
 }

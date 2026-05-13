@@ -17,6 +17,10 @@ export interface Fruit {
   id: string; codigo: string; nombre: string; isActive: boolean;
 }
 
+export interface FrutaVariedad {
+  id: string; nombre: string; frutaId: string; frutaNombre: string; isActive: boolean;
+}
+
 // Parámetro (árbol: parentId puede ser null)
 export interface Parameter {
   id: string; name: string; alias: string; value: number | string | null;

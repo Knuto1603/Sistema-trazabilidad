@@ -22,6 +22,9 @@ final readonly class GetSharedCampahnaService
                 'id' => UidType::toString($item['id']),
                 'nombre' => $item['nombre'],
                 'fechaInicio' => $item['fechaInicio'],
+                'sede' => $item['sede'],
+                'frutaId' => UidType::toString($item['frutaId']),
+                'frutaNombre' => $item['frutaNombre'],
             ];
         }, $items);
     }

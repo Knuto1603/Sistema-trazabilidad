@@ -379,16 +379,37 @@ export class ReporteFacturacionComponent implements OnInit {
     this.archivoService.getByFactura(factura.id).subscribe({
       next: res => {
         this.loadingPdf.set(null);
-        const pdfs = (res.items ?? []).filter(a => a.tipoArchivo === 'FACTURA_PDF' || a.tipoArchivo === 'GUIA_PDF');
-        if (pdfs.length === 0) {
-          this.notification.error('No hay PDF vinculado a esta factura');
+        const items = res.items ?? [];
+        const pdf = items.find(a => a.tipoArchivo === 'FACTURA_PDF' || a.tipoArchivo === 'GUIA_PDF');
+        if (pdf) {
+          this.viewingArchivo.set(pdf);
           return;
         }
-        this.viewingArchivo.set(pdfs[0]);
+        const xml = items.find(a => a.tipoArchivo === 'FACTURA_XML' || a.tipoArchivo === 'GUIA_XML');
+        if (xml) {
+          this.loadingPdf.set(xml.id);
+          this.archivoService.download(xml.id).subscribe({
+            next: blob => {
+              this.loadingPdf.set(null);
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = xml.nombre;
+              a.click();
+              URL.revokeObjectURL(url);
+            },
+            error: () => {
+              this.loadingPdf.set(null);
+              this.notification.error('Error al descargar el archivo');
+            },
+          });
+          return;
+        }
+        this.notification.error('No hay archivos vinculados a esta factura');
       },
       error: () => {
         this.loadingPdf.set(null);
-        this.notification.error('Error al buscar el PDF');
+        this.notification.error('Error al buscar el archivo');
       },
     });
   }

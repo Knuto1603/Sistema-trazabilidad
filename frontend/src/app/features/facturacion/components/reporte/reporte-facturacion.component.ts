@@ -378,38 +378,32 @@ export class ReporteFacturacionComponent implements OnInit {
     this.loadingPdf.set(factura.id);
     this.archivoService.getByFactura(factura.id).subscribe({
       next: res => {
-        this.loadingPdf.set(null);
-        const items = res.items ?? [];
-        const pdf = items.find(a => a.tipoArchivo === 'FACTURA_PDF' || a.tipoArchivo === 'GUIA_PDF');
+        const pdf = (res.items ?? []).find(a => a.tipoArchivo === 'FACTURA_PDF' || a.tipoArchivo === 'GUIA_PDF');
         if (pdf) {
+          this.loadingPdf.set(null);
           this.viewingArchivo.set(pdf);
           return;
         }
-        const xml = items.find(a => a.tipoArchivo === 'FACTURA_XML' || a.tipoArchivo === 'GUIA_XML');
-        if (xml) {
-          this.loadingPdf.set(xml.id);
-          this.archivoService.download(xml.id).subscribe({
-            next: blob => {
-              this.loadingPdf.set(null);
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = xml.nombre;
-              a.click();
-              URL.revokeObjectURL(url);
-            },
-            error: () => {
-              this.loadingPdf.set(null);
-              this.notification.error('Error al descargar el archivo');
-            },
-          });
-          return;
-        }
-        this.notification.error('No hay archivos vinculados a esta factura');
+        // PDFs pueden estar vinculados al despacho sin facturaId — buscar ahí
+        this.archivoService.getByDespacho(factura.despachoId).subscribe({
+          next: res2 => {
+            this.loadingPdf.set(null);
+            const pdfDespacho = (res2.items ?? []).find(a => a.tipoArchivo === 'FACTURA_PDF' || a.tipoArchivo === 'GUIA_PDF');
+            if (pdfDespacho) {
+              this.viewingArchivo.set(pdfDespacho);
+            } else {
+              this.notification.error('No hay PDF vinculado a esta factura');
+            }
+          },
+          error: () => {
+            this.loadingPdf.set(null);
+            this.notification.error('Error al buscar el PDF');
+          },
+        });
       },
       error: () => {
         this.loadingPdf.set(null);
-        this.notification.error('Error al buscar el archivo');
+        this.notification.error('Error al buscar el PDF');
       },
     });
   }

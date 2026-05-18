@@ -92,6 +92,7 @@ export class DespachosListComponent implements OnInit {
 
   newClienteRuc = signal('');
   newClienteRazonSocial = signal('');
+  newClienteSunatData = signal<any>(null);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -211,6 +212,7 @@ export class DespachosListComponent implements OnInit {
     this.proximoNumeroCliente.set(null);
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
+    this.newClienteSunatData.set(null);
     this.showNewClientePanel.set(false);
     this.clienteSelected.set(null);
     this.clienteSearch.set('');
@@ -264,6 +266,7 @@ export class DespachosListComponent implements OnInit {
     this.operaciones.set([]);
     this.newClienteRuc.set('');
     this.newClienteRazonSocial.set('');
+    this.newClienteSunatData.set(null);
     this.showNewClientePanel.set(false);
     this.clienteSelected.set(null);
     this.clienteSearch.set('');
@@ -348,8 +351,18 @@ export class DespachosListComponent implements OnInit {
       next: res => {
         if (res.status && res.item) {
           const d = res.item as any;
-          this.newClienteRazonSocial.set(d.razonSocial ?? d.nombre ?? '');
-          this.notification.success('Datos cargados desde SUNAT');
+          if (d.id) {
+            this.selectCliente(d);
+            this.newClienteRuc.set('');
+            this.newClienteRazonSocial.set('');
+            this.newClienteSunatData.set(null);
+            this.showNewClientePanel.set(false);
+            this.notification.success(`Cliente encontrado: ${d.razonSocial}`);
+          } else {
+            this.newClienteSunatData.set(d);
+            this.newClienteRazonSocial.set(d.razonSocial ?? d.nombre ?? '');
+            this.notification.success('Datos cargados desde SUNAT. Presione Guardar para registrar.');
+          }
         } else {
           this.notification.error('RUC no encontrado');
         }
@@ -365,7 +378,19 @@ export class DespachosListComponent implements OnInit {
     if (!/^\d{11}$/.test(ruc)) { this.notification.error('El RUC debe tener 11 dígitos'); return; }
     if (!razonSocial) { this.notification.error('La razón social es obligatoria'); return; }
     this.savingCliente.set(true);
-    const dto: ClienteCreateDto = { ruc, razonSocial };
+    const sunat = this.newClienteSunatData();
+    const dto: ClienteCreateDto = {
+      ruc,
+      razonSocial,
+      nombreComercial: sunat?.nombreComercial ?? undefined,
+      direccion: sunat?.direccion ?? undefined,
+      departamento: sunat?.departamento ?? undefined,
+      provincia: sunat?.provincia ?? undefined,
+      distrito: sunat?.distrito ?? undefined,
+      estado: sunat?.estado ?? undefined,
+      condicion: sunat?.condicion ?? undefined,
+      tipoContribuyente: sunat?.tipoContribuyente ?? undefined,
+    };
     this.clienteService.create(dto).subscribe({
       next: res => {
         if (res.status && res.item) {
@@ -373,6 +398,7 @@ export class DespachosListComponent implements OnInit {
           this.selectCliente(res.item);
           this.newClienteRuc.set('');
           this.newClienteRazonSocial.set('');
+          this.newClienteSunatData.set(null);
           this.showNewClientePanel.set(false);
         }
         this.savingCliente.set(false);

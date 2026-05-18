@@ -74,7 +74,9 @@ export class DespachoDetailComponent implements OnInit {
 
   // Cliente de facturación diferente al del despacho
   buscandoClienteFactura = signal(false);
+  guardandoClienteFactura = signal(false);
   clienteFacturaSeleccionado = signal<Cliente | null>(null);
+  sunatDataFactura = signal<any>(null);
   rucClienteFacturaInput = signal('');
 
   showFacturaModal = signal(false);
@@ -227,6 +229,7 @@ export class DespachoDetailComponent implements OnInit {
     const contenedor = d?.contenedor ?? '';
     this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', tipoOperacion, contenedor, clienteFacturaId: null });
     this.clienteFacturaSeleccionado.set(null);
+    this.sunatDataFactura.set(null);
     this.rucClienteFacturaInput.set('');
     this.editingFacturaId.set(null);
     this.showFacturaModal.set(true);
@@ -279,6 +282,7 @@ export class DespachoDetailComponent implements OnInit {
     this.showFacturaModal.set(false);
     this.facturaForm.reset({ tipoDocumento: '01', moneda: 'USD', unidadMedida: 'TNE', clienteFacturaId: null });
     this.clienteFacturaSeleccionado.set(null);
+    this.sunatDataFactura.set(null);
     this.rucClienteFacturaInput.set('');
     this.editingFacturaId.set(null);
   }
@@ -965,26 +969,25 @@ export class DespachoDetailComponent implements OnInit {
     const ruc = this.rucClienteFacturaInput().trim();
     if (ruc.length < 11) return;
     this.buscandoClienteFactura.set(true);
+    this.sunatDataFactura.set(null);
     this.clienteService.searchByRuc(ruc).subscribe({
       next: res => {
         if (res.status && res.item) {
           const c = res.item as any;
-          if (!c.id) {
-            this.notification.error('El RUC no está registrado como cliente en el sistema. Regístrelo primero en Clientes.');
-            this.clienteFacturaSeleccionado.set(null);
-            this.facturaForm.patchValue({ clienteFacturaId: null });
-            this.buscandoClienteFactura.set(false);
-            return;
+          if (c.id) {
+            const clienteEncontrado: Cliente = {
+              id: c.id,
+              ruc: c.ruc ?? ruc,
+              razonSocial: c.razonSocial ?? '',
+              isActive: c.isActive ?? true,
+            };
+            this.clienteFacturaSeleccionado.set(clienteEncontrado);
+            this.facturaForm.patchValue({ clienteFacturaId: clienteEncontrado.id });
+            this.notification.success(`Cliente encontrado: ${clienteEncontrado.razonSocial}`);
+          } else {
+            this.sunatDataFactura.set(c);
+            this.notification.info('RUC encontrado en SUNAT. Presione Guardar cliente para registrarlo.');
           }
-          const clienteEncontrado: Cliente = {
-            id: c.id,
-            ruc: c.ruc ?? ruc,
-            razonSocial: c.razonSocial ?? '',
-            isActive: c.isActive ?? true,
-          };
-          this.clienteFacturaSeleccionado.set(clienteEncontrado);
-          this.facturaForm.patchValue({ clienteFacturaId: clienteEncontrado.id });
-          this.notification.success(`Cliente encontrado: ${clienteEncontrado.razonSocial}`);
         } else {
           this.notification.error('RUC no encontrado en el sistema ni en SUNAT');
           this.clienteFacturaSeleccionado.set(null);
@@ -999,8 +1002,42 @@ export class DespachoDetailComponent implements OnInit {
     });
   }
 
+  guardarClienteFactura(): void {
+    const sunat = this.sunatDataFactura();
+    const ruc = this.rucClienteFacturaInput().trim();
+    if (!sunat || !ruc) return;
+    this.guardandoClienteFactura.set(true);
+    const dto = {
+      ruc,
+      razonSocial: sunat.razonSocial ?? sunat.nombre ?? '',
+      nombreComercial: sunat.nombreComercial ?? undefined,
+      direccion: sunat.direccion ?? undefined,
+      departamento: sunat.departamento ?? undefined,
+      provincia: sunat.provincia ?? undefined,
+      distrito: sunat.distrito ?? undefined,
+      estado: sunat.estado ?? undefined,
+      condicion: sunat.condicion ?? undefined,
+      tipoContribuyente: sunat.tipoContribuyente ?? undefined,
+    };
+    this.clienteService.create(dto).subscribe({
+      next: res => {
+        if (res.status && res.item) {
+          const c = res.item as any;
+          const clienteCreado: Cliente = { id: c.id, ruc: c.ruc, razonSocial: c.razonSocial, isActive: true };
+          this.clienteFacturaSeleccionado.set(clienteCreado);
+          this.facturaForm.patchValue({ clienteFacturaId: clienteCreado.id });
+          this.sunatDataFactura.set(null);
+          this.notification.success(`Cliente registrado: ${clienteCreado.razonSocial}`);
+        }
+        this.guardandoClienteFactura.set(false);
+      },
+      error: () => this.guardandoClienteFactura.set(false),
+    });
+  }
+
   limpiarClienteFactura(): void {
     this.clienteFacturaSeleccionado.set(null);
+    this.sunatDataFactura.set(null);
     this.rucClienteFacturaInput.set('');
     this.facturaForm.patchValue({ clienteFacturaId: null });
   }

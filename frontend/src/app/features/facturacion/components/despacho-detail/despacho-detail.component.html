@@ -641,6 +641,24 @@
                   }
                 </button>
               </div>
+              @if (sunatDataFactura()) {
+                <div class="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div>
+                    <p class="text-xs font-bold text-blue-800">{{ sunatDataFactura().razonSocial }}</p>
+                    <p class="text-xs text-blue-500 font-mono">{{ sunatDataFactura().ruc ?? rucClienteFacturaInput() }}</p>
+                  </div>
+                  <button type="button" (click)="guardarClienteFactura()"
+                    [disabled]="guardandoClienteFactura()"
+                    class="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5">
+                    @if (guardandoClienteFactura()) {
+                      <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                      Guardando...
+                    } @else {
+                      Guardar cliente
+                    }
+                  </button>
+                </div>
+              }
             }
           </div>
 

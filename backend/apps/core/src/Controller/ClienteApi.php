@@ -2,6 +2,7 @@
 
 namespace App\apps\core\Controller;
 
+use App\apps\core\Repository\ClienteRepository;
 use App\apps\core\Service\ApispEru\ApispEruService;
 use App\apps\core\Service\Cliente\ChangeStateClienteService;
 use App\apps\core\Service\Cliente\CreateClienteService;
@@ -51,17 +52,43 @@ class ClienteApi extends AbstractSerializerApi
     public function searchRuc(
         string $ruc,
         ApispEruService $apispEruService,
+        ClienteRepository $clienteRepository,
+        ClienteDtoTransformer $transformer,
+        CreateClienteService $createService,
     ): Response {
+        $cliente = $clienteRepository->findByRuc($ruc);
+        if ($cliente !== null) {
+            return $this->ok([
+                'message' => 'Cliente encontrado en el sistema',
+                'item' => $transformer->fromObject($cliente),
+            ]);
+        }
+
         try {
             $data = $apispEruService->consultarRuc($ruc);
-
-            return $this->ok([
-                'message' => 'RUC encontrado',
-                'item' => $data,
-            ]);
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage());
         }
+
+        $dto = new ClienteDto(
+            ruc: $data['ruc'] ?? $ruc,
+            razonSocial: $data['razonSocial'] ?? '',
+            nombreComercial: $data['nombreComercial'] ?? null,
+            direccion: $data['direccion'] ?? null,
+            departamento: $data['departamento'] ?? null,
+            provincia: $data['provincia'] ?? null,
+            distrito: $data['distrito'] ?? null,
+            estado: $data['estado'] ?? null,
+            condicion: $data['condicion'] ?? null,
+            tipoContribuyente: $data['tipoContribuyente'] ?? null,
+        );
+
+        $cliente = $createService->execute($dto);
+
+        return $this->ok([
+            'message' => 'Cliente registrado automáticamente desde SUNAT',
+            'item' => $transformer->fromObject($cliente),
+        ]);
     }
 
     #[Route('/{id}', name: 'cliente_view', requirements: ['id' => UidType::REGEX], methods: ['GET'])]

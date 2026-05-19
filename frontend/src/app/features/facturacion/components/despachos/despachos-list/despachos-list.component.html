@@ -9,6 +9,16 @@
   <div class="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
     <input type="text" placeholder="Buscar por cliente, contenedor..." [value]="search()" (input)="onSearch($event)"
       class="w-full sm:w-64 px-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-semibold text-slate-400 shrink-0">Desde</span>
+      <input type="date" [value]="fechaDesde()" (change)="onFechaDesdeChange($event)"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-semibold text-slate-400 shrink-0">Hasta</span>
+      <input type="date" [value]="fechaHasta()" (change)="onFechaHastaChange($event)"
+        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+    </div>
   </div>
 
   <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -22,6 +32,7 @@
             <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden md:table-cell">N° Cliente</th>
             <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider">Sede</th>
             <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden lg:table-cell">Contenedor</th>
+            <th class="px-4 py-3 text-left font-bold text-slate-600 text-xs uppercase tracking-wider hidden xl:table-cell">Fecha</th>
             <th class="px-4 py-3 text-right font-bold text-slate-600 text-xs uppercase tracking-wider">Acciones</th>
           </tr>
         </thead>
@@ -35,11 +46,12 @@
                 <td class="px-4 py-3 hidden md:table-cell"><div class="h-4 bg-slate-200 rounded w-12"></div></td>
                 <td class="px-4 py-3"><div class="h-4 bg-slate-200 rounded w-16"></div></td>
                 <td class="px-4 py-3 hidden lg:table-cell"><div class="h-4 bg-slate-200 rounded w-24"></div></td>
+                <td class="px-4 py-3 hidden xl:table-cell"><div class="h-4 bg-slate-200 rounded w-20"></div></td>
                 <td class="px-4 py-3"><div class="h-8 bg-slate-200 rounded w-16 ml-auto"></div></td>
               </tr>
             }
           } @else if (items().length === 0) {
-            <tr><td colspan="7" class="px-4 py-12 text-center text-sm text-slate-400">No se encontraron despachos</td></tr>
+            <tr><td colspan="8" class="px-4 py-12 text-center text-sm text-slate-400">No se encontraron despachos</td></tr>
           } @else {
             @for (item of items(); track item.id) {
               <tr class="hover:bg-slate-50 transition-colors cursor-pointer" (click)="verDetalle(item)">
@@ -61,6 +73,7 @@
                   }
                 </td>
                 <td class="px-4 py-3 hidden lg:table-cell text-slate-500 text-xs font-mono">{{ item.contenedor ?? '-' }}</td>
+                <td class="px-4 py-3 hidden xl:table-cell text-slate-500 text-xs">{{ item.fechaDespacho ?? '-' }}</td>
                 <td class="px-4 py-3" (click)="$event.stopPropagation()">
                   <div class="flex items-center justify-end gap-1">
                     <button (click)="verDetalle(item)" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Ver detalle">

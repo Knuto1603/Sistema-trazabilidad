@@ -18,6 +18,8 @@ class DespachoFilterDto extends FilterDto
         public ?string $sede = null,
         #[Uid]
         public ?string $campanhaId = null,
+        public ?string $fechaDesde = null,
+        public ?string $fechaHasta = null,
     ) {
         parent::__construct($page, $itemsPerPage, $search, $sort, $direction);
     }

@@ -45,6 +45,8 @@ export class DespachosListComponent implements OnInit {
   loading = signal(false);
   saving = signal(false);
   search = signal('');
+  fechaDesde = signal('');
+  fechaHasta = signal('');
   currentPage = signal(0);
   itemsPerPage = signal(10);
 
@@ -101,6 +103,8 @@ export class DespachosListComponent implements OnInit {
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
     this.search.set(qp.get('q') ?? '');
+    this.fechaDesde.set(qp.get('desde') ?? '');
+    this.fechaHasta.set(qp.get('hasta') ?? '');
     this.currentPage.set(Number(qp.get('page') ?? 0));
     const size = Number(qp.get('size') ?? 10);
     this.itemsPerPage.set(this.PAGE_SIZES.includes(size) ? size : 10);
@@ -116,6 +120,8 @@ export class DespachosListComponent implements OnInit {
   private syncQueryParams(): void {
     const params: Record<string, string> = {};
     if (this.search()) params['q'] = this.search();
+    if (this.fechaDesde()) params['desde'] = this.fechaDesde();
+    if (this.fechaHasta()) params['hasta'] = this.fechaHasta();
     if (this.currentPage()) params['page'] = String(this.currentPage());
     if (this.itemsPerPage() !== 10) params['size'] = String(this.itemsPerPage());
     this.router.navigate([], { relativeTo: this.route, queryParams: params, replaceUrl: true });
@@ -131,6 +137,8 @@ export class DespachosListComponent implements OnInit {
     this.loading.set(true);
     const params: any = { page: this.currentPage(), itemsPerPage: this.itemsPerPage(), search: this.search() };
     params['campanhaId'] = campanhaId;
+    if (this.fechaDesde()) params['fechaDesde'] = this.fechaDesde();
+    if (this.fechaHasta()) params['fechaHasta'] = this.fechaHasta();
 
     this.despachoService.getAll(params).subscribe({
       next: res => {
@@ -145,6 +153,20 @@ export class DespachosListComponent implements OnInit {
     this.search.set((event.target as HTMLInputElement).value);
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => { this.currentPage.set(0); this.syncQueryParams(); this.load(); }, 400);
+  }
+
+  onFechaDesdeChange(event: Event): void {
+    this.fechaDesde.set((event.target as HTMLInputElement).value);
+    this.currentPage.set(0);
+    this.syncQueryParams();
+    this.load();
+  }
+
+  onFechaHastaChange(event: Event): void {
+    this.fechaHasta.set((event.target as HTMLInputElement).value);
+    this.currentPage.set(0);
+    this.syncQueryParams();
+    this.load();
   }
 
   onPageChange(page: number): void { this.currentPage.set(page); this.syncQueryParams(); this.load(); }

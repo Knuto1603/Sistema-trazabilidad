@@ -64,6 +64,20 @@ final readonly class GetDespachosService
                     ['campanhaId' => UidType::NAME]
                 ));
             }
+
+            if ($filterDto->fechaDesde) {
+                $this->filterService->addFilter(new ConditionFilter(
+                    'despacho.fechaDespacho >= :fechaDesde',
+                    ['fechaDesde' => new \DateTimeImmutable($filterDto->fechaDesde)]
+                ));
+            }
+
+            if ($filterDto->fechaHasta) {
+                $this->filterService->addFilter(new ConditionFilter(
+                    'despacho.fechaDespacho <= :fechaHasta',
+                    ['fechaHasta' => new \DateTimeImmutable($filterDto->fechaHasta)]
+                ));
+            }
         }
 
         $sorting = SortingDto::create($filterDto->sort, $filterDto->direction);
